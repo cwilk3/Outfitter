@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { X, ImagePlus, Image, UploadCloud } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ImagePlus, X, ImageIcon, Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
   images: string[];
@@ -9,147 +11,143 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ 
-  images = [], 
-  onChange,
-  maxImages = 5
+  images, 
+  onChange, 
+  maxImages = 5 
 }: ImageUploadProps) {
-  const [dragActive, setDragActive] = useState(false);
-
-  // Process files (convert to base64)
-  const processFiles = (files: FileList) => {
-    if (!files || files.length === 0) return;
-    
-    // Check if we'd exceed the max images
-    if (images.length + files.length > maxImages) {
-      alert(`You can only upload a maximum of ${maxImages} images`);
-      return;
-    }
-    
-    // Convert to array to iterate
-    Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) return;
-      
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target && typeof event.target.result === 'string') {
-          onChange([...images, event.target.result]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = React.useState(false);
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(true);
   };
   
-  // Handlers for drag and drop
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+  const handleDragLeave = () => {
+    setDragging(false);
   };
   
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+    setDragging(false);
+    
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
+      handleFiles(e.dataTransfer.files);
     }
   };
   
-  // Handle file input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      processFiles(e.target.files);
+      handleFiles(e.target.files);
     }
   };
   
-  // Remove an image
+  const handleFiles = (files: FileList) => {
+    if (images.length >= maxImages) {
+      alert(`You can only upload a maximum of ${maxImages} images.`);
+      return;
+    }
+    
+    const newImagesCount = Math.min(files.length, maxImages - images.length);
+    const newImages: string[] = [];
+    
+    for (let i = 0; i < newImagesCount; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result.toString());
+            
+            // If we've processed all files, update the state
+            if (newImages.length === newImagesCount) {
+              onChange([...images, ...newImages]);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+  
   const removeImage = (index: number) => {
     const newImages = [...images];
     newImages.splice(index, 1);
     onChange(newImages);
   };
-
+  
   return (
     <div className="space-y-4">
-      {/* Existing images */}
+      {/* Drag and Drop Area */}
+      <div
+        className={cn(
+          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+          dragging ? "border-primary bg-primary/5" : "border-gray-300 bg-gray-50/50",
+          images.length >= maxImages && "opacity-50 pointer-events-none"
+        )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={handleClick}
+      >
+        <div className="flex flex-col items-center justify-center">
+          <ImagePlus className="h-10 w-10 text-gray-400 mb-2" />
+          <p className="text-sm font-medium mb-1">
+            {images.length >= maxImages ? (
+              <span className="text-muted-foreground">Maximum images reached</span>
+            ) : (
+              <span>
+                Drag &amp; drop images here or <span className="text-primary">browse</span>
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {images.length} of {maxImages} images
+          </p>
+        </div>
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+          disabled={images.length >= maxImages}
+        />
+      </div>
+      
+      {/* Image Preview */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {images.map((image, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {images.map((img, index) => (
             <div 
-              key={i} 
-              className="relative group aspect-square rounded-md overflow-hidden border"
+              key={index} 
+              className="relative group aspect-square overflow-hidden rounded-md border"
             >
               <img 
-                src={image} 
-                alt={`Uploaded image ${i+1}`}
-                className="w-full h-full object-cover" 
+                src={img} 
+                alt={`Uploaded image ${index + 1}`} 
+                className="w-full h-full object-cover"
               />
-              <button
-                type="button" 
-                onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm opacity-70 hover:opacity-100 transition-opacity"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full bg-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage(index);
+                  }}
+                >
+                  <X className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
             </div>
           ))}
-        </div>
-      )}
-      
-      {/* Upload area */}
-      {images.length < maxImages && (
-        <div 
-          className={`border-2 border-dashed rounded-lg p-6 transition-all
-          ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 bg-gray-50/50'}
-          flex flex-col items-center justify-center text-center`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <div className="mb-3">
-            {images.length === 0 ? (
-              <ImagePlus className="mx-auto h-10 w-10 text-gray-400" />
-            ) : (
-              <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
-            )}
-          </div>
-          
-          <div className="mb-4 space-y-1">
-            <p className="text-sm font-medium text-gray-600">
-              {images.length === 0 ? 'Add Photos' : 'Add More Photos'}
-            </p>
-            <p className="text-xs text-gray-500">
-              Drag and drop, or click to select files
-            </p>
-            <p className="text-xs text-gray-500">
-              {images.length} of {maxImages} images
-            </p>
-          </div>
-          
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => document.getElementById('image-upload')?.click()}
-          >
-            <Image className="h-4 w-4 mr-2" />
-            Browse Files
-          </Button>
-          
-          <input 
-            id="image-upload"
-            type="file" 
-            multiple 
-            accept="image/*"
-            className="hidden"
-            onChange={handleChange}
-          />
         </div>
       )}
     </div>

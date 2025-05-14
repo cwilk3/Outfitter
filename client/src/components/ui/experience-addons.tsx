@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Plus, ChevronsUpDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { PlusCircle, Tag, Trash2, DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface Addon {
   id?: number;
@@ -21,229 +21,166 @@ interface ExperienceAddonsProps {
 }
 
 export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProps) {
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<Addon>({
-    name: "",
-    description: "",
-    price: 0,
-    isOptional: true,
-  });
-
-  // Update form field
-  const updateField = (field: keyof Addon, value: any) => {
-    setFormData({ ...formData, [field]: value });
-  };
-
-  // Add new addon
-  const handleAddAddon = () => {
-    if (!formData.name || formData.price < 0) {
-      return; // Simple validation
-    }
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [price, setPrice] = React.useState<number | "">(0);
+  const [isOptional, setIsOptional] = React.useState(true);
+  
+  const addAddon = () => {
+    if (!name || price === "") return;
     
-    onChange([...addons, { ...formData, id: Date.now() }]);
-    setFormData({
-      name: "",
-      description: "",
-      price: 0,
-      isOptional: true,
-    });
-    setShowForm(false);
+    const newAddon: Addon = {
+      name,
+      description,
+      price: Number(price),
+      isOptional
+    };
+    
+    onChange([...addons, newAddon]);
+    
+    // Reset form
+    setName("");
+    setDescription("");
+    setPrice(0);
+    setIsOptional(true);
   };
-
-  // Remove an addon
+  
   const removeAddon = (index: number) => {
     const newAddons = [...addons];
     newAddons.splice(index, 1);
     onChange(newAddons);
   };
-
-  // Move addon up or down in the list
-  const moveAddon = (index: number, direction: 'up' | 'down') => {
-    if (
-      (direction === 'up' && index === 0) || 
-      (direction === 'down' && index === addons.length - 1)
-    ) {
-      return;
-    }
-    
-    const newAddons = [...addons];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    [newAddons[index], newAddons[targetIndex]] = 
-      [newAddons[targetIndex], newAddons[index]];
-    
-    onChange(newAddons);
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(price);
   };
-
+  
   return (
-    <div className="space-y-4">
-      {/* Existing addons */}
-      {addons.length > 0 && (
-        <div className="space-y-3">
-          {addons.map((addon, index) => (
-            <Card key={index} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">{addon.name}</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {addon.description}
-                        </p>
-                      </div>
-                      <div className="ml-4 flex-shrink-0">
-                        <span className="font-medium text-sm">
-                          ${addon.price.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`addon-optional-${index}`}
-                        checked={addon.isOptional}
-                        onCheckedChange={(checked) => {
-                          const newAddons = [...addons];
-                          newAddons[index].isOptional = !!checked;
-                          onChange(newAddons);
-                        }}
-                      />
-                      <label 
-                        htmlFor={`addon-optional-${index}`}
-                        className="text-sm text-muted-foreground"
-                      >
-                        Optional add-on
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1 ml-4">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={index === 0}
-                      className="h-8 w-8 p-0"
-                      onClick={() => moveAddon(index, 'up')}
-                    >
-                      <span className="sr-only">Move up</span>
-                      <ChevronsUpDown className="h-4 w-4 rotate-180" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={index === addons.length - 1}
-                      className="h-8 w-8 p-0"
-                      onClick={() => moveAddon(index, 'down')}
-                    >
-                      <span className="sr-only">Move down</span>
-                      <ChevronsUpDown className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive/90"
-                      onClick={() => removeAddon(index)}
-                    >
-                      <span className="sr-only">Remove</span>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Add new addon form */}
-      {showForm ? (
-        <div className="border rounded-md p-4 space-y-4">
-          <h4 className="font-medium text-sm">Add New Add-on</h4>
-          
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="addon-name">Name</Label>
-              <Input
+    <div className="space-y-6">
+      {/* Add-ons Form */}
+      <div className="space-y-4 p-4 border rounded-md bg-muted/20">
+        <h4 className="text-sm font-medium mb-1">Add New Add-on</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="addon-name">Name</Label>
+            <div className="mt-1 flex items-center">
+              <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+              <Input 
                 id="addon-name"
-                placeholder="e.g., Gun Rental, Extra Ammo"
-                value={formData.name}
-                onChange={(e) => updateField('name', e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Equipment Rental"
+                className="flex-1"
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="addon-description">Description (optional)</Label>
-              <Textarea
-                id="addon-description"
-                placeholder="Describe the add-on..."
-                value={formData.description}
-                onChange={(e) => updateField('description', e.target.value)}
-                rows={2}
+          </div>
+          
+          <div>
+            <Label htmlFor="addon-price">Price</Label>
+            <div className="mt-1 flex items-center">
+              <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+              <Input 
+                id="addon-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="0.00"
+                className="flex-1"
               />
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="addon-price">Price ($)</Label>
-                <Input
-                  id="addon-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => updateField('price', parseFloat(e.target.value) || 0)}
-                />
+          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="addon-description">Description</Label>
+          <Textarea 
+            id="addon-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what this add-on includes"
+            className="resize-none"
+            rows={2}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="addon-optional" 
+              checked={isOptional}
+              onCheckedChange={setIsOptional}
+            />
+            <Label htmlFor="addon-optional" className="cursor-pointer">
+              Optional (customers can choose to add)
+            </Label>
+          </div>
+          
+          <Button 
+            onClick={addAddon}
+            type="button"
+            disabled={!name || price === ""}
+            size="sm"
+          >
+            <PlusCircle className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
+      </div>
+      
+      {/* List of Add-ons */}
+      {addons.length > 0 ? (
+        <div className="border rounded-md divide-y">
+          {addons.map((addon, index) => (
+            <div key={index} className="p-4 flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium">{addon.name}</h4>
+                  <span className="text-sm font-medium text-primary">
+                    {formatPrice(addon.price)}
+                  </span>
+                  <span 
+                    className={cn(
+                      "text-xs rounded-full px-2 py-0.5",
+                      addon.isOptional 
+                        ? "bg-blue-100 text-blue-700" 
+                        : "bg-amber-100 text-amber-700"
+                    )}
+                  >
+                    {addon.isOptional ? "Optional" : "Required"}
+                  </span>
+                </div>
+                
+                {addon.description && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {addon.description}
+                  </p>
+                )}
               </div>
               
-              <div className="flex items-end pb-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="addon-optional"
-                    checked={formData.isOptional}
-                    onCheckedChange={(checked) => updateField('isOptional', !!checked)}
-                  />
-                  <label 
-                    htmlFor="addon-optional"
-                    className="text-sm text-muted-foreground"
-                  >
-                    Make this add-on optional
-                  </label>
-                </div>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-muted-foreground hover:text-destructive h-8 w-8"
+                onClick={() => removeAddon(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowForm(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              size="sm"
-              onClick={handleAddAddon}
-              disabled={!formData.name || formData.price < 0}
-            >
-              Add
-            </Button>
-          </div>
+          ))}
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Add-on
-        </Button>
+        <div className="text-center py-8 border border-dashed rounded-md bg-muted/30">
+          <Tag className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+          <h3 className="text-sm font-medium mb-1">No Add-ons Added</h3>
+          <p className="text-sm text-muted-foreground">
+            Create add-ons like equipment rental, guide fees, or meals
+          </p>
+        </div>
       )}
     </div>
   );
