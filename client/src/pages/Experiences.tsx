@@ -78,7 +78,8 @@ import {
   Tag,
   Check,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Info as InfoIcon
 } from "lucide-react";
 
 // Define form validation schema
