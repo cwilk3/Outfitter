@@ -793,6 +793,10 @@ export class MemStorage implements IStorage {
     return updatedExperience;
   }
 
+  async deleteExperience(id: number): Promise<void> {
+    this.experiences.delete(id);
+  }
+
   async listExperiences(): Promise<Experience[]> {
     return Array.from(this.experiences.values());
   }
