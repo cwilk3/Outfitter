@@ -585,6 +585,54 @@ export default function Experiences() {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="selectedLocationIds"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Available In</FormLabel>
+                    <div className="mb-2">
+                      <small className="text-sm text-gray-500">Select locations where this experience is available</small>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
+                      {locations && locations.length > 0 ? (
+                        locations.map((location: Location) => (
+                          <div key={location.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`location-${location.id}`}
+                              checked={form.getValues().selectedLocationIds?.includes(location.id)}
+                              onCheckedChange={(checked) => {
+                                const currentLocations = form.getValues().selectedLocationIds || [];
+                                const updatedLocations = checked 
+                                  ? [...currentLocations, location.id]
+                                  : currentLocations.filter(id => id !== location.id);
+                                
+                                form.setValue("selectedLocationIds", updatedLocations, { 
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                });
+                                
+                                // Update our state for tracking too
+                                setSelectedLocIds(updatedLocations);
+                              }}
+                            />
+                            <label 
+                              htmlFor={`location-${location.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {location.name} ({location.city}, {location.state})
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">No locations available. Create locations first.</p>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter>
                 <Button 
