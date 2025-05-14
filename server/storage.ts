@@ -1,10 +1,10 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
-  type Activity, type InsertActivity
+  type Activity, type InsertActivity, type Location, type InsertLocation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -17,12 +17,19 @@ export interface IStorage {
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   listUsers(role?: string): Promise<User[]>;
 
+  // Location operations
+  getLocation(id: number): Promise<Location | undefined>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
+  deleteLocation(id: number): Promise<void>;
+  listLocations(activeOnly?: boolean): Promise<Location[]>;
+
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
   createExperience(experience: InsertExperience): Promise<Experience>;
   updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
   deleteExperience(id: number): Promise<void>;
-  listExperiences(): Promise<Experience[]>;
+  listExperiences(locationId?: number): Promise<Experience[]>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -104,6 +111,46 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users);
   }
 
+  // Location operations
+  async getLocation(id: number): Promise<Location | undefined> {
+    const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location;
+  }
+  
+  async createLocation(locationData: InsertLocation): Promise<Location> {
+    const [location] = await db
+      .insert(locations)
+      .values(locationData)
+      .returning();
+    return location;
+  }
+  
+  async updateLocation(id: number, locationData: Partial<InsertLocation>): Promise<Location | undefined> {
+    const [location] = await db
+      .update(locations)
+      .set({
+        ...locationData,
+        updatedAt: new Date(),
+      })
+      .where(eq(locations.id, id))
+      .returning();
+    return location;
+  }
+  
+  async deleteLocation(id: number): Promise<void> {
+    await db.delete(locations).where(eq(locations.id, id));
+  }
+  
+  async listLocations(activeOnly: boolean = false): Promise<Location[]> {
+    let query = db.select().from(locations);
+    
+    if (activeOnly) {
+      query = query.where(eq(locations.isActive, true));
+    }
+    
+    return await query.orderBy(locations.name);
+  }
+
   // Experience operations
   async getExperience(id: number): Promise<Experience | undefined> {
     const [experience] = await db.select().from(experiences).where(eq(experiences.id, id));
@@ -131,8 +178,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(experiences).where(eq(experiences.id, id));
   }
 
-  async listExperiences(): Promise<Experience[]> {
-    return db.select().from(experiences);
+  async listExperiences(locationId?: number): Promise<Experience[]> {
+    let query = db.select().from(experiences);
+    
+    if (locationId) {
+      query = query.where(eq(experiences.locationId, locationId));
+    }
+    
+    return await query.orderBy(experiences.name);
   }
 
   // Customer operations
@@ -466,6 +519,7 @@ export class DatabaseStorage implements IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
@@ -477,6 +531,7 @@ export class MemStorage implements IStorage {
   
   private currentIds: {
     user: number;
+    location: number;
     experience: number;
     customer: number;
     booking: number;
