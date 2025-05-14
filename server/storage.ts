@@ -571,35 +571,68 @@ export class MemStorage implements IStorage {
   private seedData() {
     // Add an admin user
     const adminUser: InsertUser = {
-      username: 'admin',
-      password: 'admin123', // In a real app, this would be hashed
+      id: '1',
       firstName: 'John',
       lastName: 'Smith',
       email: 'admin@outfitter.com',
       role: 'admin',
     };
-    this.createUser(adminUser);
+    this.upsertUser(adminUser);
     
     // Add a guide user
     const guideUser: InsertUser = {
-      username: 'guide',
-      password: 'guide123', // In a real app, this would be hashed
+      id: '2',
       firstName: 'Mike',
       lastName: 'Johnson',
       email: 'mike@outfitter.com',
       role: 'guide',
     };
-    this.createUser(guideUser);
+    this.upsertUser(guideUser);
+    
+    // Add locations
+    const texasLocation: InsertLocation = {
+      name: 'Texas Ranch',
+      city: 'Austin',
+      state: 'TX',
+      address: '123 Ranch Road',
+      zip: '78701',
+      description: 'Our premier Texas hunting property with diverse game and scenic views.',
+      isActive: true
+    };
+    this.createLocation(texasLocation);
+    
+    const oklahomaLocation: InsertLocation = {
+      name: 'Oklahoma Lodge',
+      city: 'Broken Bow',
+      state: 'OK',
+      address: '456 Forest Drive',
+      zip: '74728',
+      description: 'Secluded Oklahoma lodge with access to pristine fishing lakes and hunting grounds.',
+      isActive: true
+    };
+    this.createLocation(oklahomaLocation);
+    
+    const kansasLocation: InsertLocation = {
+      name: 'Kansas Fields',
+      city: 'Wichita',
+      state: 'KS',
+      address: '789 Prairie Lane',
+      zip: '67202',
+      description: 'Expansive Kansas property featuring prime upland bird hunting.',
+      isActive: true
+    };
+    this.createLocation(kansasLocation);
     
     // Add experiences
     const duckHunt: InsertExperience = {
       name: 'Duck Hunt',
       description: 'An exciting duck hunting adventure in prime wetlands.',
       duration: 2,
-      price: 1200,
+      price: '1200',
       capacity: 4,
       location: 'Mountain Lake',
       category: 'duck_hunting',
+      locationId: 1 // Texas Ranch
     };
     this.createExperience(duckHunt);
     
@@ -607,10 +640,11 @@ export class MemStorage implements IStorage {
       name: 'Elk Hunt',
       description: 'Guided elk hunting in the mountains.',
       duration: 3,
-      price: 3500,
+      price: '3500',
       capacity: 2,
       location: 'Western Ridge',
       category: 'other_hunting',
+      locationId: 2 // Oklahoma Lodge
     };
     this.createExperience(elkHunt);
     
@@ -618,12 +652,37 @@ export class MemStorage implements IStorage {
       name: 'Bass Fishing',
       description: 'Guided bass fishing on our private lakes.',
       duration: 2,
-      price: 850,
+      price: '850',
       capacity: 3,
       location: 'Clear Lake',
       category: 'bass_fishing',
+      locationId: 3 // Kansas Fields
     };
     this.createExperience(bassFishing);
+    
+    const deerHunting: InsertExperience = {
+      name: 'Whitetail Deer Hunt',
+      description: 'Premium guided deer hunting experience.',
+      duration: 3,
+      price: '2500',
+      capacity: 4, 
+      location: 'Oak Forest',
+      category: 'deer_hunting',
+      locationId: 1 // Texas Ranch
+    };
+    this.createExperience(deerHunting);
+    
+    const flyfishing: InsertExperience = {
+      name: 'Fly Fishing Adventure',
+      description: 'Guided fly fishing in pristine mountain streams.',
+      duration: 1,
+      price: '600',
+      capacity: 2,
+      location: 'Clear Creek',
+      category: 'trout_fishing',
+      locationId: 2 // Oklahoma Lodge
+    };
+    this.createExperience(flyfishing);
     
     // Add customers
     const customer1: InsertCustomer = {

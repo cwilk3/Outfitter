@@ -12,7 +12,8 @@ import {
   insertDocumentSchema, 
   insertPaymentSchema, 
   insertSettingsSchema,
-  insertActivitySchema
+  insertActivitySchema,
+  insertLocationSchema
 } from "@shared/schema";
 
 // Define middleware for role checking based on Replit Auth
