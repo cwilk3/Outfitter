@@ -53,7 +53,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             isActive={location === "/experiences"}
             onClick={() => setMobileMenuOpen(false)}
           >
-            Experiences & Locations
+            Experiences
           </SidebarNavItem>
 
           <SidebarNavItem 

@@ -415,7 +415,7 @@ export default function Experiences() {
     <>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Experiences & Locations</h2>
-        <p className="text-sm text-gray-600">Manage your business locations and hunting/fishing experiences</p>
+        <p className="text-sm text-gray-600">Manage hunting/fishing experiences and business locations</p>
       </div>
 
       <Tabs defaultValue="experiences" className="w-full">
@@ -431,7 +431,7 @@ export default function Experiences() {
         <TabsContent value="experiences" className="space-y-6">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">My Experiences</h3>
+              <h3 className="text-xl font-semibold text-gray-800">Experiences</h3>
               <p className="text-sm text-gray-600">Manage your hunting and fishing offerings</p>
             </div>
             {isAdmin && (
