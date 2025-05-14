@@ -136,7 +136,9 @@ export function DateAvailability({
             <Calendar 
               mode="range"
               selected={dateRange}
-              onSelect={setDateRange}
+              onSelect={(range) => {
+                if (range) setDateRange(range);
+              }}
               className="border rounded-md p-3"
               modifiers={{
                 selected: isDaySelected

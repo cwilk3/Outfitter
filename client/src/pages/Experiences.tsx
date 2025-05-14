@@ -402,7 +402,6 @@ export default function Experiences() {
       duration: experience.duration,
       price: experience.price,
       capacity: experience.capacity,
-      location: experience.location,
       category: experience.category as any,
       selectedLocationIds: selectedLocIds,
       images: experience.images || [],
@@ -437,7 +436,7 @@ export default function Experiences() {
     if (currentStep === 1) {
       // Validate basic info step
       form.trigger();
-      const basicInfoFields = ['name', 'description', 'category'];
+      const basicInfoFields = ['name', 'description'];
       const hasErrors = Object.keys(form.formState.errors).some(key => 
         basicInfoFields.includes(key)
       );
@@ -448,12 +447,20 @@ export default function Experiences() {
     } else if (currentStep === 2) {
       // Validate details step
       form.trigger();
-      const detailsFields = ['duration', 'price', 'capacity', 'location'];
+      const detailsFields = ['duration', 'price', 'capacity', 'selectedLocationIds'];
       const hasErrors = Object.keys(form.formState.errors).some(key => 
         detailsFields.includes(key)
       );
       
-      if (hasErrors) {
+      if (hasErrors || selectedLocIds.length === 0) {
+        // Show a toast if no locations are selected
+        if (selectedLocIds.length === 0) {
+          toast({
+            title: "Location Required",
+            description: "Please select at least one location for this experience",
+            variant: "destructive",
+          });
+        }
         return;
       }
     }
