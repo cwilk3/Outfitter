@@ -543,6 +543,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.locations = new Map();
     this.experiences = new Map();
     this.customers = new Map();
     this.bookings = new Map();
@@ -553,6 +554,7 @@ export class MemStorage implements IStorage {
     
     this.currentIds = {
       user: 1,
+      location: 1,
       experience: 1,
       customer: 1,
       booking: 1,
@@ -820,6 +822,45 @@ export class MemStorage implements IStorage {
     }
     return users;
   }
+  
+  // Location operations
+  async getLocation(id: number): Promise<Location | undefined> {
+    return this.locations.get(id);
+  }
+  
+  async createLocation(locationData: InsertLocation): Promise<Location> {
+    const id = this.currentIds.location++;
+    const now = new Date();
+    const location: Location = { ...locationData, id, createdAt: now, updatedAt: now };
+    this.locations.set(id, location);
+    return location;
+  }
+  
+  async updateLocation(id: number, locationData: Partial<InsertLocation>): Promise<Location | undefined> {
+    const location = this.locations.get(id);
+    if (!location) return undefined;
+    
+    const updatedLocation: Location = { 
+      ...location, 
+      ...locationData,
+      updatedAt: new Date() 
+    };
+    
+    this.locations.set(id, updatedLocation);
+    return updatedLocation;
+  }
+  
+  async deleteLocation(id: number): Promise<void> {
+    this.locations.delete(id);
+  }
+  
+  async listLocations(activeOnly: boolean = false): Promise<Location[]> {
+    const locations = Array.from(this.locations.values());
+    if (activeOnly) {
+      return locations.filter(location => location.isActive);
+    }
+    return locations.sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   // Experience operations
   async getExperience(id: number): Promise<Experience | undefined> {
@@ -852,8 +893,12 @@ export class MemStorage implements IStorage {
     this.experiences.delete(id);
   }
 
-  async listExperiences(): Promise<Experience[]> {
-    return Array.from(this.experiences.values());
+  async listExperiences(locationId?: number): Promise<Experience[]> {
+    const experiences = Array.from(this.experiences.values());
+    if (locationId) {
+      return experiences.filter(exp => exp.locationId === locationId);
+    }
+    return experiences.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   // Customer operations
