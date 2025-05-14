@@ -82,11 +82,19 @@ export const experiences = pgTable("experiences", {
   duration: integer("duration").notNull(), // in days
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   capacity: integer("capacity").notNull(),
-  locationId: integer("location_id").references(() => locations.id),
+  locationId: integer("location_id").references(() => locations.id), // Legacy field, keeping for backward compatibility
   location: text("location").notNull(), // Legacy field, keeping for backward compatibility
   category: categoryEnum("category").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ExperienceLocations junction table for many-to-many relationship between experiences and locations
+export const experienceLocations = pgTable("experience_locations", {
+  id: serial("id").primaryKey(),
+  experienceId: integer("experience_id").notNull().references(() => experiences.id),
+  locationId: integer("location_id").notNull().references(() => locations.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Customers table
@@ -188,13 +196,26 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const locationsRelations = relations(locations, ({ many }) => ({
-  experiences: many(experiences),
+  experienceLocations: many(experienceLocations),
+  experiences: many(experiences), // Legacy relation, keeping for backward compatibility
 }));
 
 export const experiencesRelations = relations(experiences, ({ many, one }) => ({
   bookings: many(bookings),
+  experienceLocations: many(experienceLocations),
   location: one(locations, {
     fields: [experiences.locationId],
+    references: [locations.id],
+  }), // Legacy relation, keeping for backward compatibility
+}));
+
+export const experienceLocationsRelations = relations(experienceLocations, ({ one }) => ({
+  experience: one(experiences, {
+    fields: [experienceLocations.experienceId],
+    references: [experiences.id],
+  }),
+  location: one(locations, {
+    fields: [experienceLocations.locationId],
     references: [locations.id],
   }),
 }));
@@ -320,6 +341,12 @@ export const insertLocationSchema = createInsertSchema(locations).omit({
   updatedAt: true
 });
 
+// Insert experience locations schema
+export const insertExperienceLocationSchema = createInsertSchema(experienceLocations).omit({
+  id: true,
+  createdAt: true
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -330,6 +357,9 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type Experience = typeof experiences.$inferSelect;
 export type InsertExperience = z.infer<typeof insertExperienceSchema>;
+
+export type ExperienceLocation = typeof experienceLocations.$inferSelect;
+export type InsertExperienceLocation = z.infer<typeof insertExperienceLocationSchema>;
 
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;

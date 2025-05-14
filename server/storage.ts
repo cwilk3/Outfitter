@@ -1,10 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
-  type Activity, type InsertActivity, type Location, type InsertLocation
+  type Activity, type InsertActivity, type Location, type InsertLocation,
+  type ExperienceLocation, type InsertExperienceLocation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -30,6 +31,11 @@ export interface IStorage {
   updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number): Promise<Experience[]>;
+  
+  // Experience Locations operations
+  getExperienceLocations(experienceId: number): Promise<Location[]>;
+  addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
+  removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -182,10 +188,77 @@ export class DatabaseStorage implements IStorage {
     let query = db.select().from(experiences);
     
     if (locationId) {
-      query = query.where(eq(experiences.locationId, locationId));
+      // If locationId is provided, filter by experiences connected to that location
+      // using the junction table
+      const experienceIds = await db
+        .select({ id: experienceLocations.experienceId })
+        .from(experienceLocations)
+        .where(eq(experienceLocations.locationId, locationId))
+        .then(results => results.map(r => r.id));
+
+      if (experienceIds.length > 0) {
+        query = query.where(inArray(experiences.id, experienceIds));
+      } else {
+        // Fallback to legacy locationId if no matches in junction table
+        query = query.where(eq(experiences.locationId, locationId));
+      }
     }
     
     return await query.orderBy(experiences.name);
+  }
+  
+  // Experience Locations operations
+  async getExperienceLocations(experienceId: number): Promise<Location[]> {
+    const locationIds = await db
+      .select({ id: experienceLocations.locationId })
+      .from(experienceLocations)
+      .where(eq(experienceLocations.experienceId, experienceId));
+    
+    if (locationIds.length === 0) {
+      return [];
+    }
+    
+    return await db
+      .select()
+      .from(locations)
+      .where(inArray(locations.id, locationIds.map(r => r.id)))
+      .orderBy(locations.name);
+  }
+  
+  async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
+    // Check if relationship already exists
+    const existing = await db
+      .select()
+      .from(experienceLocations)
+      .where(
+        and(
+          eq(experienceLocations.experienceId, experienceLocation.experienceId),
+          eq(experienceLocations.locationId, experienceLocation.locationId)
+        )
+      )
+      .then(rows => rows[0]);
+    
+    if (existing) {
+      return existing;
+    }
+    
+    const [result] = await db
+      .insert(experienceLocations)
+      .values(experienceLocation)
+      .returning();
+    
+    return result;
+  }
+  
+  async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
+    await db
+      .delete(experienceLocations)
+      .where(
+        and(
+          eq(experienceLocations.experienceId, experienceId),
+          eq(experienceLocations.locationId, locationId)
+        )
+      );
   }
 
   // Customer operations
@@ -521,6 +594,7 @@ export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
+  private experienceLocations: Map<number, ExperienceLocation>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
