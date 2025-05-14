@@ -361,6 +361,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Experience Location routes
+  app.get('/api/experiences/:id/locations', isAuthenticated, async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.id);
+      const locations = await storage.getExperienceLocations(experienceId);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching experience locations:', error);
+      res.status(500).json({ message: 'Failed to fetch experience locations' });
+    }
+  });
+
+  app.post('/api/experience-locations', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const validatedData = insertExperienceLocationSchema.parse(req.body);
+      const experienceLocation = await storage.addExperienceLocation(validatedData);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Associated location with experience',
+        details: { 
+          experienceId: experienceLocation.experienceId, 
+          locationId: experienceLocation.locationId 
+        }
+      });
+      
+      res.status(201).json(experienceLocation);
+    } catch (error) {
+      console.error('Error creating experience-location association:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to associate location with experience' });
+    }
+  });
+
+  app.delete('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      const locationId = parseInt(req.params.locationId);
+      
+      await storage.removeExperienceLocation(experienceId, locationId);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Removed location from experience',
+        details: { experienceId, locationId }
+      });
+      
+      res.status(200).json({ message: 'Location removed from experience successfully' });
+    } catch (error) {
+      console.error('Error removing location from experience:', error);
+      res.status(500).json({ message: 'Failed to remove location from experience' });
+    }
+  });
+
   // Customer routes
   app.get('/api/customers', isAuthenticated, async (req, res) => {
     try {

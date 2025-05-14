@@ -761,6 +761,45 @@ export class MemStorage implements IStorage {
     };
     this.createExperience(flyfishing);
     
+    // Add experience-location associations
+    // Duck Hunt can be offered at both Texas Ranch and Kansas Fields
+    this.addExperienceLocation({
+      experienceId: 1, // Duck Hunt
+      locationId: 1    // Texas Ranch
+    });
+    this.addExperienceLocation({
+      experienceId: 1, // Duck Hunt
+      locationId: 3    // Kansas Fields
+    });
+    
+    // Elk Hunt is at Oklahoma Lodge
+    this.addExperienceLocation({
+      experienceId: 2, // Elk Hunt
+      locationId: 2    // Oklahoma Lodge
+    });
+    
+    // Bass Fishing is at Kansas Fields
+    this.addExperienceLocation({
+      experienceId: 3, // Bass Fishing
+      locationId: 3    // Kansas Fields
+    });
+    
+    // Deer Hunting at Texas Ranch
+    this.addExperienceLocation({
+      experienceId: 4, // Whitetail Deer Hunt
+      locationId: 1    // Texas Ranch
+    });
+    
+    // Fly Fishing at Oklahoma Lodge and Kansas Fields
+    this.addExperienceLocation({
+      experienceId: 5, // Fly Fishing
+      locationId: 2    // Oklahoma Lodge
+    });
+    this.addExperienceLocation({
+      experienceId: 5, // Fly Fishing
+      locationId: 3    // Kansas Fields
+    });
+    
     // Add customers
     const customer1: InsertCustomer = {
       firstName: 'Sam',
@@ -1030,11 +1069,72 @@ export class MemStorage implements IStorage {
   }
 
   async listExperiences(locationId?: number): Promise<Experience[]> {
-    const experiences = Array.from(this.experiences.values());
+    let experiences = Array.from(this.experiences.values());
+    
     if (locationId) {
-      return experiences.filter(exp => exp.locationId === locationId);
+      // Get experience IDs associated with the location
+      const experienceIds = Array.from(this.experienceLocations.values())
+        .filter(el => el.locationId === locationId)
+        .map(el => el.experienceId);
+      
+      if (experienceIds.length > 0) {
+        // Filter by experience IDs from junction table
+        experiences = experiences.filter(e => experienceIds.includes(e.id));
+      } else {
+        // Fallback to legacy locationId if no matches in junction table
+        experiences = experiences.filter(e => e.locationId === locationId);
+      }
     }
+    
     return experiences.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  // Experience Locations operations
+  async getExperienceLocations(experienceId: number): Promise<Location[]> {
+    // Find all location IDs associated with this experience
+    const locationIds = Array.from(this.experienceLocations.values())
+      .filter(el => el.experienceId === experienceId)
+      .map(el => el.locationId);
+    
+    // Get the actual location objects
+    return Array.from(this.locations.values())
+      .filter(location => locationIds.includes(location.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
+    // Check if relationship already exists
+    const existing = Array.from(this.experienceLocations.values()).find(
+      el => el.experienceId === experienceLocation.experienceId && 
+           el.locationId === experienceLocation.locationId
+    );
+    
+    if (existing) {
+      return existing;
+    }
+    
+    const id = this.currentIds.experienceLocation++;
+    const now = new Date();
+    
+    const newExperienceLocation: ExperienceLocation = {
+      ...experienceLocation,
+      id,
+      createdAt: now
+    };
+    
+    this.experienceLocations.set(id, newExperienceLocation);
+    
+    return newExperienceLocation;
+  }
+  
+  async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
+    const toRemove = Array.from(this.experienceLocations.entries()).find(
+      ([_, el]) => el.experienceId === experienceId && el.locationId === locationId
+    );
+    
+    if (toRemove) {
+      this.experienceLocations.delete(toRemove[0]);
+    }
   }
 
   // Customer operations
