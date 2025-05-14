@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 interface StepsProps {
   steps: string[];
   currentStep: number;
+  clickable?: boolean;
+  onStepClick?: (step: number) => void;
 }
 
-export function Steps({ steps, currentStep }: StepsProps) {
+export function Steps({ steps, currentStep, clickable = false, onStepClick }: StepsProps) {
   return (
     <div className="w-full">
       <div className="flex justify-between items-center">
@@ -18,13 +20,24 @@ export function Steps({ steps, currentStep }: StepsProps) {
           return (
             <React.Fragment key={index}>
               {/* Step circle with number or check */}
-              <div className="flex flex-col items-center">
+              <div 
+                className={cn(
+                  "flex flex-col items-center",
+                  clickable && onStepClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+                )}
+                onClick={() => {
+                  if (clickable && onStepClick) {
+                    onStepClick(index + 1);
+                  }
+                }}
+              >
                 <div 
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2",
                     isActive 
                       ? "bg-primary text-primary-foreground border-primary" 
-                      : "bg-muted border-muted-foreground/30 text-muted-foreground"
+                      : "bg-muted border-muted-foreground/30 text-muted-foreground",
+                    clickable && "shadow-sm"  
                   )}
                 >
                   {isCompleted ? (

@@ -682,12 +682,32 @@ export default function Experiences() {
             </DialogDescription>
           </DialogHeader>
           
-          {/* Multi-step progress bar */}
+          {/* Multi-step progress bar with enhanced editing experience */}
           <div className="mb-6 mt-2">
-            <Steps 
-              currentStep={currentStep} 
-              steps={["Basic Info", "Details", "Media", "Add-ons"]} 
-            />
+            {selectedExperience ? (
+              <div className="space-y-2">
+                <Steps 
+                  currentStep={currentStep} 
+                  steps={["Basic Info", "Details", "Media", "Add-ons"]} 
+                  onStepClick={setCurrentStep} 
+                  clickable={true}
+                />
+                <div className="flex items-center justify-between px-1 text-sm">
+                  <p className="text-muted-foreground">
+                    <InfoIcon className="inline-block mr-1 h-3 w-3" /> 
+                    Click on any step to edit that section
+                  </p>
+                  <div className="text-right text-muted-foreground italic">
+                    Editing: <span className="font-medium text-primary">{selectedExperience.name}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Steps 
+                currentStep={currentStep} 
+                steps={["Basic Info", "Details", "Media", "Add-ons"]} 
+              />
+            )}
           </div>
           
           <Form {...form}>
