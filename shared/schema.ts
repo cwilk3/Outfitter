@@ -60,6 +60,20 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'refunded'
 ]);
 
+// Locations table
+export const locations = pgTable("locations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zip: text("zip"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Experiences table
 export const experiences = pgTable("experiences", {
   id: serial("id").primaryKey(),
@@ -68,7 +82,8 @@ export const experiences = pgTable("experiences", {
   duration: integer("duration").notNull(), // in days
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   capacity: integer("capacity").notNull(),
-  location: text("location").notNull(),
+  locationId: integer("location_id").references(() => locations.id),
+  location: text("location").notNull(), // Legacy field, keeping for backward compatibility
   category: categoryEnum("category").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -172,8 +187,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   documents: many(documents),
 }));
 
-export const experiencesRelations = relations(experiences, ({ many }) => ({
+export const locationsRelations = relations(locations, ({ many }) => ({
+  experiences: many(experiences),
+}));
+
+export const experiencesRelations = relations(experiences, ({ many, one }) => ({
   bookings: many(bookings),
+  location: one(locations, {
+    fields: [experiences.locationId],
+    references: [locations.id],
+  }),
 }));
 
 export const customersRelations = relations(customers, ({ many }) => ({
@@ -291,10 +314,19 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
   createdAt: true
 });
 
+export const insertLocationSchema = createInsertSchema(locations).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
+
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type Experience = typeof experiences.$inferSelect;
 export type InsertExperience = z.infer<typeof insertExperienceSchema>;
