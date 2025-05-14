@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Experiences from "@/pages/Experiences";
+import Locations from "@/pages/Locations";
 import CalendarPage from "@/pages/CalendarPage";
 import Bookings from "@/pages/Bookings";
 import Customers from "@/pages/Customers";
@@ -100,6 +101,7 @@ function ProtectedRoutes() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/experiences" component={Experiences} />
+        <Route path="/locations" component={Locations} />
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/bookings" component={Bookings} />
         <Route path="/customers" component={Customers} />

@@ -11,7 +11,8 @@ import {
   UserCog,
   Wallet,
   FileText,
-  Settings
+  Settings,
+  MapPin
 } from "lucide-react";
 
 interface SidebarProps {
@@ -53,6 +54,15 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             onClick={() => setMobileMenuOpen(false)}
           >
             My Experiences
+          </SidebarNavItem>
+
+          <SidebarNavItem 
+            to="/locations" 
+            icon={<MapPin className="h-5 w-5" />} 
+            isActive={location === "/locations"}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Locations
           </SidebarNavItem>
 
           <SidebarNavItem 

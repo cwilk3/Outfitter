@@ -137,10 +137,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Location routes
+  app.get('/api/locations', isAuthenticated, async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === 'true';
+      const locations = await storage.listLocations(activeOnly);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      res.status(500).json({ message: 'Failed to fetch locations' });
+    }
+  });
+  
+  app.get('/api/locations/:id', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getLocation(id);
+      
+      if (!location) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      res.json(location);
+    } catch (error) {
+      console.error('Error fetching location:', error);
+      res.status(500).json({ message: 'Failed to fetch location' });
+    }
+  });
+  
+  app.post('/api/locations', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const validatedData = insertLocationSchema.parse(req.body);
+      const location = await storage.createLocation(validatedData);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Created new location',
+        details: { locationId: location.id, name: location.name }
+      });
+      
+      res.status(201).json(location);
+    } catch (error) {
+      console.error('Error creating location:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to create location' });
+    }
+  });
+  
+  app.patch('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      // Allowing partial updates
+      const validatedData = insertLocationSchema.partial().parse(req.body);
+      
+      const updatedLocation = await storage.updateLocation(id, validatedData);
+      
+      if (!updatedLocation) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0', 
+        action: 'Updated location',
+        details: { locationId: updatedLocation.id, name: updatedLocation.name }
+      });
+      
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error updating location:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to update location' });
+    }
+  });
+  
+  app.delete('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const location = await storage.getLocation(id);
+      
+      if (!location) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Check if there are experiences tied to this location
+      const experiences = await storage.listExperiences(id);
+      if (experiences.length > 0) {
+        return res.status(400).json({ 
+          message: 'Cannot delete location with linked experiences. Please remove or reassign experiences first.' 
+        });
+      }
+      
+      await storage.deleteLocation(id);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Deleted location',
+        details: { locationId: id, name: location.name }
+      });
+      
+      res.status(200).json({ message: 'Location deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      res.status(500).json({ message: 'Failed to delete location' });
+    }
+  });
+
   // Experience routes (only accessible by admin)
   app.get('/api/experiences', isAuthenticated, async (req, res) => {
     try {
-      const experiences = await storage.listExperiences();
+      const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+      const experiences = await storage.listExperiences(locationId);
       res.json(experiences);
     } catch (error) {
       console.error('Error fetching experiences:', error);
