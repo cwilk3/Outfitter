@@ -79,7 +79,8 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
-  Info as InfoIcon
+  Info as InfoIcon,
+  FileEdit
 } from "lucide-react";
 
 // Define form validation schema
@@ -675,12 +676,35 @@ export default function Experiences() {
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedExperience ? 'Edit Experience' : 'Create New Experience'}</DialogTitle>
-            <DialogDescription>
-              {selectedExperience
-                ? 'Edit the details of your hunting or fishing experience.'
-                : 'Fill in the details to create a new hunting or fishing experience.'}
-            </DialogDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <DialogTitle>
+                  {selectedExperience ? (
+                    <span className="flex items-center gap-1.5">
+                      <FileEdit className="h-5 w-5 text-amber-500" />
+                      Edit Experience
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Plus className="h-5 w-5 text-primary" />
+                      Create New Experience
+                    </span>
+                  )}
+                </DialogTitle>
+                <DialogDescription className="mt-1.5">
+                  {selectedExperience
+                    ? 'Edit the details of your hunting or fishing experience using the steps below.'
+                    : 'Fill in the details to create a new hunting or fishing experience.'}
+                </DialogDescription>
+              </div>
+              
+              {selectedExperience && (
+                <div className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
+                  <p className="font-medium">{selectedExperience.name}</p>
+                  <p className="text-xs text-amber-600">ID: {selectedExperience.id}</p>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {/* Multi-step progress bar with enhanced editing experience */}
@@ -721,9 +745,27 @@ export default function Experiences() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Experience Name</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="flex items-center">
+                            Experience Name
+                            {selectedExperience && (
+                              <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">
+                                EDITING
+                              </span>
+                            )}
+                          </FormLabel>
+                          {selectedExperience && (
+                            <span className="text-xs text-muted-foreground">
+                              Original: <span className="font-medium">{selectedExperience.name}</span>
+                            </span>
+                          )}
+                        </div>
                         <FormControl>
-                          <Input placeholder="e.g. Duck Hunting Experience" {...field} />
+                          <Input 
+                            placeholder="e.g. Duck Hunting Experience" 
+                            className={selectedExperience ? "border-amber-200 focus-visible:ring-amber-400" : undefined}
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -735,14 +777,34 @@ export default function Experiences() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="flex items-center">
+                            Description
+                            {selectedExperience && (
+                              <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded">
+                                EDITING
+                              </span>
+                            )}
+                          </FormLabel>
+                        </div>
                         <FormControl>
                           <Textarea 
                             placeholder="Describe the experience in detail..." 
-                            className="h-36"
+                            className={selectedExperience 
+                              ? "h-36 border-amber-200 focus-visible:ring-amber-400" 
+                              : "h-36"
+                            }
                             {...field} 
                           />
                         </FormControl>
+                        
+                        {selectedExperience && (
+                          <div className="mt-2 p-2 bg-slate-50 border rounded-md text-xs text-muted-foreground">
+                            <p className="font-medium mb-1">Original description:</p>
+                            <p className="line-clamp-2">{selectedExperience.description}</p>
+                          </div>
+                        )}
+                        
                         <FormDescription>
                           Provide a detailed description of the experience that will appear on the booking page.
                         </FormDescription>
@@ -951,30 +1013,48 @@ export default function Experiences() {
               {/* Navigation Buttons */}
               <div className="flex justify-between pt-4 border-t">
                 <div>
-                  {currentStep > 1 && (
+                  {selectedExperience ? (
+                    // When editing, back button is always visible with clearer context
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={goToPreviousStep}
+                      onClick={currentStep > 1 ? goToPreviousStep : closeDialog}
                       className="gap-1"
                     >
                       <ChevronLeft className="h-4 w-4" />
-                      Back
+                      {currentStep > 1 ? 'Previous Step' : 'Back to List'}
                     </Button>
+                  ) : (
+                    // When creating, back button only shows after step 1
+                    currentStep > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={goToPreviousStep}
+                        className="gap-1"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Back
+                      </Button>
+                    )
                   )}
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={closeDialog}
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
+                  {!selectedExperience && (
+                    // Only show Cancel button during creation
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={closeDialog}
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  )}
                   
                   {currentStep < 4 ? (
+                    // Next button for both modes
                     <Button 
                       type="button"
                       onClick={goToNextStep}
@@ -984,19 +1064,32 @@ export default function Experiences() {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   ) : (
+                    // Submit button with context-aware label
                     <Button 
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="gap-1"
+                      className={selectedExperience ? "gap-1 bg-amber-600 hover:bg-amber-700" : "gap-1"}
                     >
                       {createMutation.isPending || updateMutation.isPending ? (
                         <span>Saving...</span>
                       ) : (
                         <>
-                          <span>{selectedExperience ? 'Update' : 'Create'}</span>
+                          <span>{selectedExperience ? 'Save Changes' : 'Create Experience'}</span>
                           <Check className="h-4 w-4" />
                         </>
                       )}
+                    </Button>
+                  )}
+                  
+                  {/* For edit mode only: Save button on every step for convenience */}
+                  {selectedExperience && currentStep < 4 && (
+                    <Button 
+                      type="submit"
+                      variant="outline"
+                      className="gap-1 border-amber-600 text-amber-600 hover:bg-amber-50"
+                    >
+                      <span>Save</span>
+                      <Check className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
