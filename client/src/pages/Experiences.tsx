@@ -101,8 +101,9 @@ export default function Experiences() {
     queryKey: ['/api/locations'],
   });
   
-  // State for tracking selected locations
+  // State for tracking selected locations and experience-location mappings
   const [selectedLocIds, setSelectedLocIds] = useState<number[]>([]);
+  const [experienceLocations, setExperienceLocations] = useState<{ [experienceId: number]: number[] }>({});
 
   // Form handling
   const form = useForm<ExperienceFormValues>({
@@ -207,6 +208,12 @@ export default function Experiences() {
           
           // Invalidate the experiences query to refresh the data
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+          
+          // Update our local state for associated locations
+          setExperienceLocations(prevState => ({
+            ...prevState,
+            [selectedExperience.id]: data.selectedLocationIds || []
+          }));
         }
       } else {
         // Create experience
@@ -304,6 +311,29 @@ export default function Experiences() {
     setIsCreating(false);
     setSelectedExperience(null);
   };
+  
+  // Fetch associated locations for all experiences when the component mounts
+  // or when the experiences data changes
+  useEffect(() => {
+    const fetchLocationMappings = async () => {
+      if (!experiences || experiences.length === 0) return;
+      
+      const mappings: { [experienceId: number]: number[] } = {};
+      
+      for (const experience of experiences) {
+        try {
+          const locationData = await apiRequest('GET', `/api/experiences/${experience.id}/locations`);
+          mappings[experience.id] = locationData?.map((loc: any) => loc.locationId) || [];
+        } catch (error) {
+          console.error(`Error fetching locations for experience ${experience.id}:`, error);
+        }
+      }
+      
+      setExperienceLocations(mappings);
+    };
+    
+    fetchLocationMappings();
+  }, [experiences]);
 
   // Format category for display
   const formatCategory = (category: string) => {
@@ -408,6 +438,27 @@ export default function Experiences() {
                     </span>
                   </div>
                 </div>
+                
+                {/* Show associated locations */}
+                {experienceLocations[experience.id] && experienceLocations[experience.id].length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <h4 className="text-xs font-medium text-gray-500 mb-1">Available in:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {experienceLocations[experience.id].map(locId => {
+                        const location = locations.find((l: Location) => l.id === locId);
+                        return location ? (
+                          <span 
+                            key={locId} 
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-100"
+                          >
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {location.city}, {location.state}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </CardContent>
               <CardFooter>
                 {isAdmin ? (
