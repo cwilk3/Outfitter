@@ -57,6 +57,7 @@ const locationFormSchema = z.object({
   zip: z.string().optional(),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
+  locationId: z.number().optional(), // For editing existing location
 });
 
 type LocationFormValues = z.infer<typeof locationFormSchema>;
@@ -71,7 +72,7 @@ export default function LocationsContent() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   // Fetch locations
-  const { data: locations, isLoading, error } = useQuery({
+  const { data: locations = [], isLoading, error } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
   });
 
@@ -183,6 +184,7 @@ export default function LocationsContent() {
       zip: location.zip || '',
       description: location.description || '',
       isActive: location.isActive,
+      locationId: location.id,
     });
     setIsDialogOpen(true);
   };
@@ -198,9 +200,11 @@ export default function LocationsContent() {
     if (formMode === 'create') {
       createMutation.mutate(data);
     } else {
-      const locationId = form.getValues()?.id as number;
+      const locationId = data.locationId;
       if (locationId) {
-        updateMutation.mutate({ id: locationId, data });
+        // Remove locationId from data before updating
+        const { locationId: _, ...updateData } = data;
+        updateMutation.mutate({ id: locationId, data: updateData });
       }
     }
   };
@@ -338,7 +342,7 @@ export default function LocationsContent() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {/* Hidden field for ID when editing */}
               {formMode === 'edit' && (
-                <input type="hidden" {...form.register('id')} />
+                <input type="hidden" {...form.register('locationId')} />
               )}
               
               <FormField

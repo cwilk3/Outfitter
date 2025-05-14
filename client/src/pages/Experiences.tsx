@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LocationsContent from "./LocationsContent";
+import LocationsContent from "@/pages/LocationsContent";
 import { 
   Card, 
   CardContent, 
@@ -103,12 +103,12 @@ export default function Experiences() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   // Fetch experiences
-  const { data: experiences = [], isLoading, error } = useQuery({
+  const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
     queryKey: ['/api/experiences'],
   });
   
   // Fetch all locations for the multi-select
-  const { data: locations = [] } = useQuery({
+  const { data: locations = [] } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
   });
   
@@ -134,7 +134,7 @@ export default function Experiences() {
   // Create experience
   const createMutation = useMutation({
     mutationFn: (data: ExperienceFormValues) => {
-      return apiRequest('POST', '/api/experiences', {
+      return apiRequest<Experience>('POST', '/api/experiences', {
         ...data,
         selectedLocationIds: selectedLocIds,
       });
@@ -265,7 +265,7 @@ export default function Experiences() {
   });
 
   // Fetch experience-location associations
-  const { data: experienceLocationData } = useQuery({
+  const { data: experienceLocationData = [] } = useQuery<ExperienceLocation[]>({
     queryKey: ['/api/experienceLocations'],
   });
 
