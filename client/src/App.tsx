@@ -101,7 +101,13 @@ function ProtectedRoutes() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/experiences" component={Experiences} />
-        <Route path="/locations" component={Locations} />
+        <Route path="/locations">
+          {() => {
+            // Redirect to experiences
+            window.location.href = "/experiences";
+            return null;
+          }}
+        </Route>
         <Route path="/calendar" component={CalendarPage} />
         <Route path="/bookings" component={Bookings} />
         <Route path="/customers" component={Customers} />

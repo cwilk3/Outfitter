@@ -5,6 +5,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation } from "@/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Map, BookOpen } from "lucide-react";
+import LocationsComponent from "./LocationsContent";
 import { 
   Card, 
   CardContent, 
@@ -56,7 +59,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Plus, Edit, MapPin, Calendar, Users, DollarSign, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Calendar, Users, DollarSign, Trash2, AlertTriangle, MapPin } from "lucide-react";
 
 // Define form validation schema
 const experienceSchema = z.object({
