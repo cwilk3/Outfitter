@@ -25,6 +25,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -45,7 +55,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Plus, Edit, MapPin, Calendar, Users, DollarSign } from "lucide-react";
+import { Plus, Edit, MapPin, Calendar, Users, DollarSign, Trash2, AlertTriangle } from "lucide-react";
 
 // Define form validation schema
 const experienceSchema = z.object({
@@ -76,6 +86,8 @@ export default function Experiences() {
   const { isAdmin } = useRole();
   const [isCreating, setIsCreating] = useState(false);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
+  const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   // Fetch experiences
   const { data: experiences, isLoading, error } = useQuery({
@@ -139,6 +151,30 @@ export default function Experiences() {
         variant: "destructive",
       });
       console.error("Update experience error:", error);
+    },
+  });
+  
+  // Delete experience mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest('DELETE', `/api/experiences/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      toast({
+        title: "Experience deleted",
+        description: "The experience has been deleted successfully",
+      });
+      setExperienceToDelete(null);
+      setIsDeleteAlertOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete experience. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Delete experience error:", error);
+      setIsDeleteAlertOpen(false);
     },
   });
 
@@ -290,13 +326,25 @@ export default function Experiences() {
               </CardContent>
               <CardFooter>
                 {isAdmin ? (
-                  <Button 
-                    onClick={() => openEditDialog(experience)}
-                    variant="outline" 
-                    className="w-full"
-                  >
-                    <Edit className="mr-2 h-4 w-4" /> Edit Experience
-                  </Button>
+                  <div className="flex gap-2 w-full">
+                    <Button 
+                      onClick={() => openEditDialog(experience)}
+                      variant="outline" 
+                      className="flex-1"
+                    >
+                      <Edit className="mr-2 h-4 w-4" /> Edit
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setExperienceToDelete(experience);
+                        setIsDeleteAlertOpen(true);
+                      }}
+                      variant="outline" 
+                      className="flex-none text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : (
                   <Button variant="outline" className="w-full" disabled>
                     View Details
