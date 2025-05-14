@@ -88,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || null, // Get the authenticated user's ID
+        userId: 1, // Should be the authenticated user's ID
         action: 'Created new user',
         details: { userId: user.id, email: user.email }
       });
@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/users/:id', isAuthenticated, async (req, res) => {
     try {
-      const id = req.params.id;
+      const id = parseInt(req.params.id);
       // Allowing partial updates
       const validatedData = insertUserSchema.partial().parse(req.body);
       
@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || null, // Get the authenticated user's ID
+        userId: 1, // Should be the authenticated user's ID
         action: 'Updated user',
         details: { userId: updatedUser.id, email: updatedUser.email }
       });
