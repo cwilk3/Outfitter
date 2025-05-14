@@ -18,6 +18,11 @@ import {
 
 // Define middleware for role checking based on Replit Auth
 const hasRole = (role: string) => (req: Request, res: Response, next: Function) => {
+  // In development mode, bypass role checking
+  if (process.env.NODE_ENV !== 'production' && !process.env.REPLIT_DOMAINS) {
+    return next();
+  }
+
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -43,7 +48,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
+    // In development mode, bypass authentication
+    if (process.env.NODE_ENV !== 'production' && !process.env.REPLIT_DOMAINS) {
+      // Return a dummy admin user for development
+      return res.json({
+        id: "dev-admin",
+        email: "admin@example.com",
+        firstName: "Admin",
+        lastName: "User",
+        profileImageUrl: null,
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
