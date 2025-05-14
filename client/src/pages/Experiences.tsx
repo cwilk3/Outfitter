@@ -95,6 +95,14 @@ export default function Experiences() {
   const { data: experiences, isLoading, error } = useQuery({
     queryKey: ['/api/experiences'],
   });
+  
+  // Fetch all locations for the multi-select
+  const { data: locations = [] } = useQuery({
+    queryKey: ['/api/locations'],
+  });
+  
+  // State for tracking selected locations
+  const [selectedLocIds, setSelectedLocIds] = useState<number[]>([]);
 
   // Form handling
   const form = useForm<ExperienceFormValues>({
@@ -107,6 +115,7 @@ export default function Experiences() {
       capacity: 1,
       location: "",
       category: "deer_hunting",
+      selectedLocationIds: [],
     },
   });
 
@@ -180,29 +189,104 @@ export default function Experiences() {
     },
   });
 
-  const onSubmit = (data: ExperienceFormValues) => {
-    if (selectedExperience) {
-      updateMutation.mutate({ id: selectedExperience.id, data });
-    } else {
-      createMutation.mutate(data);
+  const onSubmit = async (data: ExperienceFormValues) => {
+    try {
+      if (selectedExperience) {
+        // Update experience
+        const result = await updateMutation.mutateAsync({ id: selectedExperience.id, data });
+        
+        // If we have location IDs selected, update the experience-location associations
+        if (data.selectedLocationIds && data.selectedLocationIds.length > 0) {
+          // First, remove all existing associations
+          await apiRequest('DELETE', `/api/experiences/${selectedExperience.id}/locations`);
+          
+          // Then add each new location association
+          for (const locationId of data.selectedLocationIds) {
+            await apiRequest('POST', `/api/experiences/${selectedExperience.id}/locations`, { locationId });
+          }
+          
+          // Invalidate the experiences query to refresh the data
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+        }
+      } else {
+        // Create experience
+        const result = await createMutation.mutateAsync(data);
+        
+        // If we have location IDs selected, create the experience-location associations
+        if (data.selectedLocationIds && data.selectedLocationIds.length > 0 && result && result.id) {
+          for (const locationId of data.selectedLocationIds) {
+            await apiRequest('POST', `/api/experiences/${result.id}/locations`, { locationId });
+          }
+          
+          // Invalidate the experiences query to refresh the data
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+        }
+      }
+      
+      // Reset form and close dialog
+      form.reset();
+      if (selectedExperience) {
+        setSelectedExperience(null);
+      } else {
+        setIsCreating(false);
+      }
+    } catch (error) {
+      console.error("Error submitting experience:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save experience. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const openEditDialog = (experience: Experience) => {
+  const openEditDialog = async (experience: Experience) => {
     setSelectedExperience(experience);
-    form.reset({
-      name: experience.name,
-      description: experience.description,
-      duration: experience.duration,
-      price: experience.price,
-      capacity: experience.capacity,
-      location: experience.location,
-      category: experience.category as any,
-    });
+    
+    // Fetch the locations associated with this experience
+    try {
+      const associatedLocations = await apiRequest('GET', `/api/experiences/${experience.id}/locations`);
+      const locationIds = associatedLocations?.map((loc: ExperienceLocation) => loc.locationId) || [];
+      
+      // Update selected location IDs
+      setSelectedLocIds(locationIds);
+      
+      // Reset the form with the experience data and selected location IDs
+      form.reset({
+        name: experience.name,
+        description: experience.description,
+        duration: experience.duration,
+        price: experience.price,
+        capacity: experience.capacity,
+        location: experience.location,
+        category: experience.category as any,
+        selectedLocationIds: locationIds,
+      });
+    } catch (error) {
+      console.error("Error fetching experience locations:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load experience locations. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Still reset the form with basic experience data if there was an error
+      form.reset({
+        name: experience.name,
+        description: experience.description,
+        duration: experience.duration,
+        price: experience.price,
+        capacity: experience.capacity,
+        location: experience.location,
+        category: experience.category as any,
+        selectedLocationIds: [],
+      });
+    }
   };
 
   const openCreateDialog = () => {
     setSelectedExperience(null);
+    setSelectedLocIds([]);
     form.reset({
       name: "",
       description: "",
@@ -211,6 +295,7 @@ export default function Experiences() {
       capacity: 1,
       location: "",
       category: "deer_hunting",
+      selectedLocationIds: [],
     });
     setIsCreating(true);
   };
