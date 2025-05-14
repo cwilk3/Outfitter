@@ -12,6 +12,28 @@ export interface User {
   updatedAt: string;
 }
 
+// Location types
+export interface Location {
+  id: number;
+  name: string;
+  address?: string;
+  city: string;
+  state: string;
+  zip?: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Experience-Location types
+export interface ExperienceLocation {
+  id: number;
+  experienceId: number;
+  locationId: number;
+  createdAt: string;
+}
+
 // Experience types
 export interface Experience {
   id: number;
@@ -22,8 +44,11 @@ export interface Experience {
   capacity: number;
   location: string;
   category: string;
+  locationId?: number; // Legacy field
   createdAt: string;
   updatedAt: string;
+  // These are not in the DB schema, but we'll populate them on the frontend
+  locations?: Location[];
 }
 
 // Customer types
@@ -133,6 +158,7 @@ export interface ExperienceInput {
   capacity: number;
   location: string;
   category: string;
+  selectedLocationIds?: number[]; // Used for UI only, to track selected locations
 }
 
 export interface CustomerInput {

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
-import { Experience } from "@/types";
+import { Experience, Location, ExperienceLocation } from "@/types";
 import { 
   Card, 
   CardContent, 
@@ -50,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +78,7 @@ const experienceSchema = z.object({
   ], {
     required_error: "Please select a category.",
   }),
+  selectedLocationIds: z.array(z.number()).optional(),
 });
 
 type ExperienceFormValues = z.infer<typeof experienceSchema>;
