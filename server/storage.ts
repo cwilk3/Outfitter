@@ -21,6 +21,7 @@ export interface IStorage {
   getExperience(id: number): Promise<Experience | undefined>;
   createExperience(experience: InsertExperience): Promise<Experience>;
   updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
+  deleteExperience(id: number): Promise<void>;
   listExperiences(): Promise<Experience[]>;
   
   // Customer operations
@@ -124,6 +125,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(experiences.id, id))
       .returning();
     return experience;
+  }
+
+  async deleteExperience(id: number): Promise<void> {
+    await db.delete(experiences).where(eq(experiences.id, id));
   }
 
   async listExperiences(): Promise<Experience[]> {

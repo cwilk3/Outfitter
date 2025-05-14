@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
+        userId: req.user?.claims?.sub || '0', // Get authenticated user ID from Replit Auth
         action: 'Updated experience',
         details: { experienceId: updatedExperience.id, name: updatedExperience.name }
       });
@@ -215,6 +215,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(500).json({ message: 'Failed to update experience' });
+    }
+  });
+  
+  app.delete('/api/experiences/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const experience = await storage.getExperience(id);
+      
+      if (!experience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      await storage.deleteExperience(id);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0', // Get authenticated user ID from Replit Auth
+        action: 'Deleted experience',
+        details: { experienceId: id, name: experience.name }
+      });
+      
+      res.status(200).json({ message: 'Experience deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting experience:', error);
+      res.status(500).json({ message: 'Failed to delete experience' });
     }
   });
 

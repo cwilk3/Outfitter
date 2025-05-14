@@ -525,6 +525,33 @@ export default function Experiences() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Experience Alert Dialog */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Experience</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{experienceToDelete?.name}</span>?
+              This action cannot be undone. This will permanently delete this experience
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (experienceToDelete) {
+                  deleteMutation.mutate(experienceToDelete.id);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" /> Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
