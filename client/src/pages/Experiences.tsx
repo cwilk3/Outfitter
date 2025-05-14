@@ -692,18 +692,20 @@ export default function Experiences() {
                 )}
               />
 
-              <DialogFooter>
+              <DialogFooter className="mt-2 pt-2 border-t space-x-2 flex-col sm:flex-row">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={closeDialog}
                   disabled={createMutation.isPending || updateMutation.isPending}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
+                  className="w-full sm:w-auto"
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <span>Saving...</span>
