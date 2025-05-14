@@ -95,16 +95,13 @@ const experienceSchema = z.object({
     "trout_fishing",
     "other_hunting",
     "other_fishing"
-  ], {
-    required_error: "Please select a category.",
-  }),
+  ]).default("other_hunting").optional(),
   
   // Details
   duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
   price: z.coerce.number().positive({ message: "Price must be a positive number." }),
   capacity: z.coerce.number().positive({ message: "Capacity must be a positive number." }),
-  location: z.string().min(2, { message: "Location must be at least 2 characters." }),
-  selectedLocationIds: z.array(z.number()).optional(),
+  selectedLocationIds: z.array(z.number()).min(1, { message: "Select at least one location." }),
   
   // Media & extras
   images: z.array(z.string()).optional(),
@@ -165,8 +162,7 @@ export default function Experiences() {
       duration: 1,
       price: 0,
       capacity: 1,
-      location: "",
-      category: "deer_hunting",
+      category: "other_hunting",
       selectedLocationIds: [],
       images: [],
       availableDates: [],
@@ -351,8 +347,7 @@ export default function Experiences() {
       duration: 1,
       price: 0,
       capacity: 1,
-      location: "",
-      category: "deer_hunting",
+      category: "other_hunting",
       selectedLocationIds: [],
       images: [],
       availableDates: [],
@@ -700,38 +695,6 @@ export default function Experiences() {
                   
                   <FormField
                     control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="deer_hunting">Deer Hunting</SelectItem>
-                            <SelectItem value="duck_hunting">Duck Hunting</SelectItem>
-                            <SelectItem value="elk_hunting">Elk Hunting</SelectItem>
-                            <SelectItem value="pheasant_hunting">Pheasant Hunting</SelectItem>
-                            <SelectItem value="bass_fishing">Bass Fishing</SelectItem>
-                            <SelectItem value="trout_fishing">Trout Fishing</SelectItem>
-                            <SelectItem value="other_hunting">Other Hunting</SelectItem>
-                            <SelectItem value="other_fishing">Other Fishing</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -800,22 +763,7 @@ export default function Experiences() {
                     />
                   </div>
                   
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location Description</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. Northern Ranch" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          This is a general location description visible to customers.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                   
                   {/* Associated Physical Locations */}
                   <div className="pt-2">

@@ -83,8 +83,7 @@ export const experiences = pgTable("experiences", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   capacity: integer("capacity").notNull(),
   locationId: integer("location_id").references(() => locations.id), // Legacy field, keeping for backward compatibility
-  location: text("location").notNull(), // Legacy field, keeping for backward compatibility
-  category: categoryEnum("category").notNull(),
+  category: categoryEnum("category").default('other_hunting'), // Default to 'other_hunting' for backward compatibility
   images: jsonb("images").default('[]'),
   availableDates: jsonb("available_dates").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
