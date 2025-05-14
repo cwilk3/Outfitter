@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
+import { Location } from '@shared/schema';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -85,13 +86,13 @@ export default function Locations() {
   const { isAdmin } = useRole();
   
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [currentLocation, setCurrentLocation] = useState<any | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [locationToDelete, setLocationToDelete] = useState<any | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
   
   // Query to fetch all locations
-  const { data: locations = [], isLoading } = useQuery({
+  const { data: locations = [], isLoading } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
   });
 
@@ -240,7 +241,7 @@ export default function Locations() {
   }, [form]);
 
   // Open dialog for editing an existing location
-  const openEditDialog = useCallback((location: any) => {
+  const openEditDialog = useCallback((location: Location) => {
     setFormMode('edit');
     form.reset({
       name: location.name,
@@ -256,7 +257,7 @@ export default function Locations() {
   }, [form]);
 
   // Open delete confirmation dialog
-  const openDeleteDialog = useCallback((location: any) => {
+  const openDeleteDialog = useCallback((location: Location) => {
     setLocationToDelete(location);
     setIsDeleteAlertOpen(true);
   }, []);
