@@ -283,11 +283,9 @@ export default function Experiences() {
           <h2 className="text-2xl font-bold text-gray-800">My Experiences</h2>
           <p className="text-sm text-gray-600">Manage your hunting and fishing experiences</p>
         </div>
-        {isAdmin && (
-          <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
-            <Plus className="mr-2 h-4 w-4" /> Create Experience
-          </Button>
-        )}
+        <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
+          <Plus className="mr-2 h-4 w-4" /> Create Experience
+        </Button>
       </div>
 
       {experiences && experiences.length > 0 ? (
