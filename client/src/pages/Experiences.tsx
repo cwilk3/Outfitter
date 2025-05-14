@@ -4,7 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
-import { Experience, Location, ExperienceLocation } from "@/types";
+import { Experience, Location, ExperienceLocation, ExperienceAddon } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LocationsContent from "@/pages/LocationsContent";
 import { 
@@ -57,6 +57,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { format } from "date-fns";
+import { Steps } from "@/components/ui/steps";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { DateAvailability } from "@/components/ui/date-availability";
+import { ExperienceAddons, Addon } from "@/components/ui/experience-addons";
+import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
   Edit, 
@@ -66,17 +72,20 @@ import {
   Trash2, 
   AlertTriangle, 
   MapPin,
-  BookOpen
+  BookOpen,
+  Image,
+  Clock,
+  Tag,
+  Check,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 
 // Define form validation schema
 const experienceSchema = z.object({
+  // Basic info
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }),
-  duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
-  price: z.coerce.number().positive({ message: "Price must be a positive number." }),
-  capacity: z.coerce.number().positive({ message: "Capacity must be a positive number." }),
-  location: z.string().min(2, { message: "Location must be at least 2 characters." }),
   category: z.enum([
     "deer_hunting", 
     "duck_hunting", 
@@ -89,7 +98,25 @@ const experienceSchema = z.object({
   ], {
     required_error: "Please select a category.",
   }),
+  
+  // Details
+  duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
+  price: z.coerce.number().positive({ message: "Price must be a positive number." }),
+  capacity: z.coerce.number().positive({ message: "Capacity must be a positive number." }),
+  location: z.string().min(2, { message: "Location must be at least 2 characters." }),
   selectedLocationIds: z.array(z.number()).optional(),
+  
+  // Media & extras
+  images: z.array(z.string()).optional(),
+  availableDates: z.array(z.date()).optional(),
+  addons: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      price: z.number().min(0),
+      isOptional: z.boolean().default(true),
+    })
+  ).optional(),
 });
 
 type ExperienceFormValues = z.infer<typeof experienceSchema>;
@@ -98,9 +125,22 @@ export default function Experiences() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
   const [isCreating, setIsCreating] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  
+  type AddonType = {
+    name: string;
+    description: string;
+    price: number;
+    isOptional: boolean;
+  };
+  
+  // State for new form fields
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [addons, setAddons] = useState<AddonType[]>([]);
 
   // Fetch experiences
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
@@ -128,6 +168,9 @@ export default function Experiences() {
       location: "",
       category: "deer_hunting",
       selectedLocationIds: [],
+      images: [],
+      availableDates: [],
+      addons: [],
     },
   });
 
@@ -297,6 +340,11 @@ export default function Experiences() {
   const openCreateDialog = () => {
     setSelectedExperience(null);
     setSelectedLocIds([]);
+    setSelectedImages([]);
+    setSelectedDates([]);
+    setAddons([]);
+    setCurrentStep(1);
+    
     form.reset({
       name: "",
       description: "",
@@ -306,13 +354,18 @@ export default function Experiences() {
       location: "",
       category: "deer_hunting",
       selectedLocationIds: [],
+      images: [],
+      availableDates: [],
+      addons: [],
     });
+    
     setIsCreating(true);
   };
 
   // Open dialog for editing an existing experience
   const openEditDialog = async (experience: Experience) => {
     setSelectedExperience(experience);
+    setCurrentStep(1);
     
     // Get associated locations for this experience
     const associatedLocations = experienceLocationData?.filter(
@@ -327,6 +380,27 @@ export default function Experiences() {
       setSelectedLocIds([]);
     }
     
+    // Set images if available
+    setSelectedImages(experience.images || []);
+    
+    // Set available dates if available (convert strings to Date objects)
+    const availableDates = experience.availableDates 
+      ? experience.availableDates.map(dateStr => new Date(dateStr))
+      : [];
+    setSelectedDates(availableDates);
+    
+    // Set addons if available
+    if (experience.addons) {
+      setAddons(experience.addons.map(addon => ({
+        name: addon.name,
+        description: addon.description || '',
+        price: addon.price,
+        isOptional: addon.isOptional
+      })));
+    } else {
+      setAddons([]);
+    }
+    
     form.reset({
       name: experience.name,
       description: experience.description,
@@ -336,6 +410,9 @@ export default function Experiences() {
       location: experience.location,
       category: experience.category as any,
       selectedLocationIds: selectedLocIds,
+      images: experience.images || [],
+      availableDates: availableDates,
+      addons: experience.addons || [],
     });
     
     setIsCreating(true);
@@ -352,7 +429,46 @@ export default function Experiences() {
     setIsCreating(false);
     setSelectedExperience(null);
     setSelectedLocIds([]);
+    setSelectedImages([]);
+    setSelectedDates([]);
+    setAddons([]);
+    setCurrentStep(1);
     form.reset();
+  };
+  
+  // Go to next step
+  const goToNextStep = () => {
+    // Validate current step before proceeding
+    if (currentStep === 1) {
+      // Validate basic info step
+      form.trigger();
+      const basicInfoFields = ['name', 'description', 'category'];
+      const hasErrors = Object.keys(form.formState.errors).some(key => 
+        basicInfoFields.includes(key)
+      );
+      
+      if (hasErrors) {
+        return;
+      }
+    } else if (currentStep === 2) {
+      // Validate details step
+      form.trigger();
+      const detailsFields = ['duration', 'price', 'capacity', 'location'];
+      const hasErrors = Object.keys(form.formState.errors).some(key => 
+        detailsFields.includes(key)
+      );
+      
+      if (hasErrors) {
+        return;
+      }
+    }
+    
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
+  
+  // Go to previous step
+  const goToPreviousStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   // Toggle a location selection
@@ -366,13 +482,22 @@ export default function Experiences() {
 
   // Form submission handler
   const onSubmit = async (data: ExperienceFormValues) => {
+    // Include the current state of the form extras
+    const formData = {
+      ...data,
+      images: selectedImages,
+      availableDates: selectedDates,
+      addons: addons,
+      selectedLocationIds: selectedLocIds,
+    };
+    
     if (selectedExperience) {
       updateMutation.mutate({
         id: selectedExperience.id,
-        data,
+        data: formData,
       });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(formData);
     }
   };
 
@@ -536,7 +661,7 @@ export default function Experiences() {
 
       {/* Experience Form Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedExperience ? 'Edit Experience' : 'Create New Experience'}</DialogTitle>
             <DialogDescription>
@@ -545,188 +670,352 @@ export default function Experiences() {
                 : 'Fill in the details to create a new hunting or fishing experience.'}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Multi-step progress bar */}
+          <div className="mb-6 mt-2">
+            <Steps 
+              currentStep={currentStep} 
+              steps={["Basic Info", "Details", "Media", "Add-ons"]} 
+            />
+          </div>
+          
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Duck Hunting Experience" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Step 1: Basic Info */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Experience Name</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
+                          <Input placeholder="e.g. Duck Hunting Experience" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="deer_hunting">Deer Hunting</SelectItem>
-                          <SelectItem value="duck_hunting">Duck Hunting</SelectItem>
-                          <SelectItem value="elk_hunting">Elk Hunting</SelectItem>
-                          <SelectItem value="pheasant_hunting">Pheasant Hunting</SelectItem>
-                          <SelectItem value="bass_fishing">Bass Fishing</SelectItem>
-                          <SelectItem value="trout_fishing">Trout Fishing</SelectItem>
-                          <SelectItem value="other_hunting">Other Hunting</SelectItem>
-                          <SelectItem value="other_fishing">Other Fishing</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location Description</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Northern Ranch" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      <FormDescription>
-                        This is a general location name visible to customers.
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe the experience in detail..." 
-                        className="h-24"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration (days)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="capacity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Capacity</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price ($)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Associated Physical Locations */}
-              <div>
-                <FormLabel>Available Business Locations</FormLabel>
-                <FormDescription>
-                  Select the physical business locations where this experience is offered
-                </FormDescription>
-                <div className="pt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-2 mt-1">
-                  {locations && locations.length > 0 ? (
-                    locations.map((location: Location) => (
-                      <div className="flex items-center space-x-2" key={location.id}>
-                        <Checkbox
-                          id={`location-${location.id}`}
-                          checked={selectedLocIds.includes(location.id)}
-                          onCheckedChange={() => toggleLocationSelection(location.id)}
-                        />
-                        <label
-                          htmlFor={`location-${location.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
                         >
-                          {location.name} ({location.city}, {location.state})
-                        </label>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No locations available. Add some in the Locations tab first.
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="deer_hunting">Deer Hunting</SelectItem>
+                            <SelectItem value="duck_hunting">Duck Hunting</SelectItem>
+                            <SelectItem value="elk_hunting">Elk Hunting</SelectItem>
+                            <SelectItem value="pheasant_hunting">Pheasant Hunting</SelectItem>
+                            <SelectItem value="bass_fishing">Bass Fishing</SelectItem>
+                            <SelectItem value="trout_fishing">Trout Fishing</SelectItem>
+                            <SelectItem value="other_hunting">Other Hunting</SelectItem>
+                            <SelectItem value="other_fishing">Other Fishing</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Describe the experience in detail..." 
+                            className="h-36"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Provide a detailed description of the experience that will appear on the booking page.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+              
+              {/* Step 2: Details */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="duration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration (days)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Max Capacity</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Base Price ($)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" step="0.01" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Northern Ranch" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          This is a general location description visible to customers.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Associated Physical Locations */}
+                  <div className="pt-2">
+                    <FormLabel>Available Business Locations</FormLabel>
+                    <FormDescription>
+                      Select the physical business locations where this experience is offered
+                    </FormDescription>
+                    <div className="pt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-3 mt-1">
+                      {locations && locations.length > 0 ? (
+                        locations.map((location: Location) => (
+                          <div className="flex items-center space-x-2" key={location.id}>
+                            <Checkbox
+                              id={`location-${location.id}`}
+                              checked={selectedLocIds.includes(location.id)}
+                              onCheckedChange={() => toggleLocationSelection(location.id)}
+                            />
+                            <label
+                              htmlFor={`location-${location.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {location.name} ({location.city}, {location.state})
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No locations available. Add some in the Locations tab first.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 3: Media */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-medium mb-1">Experience Images</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload images that showcase your experience. High-quality photos help attract more bookings.
                     </p>
+                    
+                    <ImageUpload 
+                      images={selectedImages}
+                      onChange={setSelectedImages}
+                      maxImages={5}
+                    />
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <h3 className="text-base font-medium mb-1">Available Dates</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select the dates when this experience is available for booking.
+                    </p>
+                    
+                    <DateAvailability
+                      selectedDates={selectedDates}
+                      onChange={setSelectedDates}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 4: Add-ons */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-medium mb-1">Add-ons & Extras</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create optional or required add-ons that customers can choose when booking.
+                    </p>
+                    
+                    <ExperienceAddons
+                      addons={addons}
+                      onChange={setAddons}
+                    />
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <h3 className="text-base font-medium">Review</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Review your experience details before submitting.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-muted p-4 rounded-md">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Name</h4>
+                            <p className="font-medium">{form.getValues('name')}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Category</h4>
+                            <p className="font-medium">{formatCategory(form.getValues('category'))}</p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Duration</h4>
+                            <p className="font-medium">{form.getValues('duration')} days</p>
+                          </div>
+                          <div>
+                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Price</h4>
+                            <p className="font-medium">${form.getValues('price')}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Images</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedImages.length} of 5 images
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {selectedImages.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Available Dates</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedDates.length} dates selected
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {selectedDates.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Add-ons & Extras</p>
+                          <p className="text-xs text-muted-foreground">
+                            {addons.length} add-ons defined
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {addons.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-4 border-t">
+                <div>
+                  {currentStep > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={goToPreviousStep}
+                      className="gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Back
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={closeDialog}
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  
+                  {currentStep < 4 ? (
+                    <Button 
+                      type="button"
+                      onClick={goToNextStep}
+                      className="gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="submit"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      className="gap-1"
+                    >
+                      {createMutation.isPending || updateMutation.isPending ? (
+                        <span>Saving...</span>
+                      ) : (
+                        <>
+                          <span>{selectedExperience ? 'Update' : 'Create'}</span>
+                          <Check className="h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
                   )}
                 </div>
               </div>
-              
-              <DialogFooter className="mt-4 pt-2 border-t space-x-2 flex-col sm:flex-row">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={closeDialog}
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  className="w-full sm:w-auto"
-                >
-                  {createMutation.isPending || updateMutation.isPending ? (
-                    <span>Saving...</span>
-                  ) : (
-                    <span>{selectedExperience ? 'Update' : 'Create'}</span>
-                  )}
-                </Button>
-              </DialogFooter>
             </form>
           </Form>
         </DialogContent>

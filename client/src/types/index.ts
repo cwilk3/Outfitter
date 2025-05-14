@@ -34,6 +34,18 @@ export interface ExperienceLocation {
   createdAt: string;
 }
 
+// Experience addon types
+export interface ExperienceAddon {
+  id: number;
+  experienceId: number;
+  name: string;
+  description?: string;
+  price: number;
+  isOptional: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Experience types
 export interface Experience {
   id: number;
@@ -45,10 +57,13 @@ export interface Experience {
   location: string;
   category: string;
   locationId?: number; // Legacy field
+  images?: string[]; // Array of image URLs
+  availableDates?: string[]; // Array of available date strings
   createdAt: string;
   updatedAt: string;
   // These are not in the DB schema, but we'll populate them on the frontend
   locations?: Location[];
+  addons?: ExperienceAddon[];
 }
 
 // Customer types
