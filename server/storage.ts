@@ -67,25 +67,27 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User | undefined> {
     const [user] = await db
       .update(users)
       .set({...userData, updatedAt: new Date()})
@@ -458,7 +460,7 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
+  private users: Map<string, User>;
   private experiences: Map<number, Experience>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
@@ -694,25 +696,28 @@ export class MemStorage implements IStorage {
   }
 
   // User operations
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
-    const id = this.currentIds.user++;
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existingUser = await this.getUser(userData.id);
+    
+    if (existingUser) {
+      return this.updateUser(userData.id, userData);
+    }
+    
     const now = new Date();
-    const user: User = { ...userData, id, createdAt: now, updatedAt: now };
-    this.users.set(id, user);
+    const user: User = { 
+      ...userData, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.users.set(userData.id, user);
     return user;
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, userData: Partial<UpsertUser>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     
@@ -724,6 +729,28 @@ export class MemStorage implements IStorage {
     
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  // Keep this for backward compatibility with seedData
+  async createUser(userData: any): Promise<User> {
+    const idStr = String(++this.currentIds.user);
+    const now = new Date();
+    
+    // Convert fields to match expected User schema
+    const user: User = { 
+      id: idStr,
+      email: userData.email || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      phone: userData.phone || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      role: userData.role || 'guide',
+      createdAt: now, 
+      updatedAt: now 
+    };
+    
+    this.users.set(idStr, user);
+    return user;
   }
 
   async listUsers(role?: string): Promise<User[]> {

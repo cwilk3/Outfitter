@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   insertUserSchema, 
   insertExperienceSchema, 
@@ -14,19 +15,44 @@ import {
   insertActivitySchema
 } from "@shared/schema";
 
-// Define a mock middleware for auth until we implement real auth
-const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  // For now, all requests are authenticated
-  next();
-};
-
-// Define a mock middleware for role checking until we implement real auth
+// Define middleware for role checking based on Replit Auth
 const hasRole = (role: string) => (req: Request, res: Response, next: Function) => {
-  // For now, all roles are allowed
-  next();
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  const user = req.user as any;
+  if (user.claims && user.claims.sub) {
+    storage.getUser(user.claims.sub).then(user => {
+      if (user?.role === role) {
+        return next();
+      }
+      return res.status(403).json({ message: "Forbidden" });
+    }).catch(err => {
+      console.error("Error checking user role:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    });
+  } else {
+    return res.status(403).json({ message: "Forbidden" });
+  }
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+  
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
   // User routes
   app.get('/api/users', isAuthenticated, async (req, res) => {
     try {
