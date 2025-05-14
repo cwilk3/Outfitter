@@ -503,8 +503,8 @@ export default function Experiences() {
 
       {/* Create/Edit Experience Dialog */}
       <Dialog open={isCreating || !!selectedExperience} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto p-4 md:p-6">
+          <DialogHeader className="pb-2">
             <DialogTitle>{selectedExperience ? 'Edit Experience' : 'Create Experience'}</DialogTitle>
             <DialogDescription>
               {selectedExperience 
@@ -514,7 +514,8 @@ export default function Experiences() {
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-1">
+              {/* Name field */}
               <FormField
                 control={form.control}
                 name="name"
@@ -529,6 +530,7 @@ export default function Experiences() {
                 )}
               />
               
+              {/* Description field */}
               <FormField
                 control={form.control}
                 name="description"
@@ -539,7 +541,7 @@ export default function Experiences() {
                       <Textarea 
                         placeholder="Describe the experience..." 
                         {...field} 
-                        rows={3}
+                        rows={2}
                       />
                     </FormControl>
                     <FormMessage />
@@ -547,7 +549,8 @@ export default function Experiences() {
                 )}
               />
               
-              <div className="grid grid-cols-2 gap-4">
+              {/* 3-column grid for shorter fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <FormField
                   control={form.control}
                   name="duration"
@@ -589,7 +592,10 @@ export default function Experiences() {
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              {/* 2-column grid for location fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="category"
@@ -621,35 +627,36 @@ export default function Experiences() {
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Mountain Lake" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Mountain Lake" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+              {/* Available locations section with scrollable area */}
               <FormField
                 control={form.control}
                 name="selectedLocationIds"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Available In</FormLabel>
-                    <div className="mb-2">
-                      <small className="text-sm text-gray-500">Select locations where this experience is available</small>
+                    <div className="flex justify-between items-center">
+                      <FormLabel>Available In</FormLabel>
+                      <small className="text-xs text-gray-500">Select where this experience is offered</small>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 border rounded-md p-2 max-h-28 overflow-y-auto">
                       {locations && locations.length > 0 ? (
                         locations.map((location: Location) => (
-                          <div key={location.id} className="flex items-center space-x-2">
+                          <div key={location.id} className="flex items-center space-x-1.5">
                             <Checkbox 
                               id={`location-${location.id}`}
                               checked={form.getValues().selectedLocationIds?.includes(location.id)}
@@ -670,9 +677,9 @@ export default function Experiences() {
                             />
                             <label 
                               htmlFor={`location-${location.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              {location.name} ({location.city}, {location.state})
+                              {location.name} ({location.city})
                             </label>
                           </div>
                         ))
