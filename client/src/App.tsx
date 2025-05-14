@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Experiences from "@/pages/Experiences";
-import Locations from "@/pages/Locations";
+// Locations are now managed within the Experiences page
 import CalendarPage from "@/pages/CalendarPage";
 import Bookings from "@/pages/Bookings";
 import Customers from "@/pages/Customers";
