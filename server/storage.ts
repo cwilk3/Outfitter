@@ -607,6 +607,7 @@ export class MemStorage implements IStorage {
     user: number;
     location: number;
     experience: number;
+    experienceLocation: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -619,6 +620,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.locations = new Map();
     this.experiences = new Map();
+    this.experienceLocations = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -630,6 +632,7 @@ export class MemStorage implements IStorage {
       user: 1,
       location: 1,
       experience: 1,
+      experienceLocation: 1,
       customer: 1,
       booking: 1,
       bookingGuide: 1,
