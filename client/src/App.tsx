@@ -24,8 +24,15 @@ function ProtectedRoutes() {
   }
 
   if (!isAuthenticated) {
-    // In a real app, redirect to login page
-    return <div className="h-screen w-full flex items-center justify-center">Please log in</div>;
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
+        <h1 className="text-3xl font-bold">Outfitter - Guide Management Platform</h1>
+        <p className="text-gray-500 mb-4">Please log in to access the application</p>
+        <a href="/api/login" className="bg-primary text-white px-8 py-2 rounded-md hover:bg-primary/90 transition-colors">
+          Log in with Replit
+        </a>
+      </div>
+    );
   }
 
   return (
