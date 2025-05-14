@@ -58,9 +58,10 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
+  // We've removed email scope, so we'll use a default value for users without emails
   await storage.upsertUser({
     id: claims["sub"],
-    email: claims["email"],
+    email: claims["email"] || `user-${claims["sub"]}@example.com`, // Add a fallback email
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
@@ -98,7 +99,7 @@ export async function setupAuth(app: Express) {
       {
         name: `replitauth:${domain}`,
         config,
-        scope: "openid email profile offline_access",
+        scope: "openid profile offline_access", // Removed "email" scope to avoid email verification
         callbackURL: `https://${domain}/api/callback`,
       },
       verify,
@@ -111,8 +112,8 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
+      prompt: "login",  // Removed "consent" to avoid email verification
+      scope: ["openid", "profile", "offline_access"], // Removed "email" scope to avoid email verification
     })(req, res, next);
   });
 
