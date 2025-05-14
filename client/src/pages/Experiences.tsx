@@ -435,7 +435,7 @@ export default function Experiences() {
     // Validate current step before proceeding
     if (currentStep === 1) {
       // Validate basic info step
-      form.trigger();
+      form.trigger(['name', 'description']);
       const basicInfoFields = ['name', 'description'];
       const hasErrors = Object.keys(form.formState.errors).some(key => 
         basicInfoFields.includes(key)
@@ -446,25 +446,30 @@ export default function Experiences() {
       }
     } else if (currentStep === 2) {
       // Validate details step
-      form.trigger();
-      const detailsFields = ['duration', 'price', 'capacity', 'selectedLocationIds'];
+      form.trigger(['duration', 'price', 'capacity']);
+      
+      // Manual validation for locations since it's a controlled state
+      if (selectedLocIds.length === 0) {
+        toast({
+          title: "Location Required",
+          description: "Please select at least one location for this experience",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for other field errors
+      const detailsFields = ['duration', 'price', 'capacity'];
       const hasErrors = Object.keys(form.formState.errors).some(key => 
         detailsFields.includes(key)
       );
       
-      if (hasErrors || selectedLocIds.length === 0) {
-        // Show a toast if no locations are selected
-        if (selectedLocIds.length === 0) {
-          toast({
-            title: "Location Required",
-            description: "Please select at least one location for this experience",
-            variant: "destructive",
-          });
-        }
+      if (hasErrors) {
         return;
       }
     }
     
+    // If we've reached here, go to the next step
     setCurrentStep(prev => Math.min(prev + 1, 4));
   };
   

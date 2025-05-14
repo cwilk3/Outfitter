@@ -15,15 +15,15 @@ interface DateAvailabilityProps {
   onChange: (dates: Date[]) => void;
 }
 
+// Import necessary types from react-day-picker
+import { DateRange } from 'react-day-picker';
+
 export function DateAvailability({ 
   selectedDates, 
   onChange 
 }: DateAvailabilityProps) {
   const [rangeMode, setRangeMode] = React.useState<'single' | 'range' | 'chunk'>('chunk');
-  const [dateRange, setDateRange] = React.useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   
   const [chunkSize, setChunkSize] = React.useState<number>(3);
   const [anchorDate, setAnchorDate] = React.useState<Date | undefined>(undefined);
@@ -43,13 +43,15 @@ export function DateAvailability({
   
   // Function to add a range of dates
   const addDateRange = () => {
-    if (!dateRange.from || !dateRange.to) return;
+    if (!dateRange || !dateRange.from) return;
+    
+    const endDate = dateRange.to || dateRange.from;
     
     // Get all dates in the range
     const newDates: Date[] = [];
     let currentDate = new Date(dateRange.from);
     
-    while (currentDate <= dateRange.to) {
+    while (currentDate <= endDate) {
       // Check if date is not already in selectedDates
       const exists = selectedDates.some(d => isSameDay(d, currentDate));
       
@@ -64,7 +66,7 @@ export function DateAvailability({
     onChange([...selectedDates, ...newDates]);
     
     // Reset the range
-    setDateRange({ from: undefined, to: undefined });
+    setDateRange(undefined);
   };
   
   // Function to add a chunk of dates
@@ -155,7 +157,7 @@ export function DateAvailability({
                 variant="outline" 
                 className="w-full"
                 onClick={addDateRange}
-                disabled={!dateRange.from || !dateRange.to}
+                disabled={!dateRange || !dateRange.from}
               >
                 <CalendarRange className="mr-2 h-4 w-4" />
                 Add Date Range
