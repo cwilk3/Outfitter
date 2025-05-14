@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivity({
         userId: 1, // Should be the authenticated user's ID
         action: 'Created new user',
-        details: { userId: user.id, username: user.username }
+        details: { userId: user.id, email: user.email }
       });
       
       res.status(201).json(user);
