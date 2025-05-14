@@ -360,7 +360,8 @@ export default function Experiences() {
   // Open dialog for editing an existing experience
   const openEditDialog = async (experience: Experience) => {
     setSelectedExperience(experience);
-    setCurrentStep(1);
+    
+    // Load all necessary data before showing the dialog to ensure a smooth editing experience
     
     // Get associated locations for this experience
     const associatedLocations = experienceLocationData?.filter(
@@ -396,6 +397,7 @@ export default function Experiences() {
       setAddons([]);
     }
     
+    // Reset the form with all the experience data to ensure it's correctly loaded
     form.reset({
       name: experience.name,
       description: experience.description,
@@ -409,6 +411,8 @@ export default function Experiences() {
       addons: experience.addons || [],
     });
     
+    // Set to whatever step the user wants to start editing from (default to basic info)
+    setCurrentStep(1);
     setIsCreating(true);
   };
 
