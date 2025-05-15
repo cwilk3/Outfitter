@@ -14,5 +14,13 @@ export interface CalendarEvent {
   };
 }
 
-// Declare module if types are not found
-declare module 'react-big-calendar';
+export interface CalendarEventStyleGetterProps {
+  event: CalendarEvent;
+}
+
+// Add module declaration for react-big-calendar
+declare module 'react-big-calendar' {
+  import React from 'react';
+  export function momentLocalizer(moment: any): any;
+  export const Calendar: React.FC<any>;
+}

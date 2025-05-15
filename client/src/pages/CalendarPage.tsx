@@ -27,34 +27,21 @@ import { Calendar as CalendarIcon, MapPin, Users, DollarSign, User } from 'lucid
 // Setup localizer for the calendar
 const localizer = momentLocalizer(moment);
 
-interface CalendarEvent {
-  id: number;
-  title: string;
-  start: Date;
-  end: Date;
-  allDay: boolean;
-  resource: {
-    booking: Booking;
-    experience?: Experience;
-    customer?: Customer;
-  };
-}
-
 export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Fetch bookings
-  const { data: bookings, isLoading: isLoadingBookings } = useQuery({
+  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
   });
 
   // Fetch experiences
-  const { data: experiences, isLoading: isLoadingExperiences } = useQuery({
+  const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
     queryKey: ['/api/experiences'],
   });
 
   // Fetch customers
-  const { data: customers, isLoading: isLoadingCustomers } = useQuery({
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],
   });
 
