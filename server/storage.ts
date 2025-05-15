@@ -828,7 +828,8 @@ export class MemStorage implements IStorage {
       capacity: 4,
       location: 'Mountain Lake',
       category: 'duck_hunting',
-      locationId: 1 // Texas Ranch
+      locationId: 1, // Texas Ranch
+      isPublic: true
     };
     this.createExperience(duckHunt);
     
@@ -840,7 +841,8 @@ export class MemStorage implements IStorage {
       capacity: 2,
       location: 'Western Ridge',
       category: 'other_hunting',
-      locationId: 2 // Oklahoma Lodge
+      locationId: 2, // Oklahoma Lodge
+      isPublic: true
     };
     this.createExperience(elkHunt);
     
@@ -1164,7 +1166,14 @@ export class MemStorage implements IStorage {
   async createExperience(experienceData: InsertExperience): Promise<Experience> {
     const id = this.currentIds.experience++;
     const now = new Date();
-    const experience: Experience = { ...experienceData, id, createdAt: now, updatedAt: now };
+    const experience: Experience = { 
+      ...experienceData, 
+      id, 
+      createdAt: now, 
+      updatedAt: now,
+      // Ensure isPublic is explicitly set to true by default
+      isPublic: experienceData.isPublic !== undefined ? experienceData.isPublic : true
+    };
     this.experiences.set(id, experience);
     return experience;
   }
@@ -1236,8 +1245,8 @@ export class MemStorage implements IStorage {
       experiences = experiences.filter(exp => exp.category === category);
     }
     
-    // Only return published experiences
-    experiences = experiences.filter(exp => exp.status === 'published');
+    // Only return public experiences
+    experiences = experiences.filter(exp => exp.isPublic === true);
     
     return experiences.sort((a, b) => a.name.localeCompare(b.name));
   }
