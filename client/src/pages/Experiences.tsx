@@ -463,6 +463,7 @@ export default function Experiences() {
       price: experience.price,
       capacity: experience.capacity,
       category: experience.category as any,
+      isPublic: experience.isPublic !== undefined ? experience.isPublic : true,
       selectedLocationIds: selectedLocIds,
       images: experience.images || [],
       availableDates: availableDates,
