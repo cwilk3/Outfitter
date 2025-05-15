@@ -6,7 +6,7 @@ import { User } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export default function UpcomingBookings() {
-  const { data: bookings, isLoading, error } = useQuery({
+  const { data: bookings = [], isLoading, error } = useQuery<any[]>({
     queryKey: ['/api/dashboard/upcoming-bookings'],
   });
 

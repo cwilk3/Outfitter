@@ -1,122 +1,109 @@
-import React, { useState } from 'react';
-import { format, addMonths, subMonths, parseISO } from 'date-fns';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { Link } from 'wouter';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Booking, Experience, Customer } from '@/types';
 
-type Event = {
+// Setup localizer for the calendar
+const localizer = momentLocalizer(moment);
+
+interface CalendarEvent {
   id: number;
   title: string;
   start: Date;
   end: Date;
-  status: string;
-  customer: string;
-};
-
-type ViewType = 'month' | 'week' | 'day';
+  allDay: boolean;
+  resource: {
+    booking: Booking;
+    experience?: Experience;
+    customer?: Customer;
+  };
+}
 
 export default function CalendarView() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<ViewType>('month');
-
-  // Fetch bookings data
-  const { data: bookings, isLoading, error } = useQuery({
+  // Fetch bookings
+  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<Booking[]>({
     queryKey: ['/api/bookings'],
   });
 
-  // Convert bookings to calendar events
-  const events: Event[] = React.useMemo(() => {
-    if (!bookings) return [];
-    
-    return bookings.map((booking: any) => ({
-      id: booking.id,
-      title: booking.experienceId, // This would be replaced with the actual experience name in a real implementation
-      start: parseISO(booking.startDate),
-      end: parseISO(booking.endDate),
-      status: booking.status,
-      customer: booking.customerId, // This would be replaced with the actual customer name in a real implementation
-    }));
-  }, [bookings]);
+  // Fetch experiences
+  const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
+    queryKey: ['/api/experiences'],
+  });
 
-  const nextMonth = () => {
-    setCurrentDate(addMonths(currentDate, 1));
-  };
+  // Fetch customers
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
+    queryKey: ['/api/customers'],
+  });
 
-  const prevMonth = () => {
-    setCurrentDate(subMonths(currentDate, 1));
-  };
+  // Combine data into calendar events
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
 
-  // Generate calendar grid
-  const generateCalendarGrid = () => {
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  useEffect(() => {
+    if (bookings && experiences && customers) {
+      const mappedEvents = bookings.map((booking: Booking) => {
+        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+        
+        return {
+          id: booking.id,
+          title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
+          start: new Date(booking.startDate),
+          end: new Date(booking.endDate),
+          allDay: true,
+          resource: {
+            booking,
+            experience,
+            customer
+          }
+        };
+      });
+      
+      setEvents(mappedEvents);
+    }
+  }, [bookings, experiences, customers]);
+
+  // Customize event style based on booking status
+  const eventStyleGetter = (event: CalendarEvent) => {
+    let backgroundColor = '#2C5F2D'; // default hunter green
     
-    const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const daysInMonth = lastDayOfMonth.getDate();
-    
-    const weeks = [];
-    let days = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<td key={`empty-${i}`} className="border p-1 text-gray-400"></td>);
+    switch (event.resource.booking.status) {
+      case 'confirmed':
+        backgroundColor = '#34A853'; // green
+        break;
+      case 'pending':
+        backgroundColor = '#FBBC05'; // yellow
+        break;
+      case 'deposit_paid':
+        backgroundColor = '#4285F4'; // blue
+        break;
+      case 'cancelled':
+        backgroundColor = '#EA4335'; // red
+        break;
+      case 'completed':
+        backgroundColor = '#2C5F2D'; // hunter green
+        break;
+      default:
+        backgroundColor = '#2C5F2D'; // hunter green
     }
     
-    // Add cells for each day of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dateString = format(date, 'yyyy-MM-dd');
-      
-      // Filter events for this day
-      const dayEvents = events.filter(event => 
-        format(event.start, 'yyyy-MM-dd') <= dateString && 
-        format(event.end, 'yyyy-MM-dd') >= dateString
-      );
-      
-      days.push(
-        <td key={day} className={`border p-1 ${format(new Date(), 'yyyy-MM-dd') === dateString ? 'bg-primary bg-opacity-5' : ''}`}>
-          <div className="text-xs mb-1 font-semibold">{day}</div>
-          {dayEvents.map(event => {
-            // Determine color based on status
-            let colorClass = '';
-            if (event.status === 'confirmed') colorClass = 'bg-green-100 text-green-800 border-green-500';
-            else if (event.status === 'pending') colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-500';
-            else if (event.status === 'deposit_paid') colorClass = 'bg-blue-100 text-blue-800 border-blue-500';
-            else if (event.status === 'completed') colorClass = 'bg-primary bg-opacity-10 text-primary border-primary';
-            else colorClass = 'bg-gray-100 text-gray-800 border-gray-500';
-            
-            return (
-              <div 
-                key={event.id} 
-                className={`calendar-event ${colorClass} p-1 text-xs rounded mb-1`}
-                title={`${event.title} - ${event.customer}`}
-              >
-                {event.title} - {event.customer}
-              </div>
-            );
-          })}
-        </td>
-      );
-      
-      // Start a new row at the end of the week
-      if ((startingDayOfWeek + day) % 7 === 0) {
-        weeks.push(<tr key={`week-${weeks.length}`}>{days}</tr>);
-        days = [];
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '4px',
+        opacity: 0.8,
+        color: 'white',
+        border: '0px',
+        display: 'block'
       }
-    }
-    
-    // Add empty cells for days after the last day of the month
-    const remainingCells = 7 - days.length;
-    if (remainingCells < 7) {
-      for (let i = 0; i < remainingCells; i++) {
-        days.push(<td key={`empty-end-${i}`} className="border p-1 text-gray-400"></td>);
-      }
-      weeks.push(<tr key={`week-${weeks.length}`}>{days}</tr>);
-    }
-    
-    return weeks;
+    };
   };
+
+  const isLoading = isLoadingBookings || isLoadingExperiences || isLoadingCustomers;
 
   if (isLoading) {
     return (
@@ -124,24 +111,19 @@ export default function CalendarView() {
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <Skeleton className="h-7 w-40" />
           <div className="flex space-x-2">
-            <Skeleton className="h-9 w-20" />
-            <Skeleton className="h-9 w-20" />
-            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-16" />
           </div>
         </div>
         <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <Skeleton className="h-8 w-8" />
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-8 w-8" />
-          </div>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-[300px] w-full" />
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!bookings || !experiences || !customers) {
     return (
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-4 border-b border-gray-200">
@@ -158,78 +140,34 @@ export default function CalendarView() {
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-800">Calendar</h3>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView('month')}
-            className={view === 'month' ? 'bg-gray-200' : ''}
-          >
-            <span className="hidden sm:inline">Month</span>
-            <span className="sm:hidden">M</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView('week')}
-            className={view === 'week' ? 'bg-gray-200' : ''}
-          >
-            <span className="hidden sm:inline">Week</span>
-            <span className="sm:hidden">W</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setView('day')}
-            className={view === 'day' ? 'bg-gray-200' : ''}
-          >
-            <span className="hidden sm:inline">Day</span>
-            <span className="sm:hidden">D</span>
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          <Badge className="bg-[#34A853] text-xs">Confirmed</Badge>
+          <Badge className="bg-[#FBBC05] text-black text-xs">Pending</Badge>
+          <Badge className="bg-[#4285F4] text-xs">Deposit Paid</Badge>
         </div>
       </div>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={prevMonth} 
-            className="p-1 hover:bg-gray-100 rounded"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-500" />
-          </button>
-          <h3 className="text-lg font-semibold text-gray-800">
-            {format(currentDate, 'MMMM yyyy')}
-          </h3>
-          <button 
-            onClick={nextMonth} 
-            className="p-1 hover:bg-gray-100 rounded"
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-5 w-5 text-gray-500" />
-          </button>
+        <div className="h-[300px]">
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            eventPropGetter={eventStyleGetter}
+            views={['month']}
+            defaultView="month"
+            toolbar={false}
+          />
         </div>
-        
-        <table className="w-full border-collapse calendar-grid">
-          <thead>
-            <tr>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Sun</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Mon</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Tue</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Wed</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Thu</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Fri</th>
-              <th className="text-xs font-semibold text-gray-500 p-2 border-b">Sat</th>
-            </tr>
-          </thead>
-          <tbody>
-            {generateCalendarGrid()}
-          </tbody>
-        </table>
       </div>
       <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 text-right">
-        <a href="/calendar" className="text-sm font-medium text-primary hover:text-primary/80">
+        <Link 
+          href="/calendar"
+          className="text-sm font-medium text-primary hover:text-primary/80"
+        >
           View full calendar →
-        </a>
+        </Link>
       </div>
     </div>
   );
