@@ -59,6 +59,9 @@ export interface Experience {
   locationId?: number; // Legacy field
   images?: string[]; // Array of image URLs
   availableDates?: string[]; // Array of available date strings
+  rules?: string[]; // Array of rules like required licenses
+  amenities?: string[]; // Array of available amenities
+  tripIncludes?: string[]; // Array of what's included in the trip
   createdAt: string;
   updatedAt: string;
   // These are not in the DB schema, but we'll populate them on the frontend

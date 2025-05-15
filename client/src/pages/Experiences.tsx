@@ -110,6 +110,13 @@ const experienceSchema = z.object({
   // Media & extras
   images: z.array(z.string()).optional(),
   availableDates: z.array(z.date()).optional(),
+  
+  // Rules, amenities, and trip inclusions
+  rules: z.array(z.string()).optional(),
+  amenities: z.array(z.string()).optional(),
+  tripIncludes: z.array(z.string()).optional(),
+  
+  // Add-ons
   addons: z.array(
     z.object({
       name: z.string(),
@@ -191,6 +198,9 @@ export default function Experiences() {
   // State for new form fields
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [rules, setRules] = useState<string[]>([]);
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [tripIncludes, setTripIncludes] = useState<string[]>([]);
   const [addons, setAddons] = useState<AddonType[]>([]);
 
   // Fetch experiences
@@ -220,6 +230,9 @@ export default function Experiences() {
       selectedLocationIds: [],
       images: [],
       availableDates: [],
+      rules: [],
+      amenities: [],
+      tripIncludes: [],
       addons: [],
     },
   });
@@ -393,6 +406,9 @@ export default function Experiences() {
     setSelectedLocIds([]);
     setSelectedImages([]);
     setSelectedDates([]);
+    setRules([]);
+    setAmenities([]);
+    setTripIncludes([]);
     setAddons([]);
     setCurrentStep(1);
     
@@ -406,6 +422,9 @@ export default function Experiences() {
       selectedLocationIds: [],
       images: [],
       availableDates: [],
+      rules: [],
+      amenities: [],
+      tripIncludes: [],
       addons: [],
     });
     

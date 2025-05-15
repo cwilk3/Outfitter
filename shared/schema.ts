@@ -86,6 +86,9 @@ export const experiences = pgTable("experiences", {
   category: categoryEnum("category").default('other_hunting'), // Default to 'other_hunting' for backward compatibility
   images: jsonb("images").default('[]'),
   availableDates: jsonb("available_dates").default('[]'),
+  rules: jsonb("rules").default('[]'), // List of rules like required licenses, etc.
+  amenities: jsonb("amenities").default('[]'), // List of available amenities (bird dogs, guided, etc)
+  tripIncludes: jsonb("trip_includes").default('[]'), // List of what's included in the trip (lodging, meals, etc)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
