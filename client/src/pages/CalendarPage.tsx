@@ -4,6 +4,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Booking, Experience, Customer } from '@/types';
+import { CalendarEvent } from '@/types/calendar';
 import {
   Card,
   CardContent,

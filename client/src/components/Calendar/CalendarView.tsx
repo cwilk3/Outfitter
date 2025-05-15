@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -7,22 +7,10 @@ import { Link } from 'wouter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Booking, Experience, Customer } from '@/types';
+import { CalendarEvent } from '@/types/calendar';
 
 // Setup localizer for the calendar
 const localizer = momentLocalizer(moment);
-
-interface CalendarEvent {
-  id: number;
-  title: string;
-  start: Date;
-  end: Date;
-  allDay: boolean;
-  resource: {
-    booking: Booking;
-    experience?: Experience;
-    customer?: Customer;
-  };
-}
 
 export default function CalendarView() {
   // Fetch bookings
@@ -40,31 +28,29 @@ export default function CalendarView() {
     queryKey: ['/api/customers'],
   });
 
-  // Combine data into calendar events
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-
-  useEffect(() => {
-    if (bookings && experiences && customers) {
-      const mappedEvents = bookings.map((booking: Booking) => {
-        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
-        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
-        
-        return {
-          id: booking.id,
-          title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
-          start: new Date(booking.startDate),
-          end: new Date(booking.endDate),
-          allDay: true,
-          resource: {
-            booking,
-            experience,
-            customer
-          }
-        };
-      });
-      
-      setEvents(mappedEvents);
+  // Create calendar events
+  const calendarEvents = React.useMemo<CalendarEvent[]>(() => {
+    if (!bookings.length || !experiences.length || !customers.length) {
+      return [];
     }
+    
+    return bookings.map((booking: Booking) => {
+      const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+      const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+      
+      return {
+        id: booking.id,
+        title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
+        start: new Date(booking.startDate),
+        end: new Date(booking.endDate),
+        allDay: true,
+        resource: {
+          booking,
+          experience,
+          customer
+        }
+      };
+    });
   }, [bookings, experiences, customers]);
 
   // Customize event style based on booking status
@@ -123,19 +109,6 @@ export default function CalendarView() {
     );
   }
 
-  if (!bookings || !experiences || !customers) {
-    return (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Calendar</h3>
-        </div>
-        <div className="p-4">
-          <p className="text-red-600">Error loading calendar data</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -150,7 +123,7 @@ export default function CalendarView() {
         <div className="h-[300px]">
           <Calendar
             localizer={localizer}
-            events={events}
+            events={calendarEvents}
             startAccessor="start"
             endAccessor="end"
             style={{ height: '100%' }}
