@@ -406,6 +406,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all experience-location associations
+  app.get('/api/experience-locations', isAuthenticated, async (req, res) => {
+    try {
+      // Use the storage to get all associations from the database
+      const allExperienceLocations = await storage.getAllExperienceLocations();
+      res.json(allExperienceLocations);
+    } catch (error) {
+      console.error('Error fetching all experience-location associations:', error);
+      res.status(500).json({ message: 'Failed to fetch experience-location associations' });
+    }
+  });
+
   app.delete('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);

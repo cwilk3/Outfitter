@@ -34,6 +34,7 @@ export interface IStorage {
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
+  getAllExperienceLocations(): Promise<ExperienceLocation[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
   
@@ -223,6 +224,12 @@ export class DatabaseStorage implements IStorage {
       .from(locations)
       .where(inArray(locations.id, locationIds.map(r => r.id)))
       .orderBy(locations.name);
+  }
+  
+  async getAllExperienceLocations(): Promise<ExperienceLocation[]> {
+    return await db
+      .select()
+      .from(experienceLocations);
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
@@ -1100,6 +1107,11 @@ export class MemStorage implements IStorage {
     return Array.from(this.locations.values())
       .filter(location => locationIds.includes(location.id))
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  async getAllExperienceLocations(): Promise<ExperienceLocation[]> {
+    // Return all experience-location associations
+    return Array.from(this.experienceLocations.values());
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
