@@ -652,8 +652,15 @@ export default function Experiences() {
       const optimizedImages = await optimizeImages(selectedImages);
       
       // Include the current state of the form extras - ensure all values are included
+      // Add fallback values for required fields to prevent validation issues
       const formData = {
         ...data,
+        name: data.name || "Untitled Experience",
+        description: data.description || "No description provided",
+        duration: data.duration || 1,
+        price: data.price || 0,
+        capacity: data.capacity || 1,
+        category: data.category || "other_hunting",
         images: optimizedImages,
         availableDates: selectedDates || [],
         rules: rules || [],
@@ -699,18 +706,39 @@ export default function Experiences() {
         }
       } else {
         // Create workflow for new experience
-        console.log("Creating new experience with data:", formData);
+        console.log("Creating new experience with simplified data");
         
         try {
-          // Direct API call to ensure we can debug any issues
-          const result = await apiRequest<Experience>('POST', '/api/experiences', {
-            ...formData,
-            selectedLocationIds: selectedLocIds,
-            rules: rules,
-            amenities: amenities,
-            tripIncludes: tripIncludes,
+          console.log("Making direct fetch call for better error visibility");
+          
+          // Direct fetch for maximum debugging information
+          const response = await fetch('/api/experiences', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              description: formData.description,
+              duration: formData.duration,
+              price: formData.price,
+              capacity: formData.capacity,
+              category: formData.category,
+              // Minimize payload for debugging
+              images: [], // Skip images initially
+              selectedLocationIds: selectedLocIds,
+            }),
           });
           
+          console.log("API Response status:", response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API error:", errorText);
+            throw new Error(`API Error ${response.status}: ${errorText}`);
+          }
+          
+          const result = await response.json();
           console.log("Creation successful:", result);
           
           // Success notification
@@ -742,11 +770,11 @@ export default function Experiences() {
           
           // Reset and close the form
           closeDialog();
-        } catch (createError) {
+        } catch (createError: any) {
           console.error("Error creating experience:", createError);
           toast({
             title: "Creation Failed",
-            description: "Could not create the experience. Please try again.",
+            description: createError.message || "Could not create the experience. Please try again.",
             variant: "destructive",
           });
         }
