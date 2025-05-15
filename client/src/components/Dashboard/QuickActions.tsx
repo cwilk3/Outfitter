@@ -6,7 +6,8 @@ import {
   FileEdit,
   Calendar,
   FileText,
-  CreditCard
+  CreditCard,
+  Globe
 } from "lucide-react";
 
 interface QuickActionItemProps {
@@ -84,6 +85,15 @@ export default function QuickActions() {
               bgColorClass="bg-green-600"
             />
           )}
+          
+          {/* Public Booking Link */}
+          <QuickActionItem
+            href="/experiences"
+            title="View Public Booking Page"
+            description="See customer booking interface"
+            icon={<Globe className="h-5 w-5" />}
+            bgColorClass="bg-purple-600"
+          />
         </div>
       </div>
     </div>

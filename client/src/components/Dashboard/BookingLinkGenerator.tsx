@@ -43,7 +43,10 @@ export default function BookingLinkGenerator() {
     );
   }
 
-  const bookingLink = settings?.bookingLink || "https://outfitter.app/book/your-company-name";
+  // Get the domain name from the current window location
+  const domain = typeof window !== 'undefined' ? window.location.origin : '';
+  const publicBookingLink = `${domain}/experiences`;
+  const bookingLink = settings?.bookingLink || publicBookingLink;
 
   return (
     <div className="bg-white rounded-lg shadow mt-6">
