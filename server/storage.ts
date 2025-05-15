@@ -1,11 +1,12 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation
+  type ExperienceLocation, type InsertExperienceLocation, 
+  type ExperienceAddon, type InsertExperienceAddon
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -32,10 +33,20 @@ export interface IStorage {
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number): Promise<Experience[]>;
   
+  // Public Experience operations
+  getPublicExperience(id: number): Promise<Experience | undefined>;
+  listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]>;
+  
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
+  
+  // Experience Addons operations
+  getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]>;
+  createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
+  updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
+  deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -205,6 +216,77 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await query.orderBy(experiences.name);
+  }
+  
+  // Public Experience methods
+  async getPublicExperience(id: number): Promise<Experience | undefined> {
+    // Get the experience like normal
+    const experience = await this.getExperience(id);
+    return experience;
+  }
+  
+  async listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]> {
+    let query = db.select().from(experiences);
+    
+    const conditions = [];
+    
+    // Apply locationId filter if provided using junction table
+    if (locationId) {
+      const experienceIds = await db
+        .select({ id: experienceLocations.experienceId })
+        .from(experienceLocations)
+        .where(eq(experienceLocations.locationId, locationId))
+        .then(results => results.map(r => r.id));
+
+      if (experienceIds.length > 0) {
+        conditions.push(inArray(experiences.id, experienceIds));
+      } else {
+        // Fallback to legacy locationId if no matches in junction table
+        conditions.push(eq(experiences.locationId, locationId));
+      }
+    }
+    
+    // Apply category filter
+    if (category) {
+      conditions.push(eq(experiences.category, category));
+    }
+    
+    // Apply all filters if any
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query.orderBy(experiences.name);
+  }
+  
+  // Experience Addons methods
+  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
+    return db
+      .select()
+      .from(experienceAddons)
+      .where(eq(experienceAddons.experienceId, experienceId))
+      .orderBy(experienceAddons.name);
+  }
+  
+  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
+    const [addon] = await db
+      .insert(experienceAddons)
+      .values(addonData)
+      .returning();
+    return addon;
+  }
+  
+  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
+    const [addon] = await db
+      .update(experienceAddons)
+      .set({...addonData, updatedAt: new Date()})
+      .where(eq(experienceAddons.id, id))
+      .returning();
+    return addon;
+  }
+  
+  async deleteExperienceAddon(id: number): Promise<void> {
+    await db.delete(experienceAddons).where(eq(experienceAddons.id, id));
   }
   
   // Experience Locations operations

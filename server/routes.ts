@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import Stripe from "stripe";
 // Import authentication middleware but we'll use a custom version for development
 import { setupAuth } from "./replitAuth";
 import { 
@@ -20,11 +19,6 @@ import {
   insertExperienceLocationSchema,
   insertExperienceAddonSchema
 } from "@shared/schema";
-
-// Initialize Stripe with the secret key
-const stripe = process.env.STRIPE_SECRET_KEY 
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" })
-  : null;
 
 // Development authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
