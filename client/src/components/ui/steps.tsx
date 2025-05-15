@@ -12,18 +12,17 @@ interface StepsProps {
 export function Steps({ steps, currentStep, clickable = false, onStepClick }: StepsProps) {
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isActive = currentStep >= index + 1;
           const isCompleted = currentStep > index + 1;
           
           return (
-            // Using a div instead of React.Fragment to avoid React.Fragment prop warnings
-            <div key={index} className="flex items-center" style={{flex: index === 0 ? '0 0 auto' : index === steps.length - 1 ? '0 0 auto' : 1}}>
-              {/* Step circle with number or check */}
+            <div key={index} className="flex items-center flex-grow" style={{ width: index === 0 || index === steps.length - 1 ? 'auto' : '100%' }}>
+              {/* Step container */}
               <div 
                 className={cn(
-                  "flex flex-col items-center",
+                  "flex flex-col items-center relative z-10",
                   clickable && onStepClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
                 )}
                 onClick={() => {
@@ -32,6 +31,7 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
                   }
                 }}
               >
+                {/* Circle */}
                 <div 
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2",
@@ -63,7 +63,7 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
               {index < steps.length - 1 && (
                 <div 
                   className={cn(
-                    "flex-1 h-[2px] mx-2",
+                    "h-[2px] mx-2 flex-grow",
                     currentStep > index + 1 
                       ? "bg-primary" 
                       : "bg-muted-foreground/30"
