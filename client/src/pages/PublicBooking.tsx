@@ -33,6 +33,9 @@ interface Experience {
   category: string;
   images?: string[];
   availableDates?: Date[];
+  rules?: string[];
+  amenities?: string[];
+  tripIncludes?: string[];
   locations: {
     id: number;
     name: string;
@@ -330,7 +333,7 @@ function PublicBooking() {
                   
                   <p className="mt-3 text-sm text-gray-600 line-clamp-3 flex-grow">{experience.description}</p>
                   
-                  {/* Features */}
+                  {/* Basic Features */}
                   <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="mr-2 h-4 w-4 text-primary/70" />
@@ -340,6 +343,25 @@ function PublicBooking() {
                       <Users className="mr-2 h-4 w-4 text-primary/70" />
                       <span>Up to {experience.capacity}</span>
                     </div>
+                  </div>
+                  
+                  {/* Amenities & Inclusions Highlights */}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {experience.tripIncludes && experience.tripIncludes.includes('lodging') && (
+                      <span className="text-xs px-2 py-1 bg-primary-50 text-primary-700 rounded-full">🏠 Lodging</span>
+                    )}
+                    {experience.tripIncludes && experience.tripIncludes.includes('meals') && (
+                      <span className="text-xs px-2 py-1 bg-primary-50 text-primary-700 rounded-full">🍽️ Meals</span>
+                    )}
+                    {experience.amenities && experience.amenities.includes('guided') && (
+                      <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">🧭 Guided</span>
+                    )}
+                    {experience.amenities && experience.amenities.includes('wifi') && (
+                      <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">📶 WiFi</span>
+                    )}
+                    {experience.amenities && experience.amenities.length + (experience.tripIncludes?.length || 0) > 2 && (
+                      <span className="text-xs px-2 py-1 bg-gray-100 text-primary rounded-full">+more</span>
+                    )}
                   </div>
                   
                   {/* Button */}
@@ -413,8 +435,8 @@ function PublicBooking() {
                 </div>
               </div>
 
-              {/* Features details - Rules, Amenities, What's Included - Only shown before booking steps */}
-              {!bookingDialogOpen && (
+              {/* Features details - Rules, Amenities, What's Included - Only shown before starting booking process */}
+              {!bookingStep && (
                 <div className="px-6 py-4 border-t border-gray-100">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Rules Section */}
