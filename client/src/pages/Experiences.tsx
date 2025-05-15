@@ -450,6 +450,7 @@ export default function Experiences() {
 
   // Open dialog for editing an existing experience
   const openEditDialog = async (experience: Experience) => {
+    console.log('Opening edit dialog for experience:', experience);
     setSelectedExperience(experience);
     
     // Load all necessary data before showing the dialog to ensure a smooth editing experience
@@ -460,20 +461,31 @@ export default function Experiences() {
     );
     
     // Set selected location IDs
+    const locationIds: number[] = [];
     if (associatedLocations && associatedLocations.length > 0) {
-      const locationIds = associatedLocations?.map((loc: ExperienceLocation) => loc.locationId) || [];
-      setSelectedLocIds(locationIds);
-    } else {
-      setSelectedLocIds([]);
+      locationIds.push(...associatedLocations.map((loc: ExperienceLocation) => loc.locationId));
     }
+    setSelectedLocIds(locationIds);
     
     // Set images if available
     setSelectedImages(experience.images || []);
     
     // Set available dates if available (convert strings to Date objects)
-    const availableDates = experience.availableDates 
-      ? experience.availableDates.map(dateStr => new Date(dateStr))
-      : [];
+    let availableDates: Date[] = [];
+    if (experience.availableDates && experience.availableDates.length > 0) {
+      availableDates = experience.availableDates.map((dateStr: any) => {
+        // Handle both string dates and Date objects
+        if (dateStr instanceof Date) {
+          return dateStr;
+        } else if (typeof dateStr === 'string') {
+          return new Date(dateStr);
+        } else {
+          console.warn('Unknown date format:', dateStr);
+          return new Date(); // Fallback
+        }
+      });
+      console.log('Converted available dates:', availableDates);
+    }
     setSelectedDates(availableDates);
     
     // Set rules, amenities and trip inclusions
@@ -482,37 +494,45 @@ export default function Experiences() {
     setTripIncludes(experience.tripIncludes || []);
     
     // Set addons if available
-    if (experience.addons) {
-      setAddons(experience.addons.map(addon => ({
+    if (experience.addons && experience.addons.length > 0) {
+      const formattedAddons = experience.addons.map(addon => ({
         name: addon.name,
         description: addon.description || '',
-        price: addon.price,
-        isOptional: addon.isOptional
-      })));
+        price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
+        isOptional: addon.isOptional === undefined ? true : addon.isOptional,
+        inventory: addon.inventory || 0,
+        maxPerBooking: addon.maxPerBooking || 1
+      }));
+      console.log('Setting add-ons:', formattedAddons);
+      setAddons(formattedAddons);
     } else {
       setAddons([]);
     }
     
-    // Reset the form with all the experience data to ensure it's correctly loaded
-    form.reset({
-      name: experience.name,
-      description: experience.description,
-      duration: experience.duration,
-      price: experience.price,
-      capacity: experience.capacity,
-      category: experience.category as any,
-      selectedLocationIds: selectedLocIds,
-      images: experience.images || [],
-      availableDates: availableDates,
-      rules: experience.rules || [],
-      amenities: experience.amenities || [],
-      tripIncludes: experience.tripIncludes || [],
-      addons: experience.addons || [],
-    });
-    
-    // Set to whatever step the user wants to start editing from (default to basic info)
-    setCurrentStep(1);
-    setIsCreating(true);
+    // We need to set the form values AFTER setting the state variables
+    // to ensure they're properly reflected in the form
+    setTimeout(() => {
+      // Reset the form with all the experience data to ensure it's correctly loaded
+      form.reset({
+        name: experience.name,
+        description: experience.description,
+        duration: experience.duration,
+        price: experience.price,
+        capacity: experience.capacity,
+        category: experience.category as any,
+        selectedLocationIds: locationIds,
+        images: experience.images || [],
+        availableDates,
+        rules: experience.rules || [],
+        amenities: experience.amenities || [],
+        tripIncludes: experience.tripIncludes || [],
+        addons: experience.addons || [],
+      });
+      
+      // Set to whatever step the user wants to start editing from (default to basic info)
+      setCurrentStep(1);
+      setIsCreating(true);
+    }, 0);
   };
 
   // Open delete confirmation dialog

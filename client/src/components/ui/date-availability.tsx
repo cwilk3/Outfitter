@@ -20,6 +20,28 @@ export function DateAvailability({
 }: DateAvailabilityProps) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   
+  // Debug log to check received dates during initialization
+  React.useEffect(() => {
+    console.log('DateAvailability - received selectedDates:', selectedDates);
+    
+    // Validate that all dates are proper Date objects
+    if (selectedDates && selectedDates.length > 0) {
+      const validatedDates = selectedDates.map(date => {
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+          console.warn('Invalid date found, converting:', date);
+          return new Date(); // Use current date as fallback
+        }
+        return date;
+      });
+      
+      // Only update if we had to fix something
+      if (validatedDates.some((date, i) => date !== selectedDates[i])) {
+        console.log('Fixing invalid dates:', validatedDates);
+        onChange(validatedDates);
+      }
+    }
+  }, []);
+  
   // Function to add a range of dates
   const addDateRange = () => {
     if (!dateRange || !dateRange.from) return;
