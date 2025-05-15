@@ -228,49 +228,42 @@ function PublicBooking() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-b from-gray-900 to-primary-800 text-white">
-        <div className="absolute inset-0 bg-black/40 z-10"></div>
+      {/* Hero Section - More compact and visually pleasing */}
+      <div className="relative bg-gradient-to-r from-gray-900 via-primary-900 to-gray-900 text-white overflow-hidden">
+        {/* Background pattern overlay */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMxLjIzIDAgMi4xOTguOTY4IDIuMTk4IDIuMnYxOS42YzAgMS4yMzItLjk2OCAyLjItMi4xOTggMi4yaC0xMi42Yy0xLjIzIDAtMi4yLTEuMTY4LTIuMi0yLjRWMjAuMmMwLTEuMjMyLjk3LTIuMiAyLjItMi4yaC0uMDAxeiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjA1IiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMzkuNiA0Mi42YzAgMS4yMy0uOTY4IDIuMi0yLjIgMi4ySDIwLjJjLTEuMjMyIDAtMi4yLS45Ny0yLjItMi4yVjE3LjJjMC0xLjIzMi45NjgtMi4yIDIuMi0yLjJoMTcuMmMxLjIzMiAwIDIuMi45NjggMi4yIDIuMnYyNS40eiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjA1IiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-10 bg-fixed"></div>
         
-        {/* Decorative Elements */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <svg className="absolute right-0 top-0 h-full w-1/2 transform translate-x-1/3 text-primary/20" viewBox="0 0 100 100" preserveAspectRatio="none" fill="currentColor">
-            <polygon points="0,0 100,0 50,100 0,100" />
-          </svg>
-          <svg className="absolute left-0 bottom-0 h-full w-1/3 transform -translate-x-1/2 text-primary/10" viewBox="0 0 100 100" preserveAspectRatio="none" fill="currentColor">
-            <polygon points="0,0 100,0 100,100" />
-          </svg>
-        </div>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40 z-10"></div>
         
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
-          <div className="md:w-2/3">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">Unforgettable Outdoor Adventures</h1>
-            <p className="mt-6 text-xl md:text-2xl text-white/80 max-w-3xl">
-              Book your next premium hunting or fishing experience with the top guides in the industry.
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">Book Your Next Experience</h1>
+            <p className="mt-4 text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
+              Connect with the top hunting and fishing guides for premium outdoor adventures
             </p>
             
-            <div className="mt-10">
-              <div className="flex flex-wrap gap-x-6 gap-y-4 text-sm md:text-base">
-                <div className="flex items-center">
-                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                  </svg>
-                  <span>Expert Guides</span>
-                </div>
-                <span className="text-white/50">•</span>
-                <div className="flex items-center">
-                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                  </svg>
-                  <span>Premium Locations</span>
-                </div>
-                <span className="text-white/50">•</span>
-                <div className="flex items-center">
-                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                  </svg>
-                  <span>Unforgettable Memories</span>
-                </div>
+            {/* Feature badges */}
+            <div className="mt-6 inline-flex flex-wrap justify-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+              <div className="flex items-center text-sm font-medium">
+                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                </svg>
+                <span>Expert Guides</span>
+              </div>
+              <span className="text-white/30">•</span>
+              <div className="flex items-center text-sm font-medium">
+                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                </svg>
+                <span>Premium Locations</span>
+              </div>
+              <span className="text-white/30">•</span>
+              <div className="flex items-center text-sm font-medium">
+                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                </svg>
+                <span>Unforgettable Memories</span>
               </div>
             </div>
           </div>
@@ -377,47 +370,122 @@ function PublicBooking() {
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {/* Experience Header in Dialog */}
           {selectedExperience && (
-            <div className="relative h-36 sm:h-48 w-full overflow-hidden rounded-t-2xl">
-              {/* Background Image */}
-              <div className="absolute inset-0">
-                {selectedExperience.images && selectedExperience.images.length > 0 ? (
-                  <img 
-                    src={Array.isArray(selectedExperience.images) ? selectedExperience.images[0] : ""}
-                    alt={selectedExperience.name}
-                    className="w-full h-full object-cover opacity-60"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-primary/20"></div>
-                )}
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30"></div>
-              </div>
-              
-              {/* Content */}
-              <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                <div className="flex items-center mb-2">
-                  {selectedExperience.locations.length > 0 && (
-                    <span className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mr-2">
-                      {selectedExperience.locations[0].city}, {selectedExperience.locations[0].state}
-                    </span>
+            <>
+              <div className="relative h-36 sm:h-48 w-full overflow-hidden rounded-t-2xl">
+                {/* Background Image */}
+                <div className="absolute inset-0">
+                  {selectedExperience.images && selectedExperience.images.length > 0 ? (
+                    <img 
+                      src={Array.isArray(selectedExperience.images) ? selectedExperience.images[0] : ""}
+                      alt={selectedExperience.name}
+                      className="w-full h-full object-cover opacity-60"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary/20"></div>
                   )}
-                  <span className="text-sm font-medium bg-primary/80 backdrop-blur-sm rounded-full px-3 py-1">
-                    {formatPrice(selectedExperience.price)}
-                  </span>
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30"></div>
                 </div>
-                <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
-                <div className="flex items-center mt-1 space-x-4 text-sm">
-                  <div className="flex items-center">
-                    <Calendar className="mr-1 h-4 w-4" />
-                    <span>{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
+                
+                {/* Content */}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                  <div className="flex items-center mb-2">
+                    {selectedExperience.locations.length > 0 && (
+                      <span className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mr-2">
+                        {selectedExperience.locations[0].city}, {selectedExperience.locations[0].state}
+                      </span>
+                    )}
+                    <span className="text-sm font-medium bg-primary/80 backdrop-blur-sm rounded-full px-3 py-1">
+                      {formatPrice(selectedExperience.price)}
+                    </span>
                   </div>
-                  <div className="flex items-center">
-                    <Users className="mr-1 h-4 w-4" />
-                    <span>Up to {selectedExperience.capacity} people</span>
+                  <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
+                  <div className="flex items-center mt-1 space-x-4 text-sm">
+                    <div className="flex items-center">
+                      <Calendar className="mr-1 h-4 w-4" />
+                      <span>{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="mr-1 h-4 w-4" />
+                      <span>Up to {selectedExperience.capacity} people</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Features details - Rules, Amenities, What's Included - Only shown before booking steps */}
+              {!bookingDialogOpen && (
+                <div className="px-6 py-4 border-t border-gray-100">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Rules Section */}
+                    {selectedExperience.rules && selectedExperience.rules.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold mb-3">Rules</h3>
+                        <ul className="space-y-2 text-sm">
+                          {selectedExperience.rules.map((rule, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="inline-block w-1 h-1 bg-primary rounded-full mt-2 mr-2"></span>
+                              <span>{rule}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {selectedExperience.rules.length > 5 && (
+                          <button className="text-xs text-primary-600 mt-2 hover:underline">
+                            Show all rules
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Amenities Section */}
+                    {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold mb-3">Amenities</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedExperience.amenities.map((amenity, index) => (
+                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {amenity === 'bird_dogs' && '🐕 Bird dogs'}
+                              {amenity === 'guided' && '🧭 Guided'}
+                              {amenity === 'air_conditioning' && '❄️ Air conditioning'} 
+                              {amenity === 'keep_meat' && '🥩 Keep the meat'}
+                              {amenity === 'toilet' && '🚽 Toilet'}
+                              {amenity === 'cable_tv' && '📺 Cable TV'}
+                              {amenity === 'mud_room' && '👢 Mud room'}
+                              {amenity === 'wifi' && '📶 WiFi'}
+                              {amenity === 'kid_friendly' && '👶 Kid friendly'}
+                              {amenity === 'corporate_trips' && '💼 Corporate trips'}
+                              {![
+                                'bird_dogs', 'guided', 'air_conditioning', 'keep_meat', 
+                                'toilet', 'cable_tv', 'mud_room', 'wifi', 'kid_friendly', 'corporate_trips'
+                              ].includes(amenity) && amenity}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Trip Includes Section */}
+                    {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
+                      <div>
+                        <h3 className="text-base font-semibold mb-3">Trip Includes</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedExperience.tripIncludes.map((item, index) => (
+                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700">
+                              {item === 'animal_cleaning' && '🧹 Animal cleaning'}
+                              {item === 'lodging' && '🏠 Lodging'}
+                              {item === 'meals' && '🍽️ Meals'}
+                              {item === 'ice' && '🧊 Ice'}
+                              {item === 'byob' && '🍺 BYOB'}
+                              {!['animal_cleaning', 'lodging', 'meals', 'ice', 'byob'].includes(item) && item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           
           <div className="p-6">
