@@ -220,15 +220,35 @@ export class DatabaseStorage implements IStorage {
   
   // Public Experience methods
   async getPublicExperience(id: number): Promise<Experience | undefined> {
-    // Get the experience like normal
-    const experience = await this.getExperience(id);
-    return experience;
+    // Get the experience that is public
+    const [experience] = await db
+      .select()
+      .from(experiences)
+      .where(and(
+        eq(experiences.id, id),
+        eq(experiences.isPublic, true)
+      ));
+    
+    if (!experience) {
+      return undefined;
+    }
+    
+    // Format the experience data for consistent return values
+    return {
+      ...experience,
+      price: experience.price?.toString() || "0", // Convert Decimal to string
+      images: experience.images ? JSON.parse(JSON.stringify(experience.images)) : [],
+      availableDates: experience.availableDates ? JSON.parse(JSON.stringify(experience.availableDates)) : [],
+    };
   }
   
   async listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]> {
     let query = db.select().from(experiences);
     
     const conditions = [];
+    
+    // Only show public experiences by default
+    conditions.push(eq(experiences.isPublic, true));
     
     // Apply locationId filter if provided using junction table
     if (locationId) {
@@ -251,12 +271,18 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(experiences.category, category));
     }
     
-    // Apply all filters if any
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    // Apply all filters
+    query = query.where(and(...conditions));
     
-    return await query.orderBy(experiences.name);
+    const result = await query.orderBy(experiences.name);
+    
+    // Format the data to ensure consistent return values
+    return result.map(exp => ({
+      ...exp,
+      price: exp.price?.toString() || "0", // Convert Decimal to string
+      images: exp.images ? JSON.parse(JSON.stringify(exp.images)) : [],
+      availableDates: exp.availableDates ? JSON.parse(JSON.stringify(exp.availableDates)) : [],
+    }));
   }
   
   // Experience Addons methods
