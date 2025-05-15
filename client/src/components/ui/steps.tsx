@@ -18,7 +18,8 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
           const isCompleted = currentStep > index + 1;
           
           return (
-            <React.Fragment key={index}>
+            // Using a div instead of React.Fragment to avoid React.Fragment prop warnings
+            <div key={index} className="flex items-center" style={{flex: index === 0 ? '0 0 auto' : index === steps.length - 1 ? '0 0 auto' : 1}}>
               {/* Step circle with number or check */}
               <div 
                 className={cn(
@@ -69,7 +70,7 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
                   )}
                 />
               )}
-            </React.Fragment>
+            </div>
           );
         })}
       </div>
