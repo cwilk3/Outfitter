@@ -15,7 +15,8 @@ import {
   insertPaymentSchema, 
   insertSettingsSchema,
   insertActivitySchema,
-  insertLocationSchema
+  insertLocationSchema,
+  insertExperienceLocationSchema
 } from "@shared/schema";
 
 // Development authentication middleware
