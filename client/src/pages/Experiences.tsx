@@ -720,9 +720,10 @@ export default function Experiences() {
             body: JSON.stringify({
               name: formData.name,
               description: formData.description,
-              duration: formData.duration,
-              price: formData.price,
-              capacity: formData.capacity,
+              // Convert string values to numbers
+              duration: Number(formData.duration),
+              price: Number(formData.price),
+              capacity: Number(formData.capacity),
               category: formData.category,
               // Minimize payload for debugging
               images: [], // Skip images initially

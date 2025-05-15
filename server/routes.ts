@@ -290,7 +290,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/experiences', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
-      const validatedData = insertExperienceSchema.parse(req.body);
+      // Create a modified schema that coerces types
+      const modifiedExperienceSchema = insertExperienceSchema
+        .transform((data) => ({
+          ...data,
+          // Ensure numeric fields are converted to numbers
+          duration: typeof data.duration === 'string' ? parseInt(data.duration) : data.duration,
+          price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          capacity: typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
+        }));
+        
+      const validatedData = modifiedExperienceSchema.parse(req.body);
+      console.log("Validated Experience Data:", validatedData);
+      
       const experience = await storage.createExperience(validatedData);
       
       // Log activity
@@ -315,8 +327,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/experiences/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      // Allowing partial updates
-      const validatedData = insertExperienceSchema.partial().parse(req.body);
+      // Allowing partial updates with type coercion
+      const modifiedExperienceSchema = insertExperienceSchema.partial()
+        .transform((data) => ({
+          ...data,
+          // Ensure numeric fields are converted to numbers if present
+          duration: data.duration && typeof data.duration === 'string' ? parseInt(data.duration) : data.duration,
+          price: data.price && typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          capacity: data.capacity && typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
+        }));
+      
+      const validatedData = modifiedExperienceSchema.parse(req.body);
       
       const updatedExperience = await storage.updateExperience(id, validatedData);
       
