@@ -1037,6 +1037,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch locations' });
     }
   });
+  
+  // Get public experience-location mappings
+  app.get('/api/public/experienceLocations', async (req, res) => {
+    try {
+      // Get all experience-location mappings for public experiences
+      const experienceLocations = await storage.listExperienceLocations();
+      res.json(experienceLocations);
+    } catch (error) {
+      console.error('Error fetching public experience locations:', error);
+      res.status(500).json({ message: 'Failed to fetch experience locations' });
+    }
+  });
 
   // Get specific experience details
   app.get('/api/public/experiences/:id', async (req, res) => {
