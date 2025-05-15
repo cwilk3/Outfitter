@@ -290,13 +290,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/experiences', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
-      // Create a modified schema that coerces types
+      // Create a modified schema that coerces types correctly
       const modifiedExperienceSchema = insertExperienceSchema
         .transform((data) => ({
           ...data,
           // Ensure numeric fields are converted to numbers
           duration: typeof data.duration === 'string' ? parseInt(data.duration) : data.duration,
-          price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          // Price field needs to be a string in the database
+          price: typeof data.price === 'number' ? data.price.toString() : data.price,
           capacity: typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
         }));
         
@@ -333,7 +334,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...data,
           // Ensure numeric fields are converted to numbers if present
           duration: data.duration && typeof data.duration === 'string' ? parseInt(data.duration) : data.duration,
-          price: data.price && typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+          // Price field needs to be a string in the database
+          price: data.price && typeof data.price === 'number' ? data.price.toString() : data.price,
           capacity: data.capacity && typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
         }));
       
