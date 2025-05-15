@@ -268,7 +268,13 @@ export default function Experiences() {
         }
       }
       
+      // Invalidate both admin and public experience queries to ensure everything is updated
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+      
+      // Log success and close dialog
+      console.log("Experience created successfully, all queries invalidated");
       closeDialog();
     },
     onError: (error: Error) => {
@@ -320,7 +326,9 @@ export default function Experiences() {
         }
       }
       
+      // Invalidate both admin and public experience queries
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
       queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
       closeDialog();
     },
@@ -343,7 +351,10 @@ export default function Experiences() {
         title: "Success",
         description: "Experience deleted successfully",
       });
+      // Invalidate both admin and public experience queries
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
       setIsDeleteAlertOpen(false);
     },
     onError: (error: Error) => {
@@ -1488,9 +1499,9 @@ export default function Experiences() {
                     </Button>
                   ) : (
                     <Button 
-                      type={selectedExperience ? "button" : "submit"}
-                      disabled={selectedExperience ? true : createMutation.isPending}
-                      className={selectedExperience ? "gap-1 opacity-50 cursor-not-allowed" : "gap-1"}
+                      type="submit"
+                      disabled={createMutation.isPending}
+                      className="gap-1"
                     >
                       {!selectedExperience && createMutation.isPending ? (
                         <span className="flex items-center">
@@ -1575,7 +1586,9 @@ export default function Experiences() {
                           });
                           
                           // Refresh data
+                          // Invalidate both admin and public experience queries
                           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
                           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
                           
                           // Show prominent success message
