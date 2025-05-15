@@ -147,10 +147,11 @@ export default function UpcomingBookings() {
         </ul>
       </div>
       <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 text-right">
-        <Link href="/bookings">
-          <a className="text-sm font-medium text-primary hover:text-primary/80">
-            View all bookings →
-          </a>
+        <Link 
+          href="/bookings"
+          className="text-sm font-medium text-primary hover:text-primary/80"
+        >
+          View all bookings →
         </Link>
       </div>
     </div>
