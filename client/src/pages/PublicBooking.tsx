@@ -44,12 +44,40 @@ interface Experience {
   }[];
 }
 
-// Sample addons (would be fetched from API in real app)
+// Sample addons (would be fetched from API based on the experience's addons in real app)
 const sampleAddons = [
-  { id: "guide-service", label: "Professional Guide Service", price: 150 },
-  { id: "equipment-rental", label: "Equipment Rental", price: 50 },
-  { id: "photo-package", label: "Photo Package", price: 75 },
-  { id: "tackle-box", label: "Premium Tackle Box", price: 25 },
+  { 
+    id: "guide-service", 
+    label: "Professional Guide Service", 
+    price: 150,
+    inventory: 10,
+    maxPerBooking: 1,
+    isOptional: true
+  },
+  { 
+    id: "equipment-rental", 
+    label: "Equipment Rental", 
+    price: 50,
+    inventory: 20,
+    maxPerBooking: 4,
+    isOptional: true
+  },
+  { 
+    id: "photo-package", 
+    label: "Photo Package", 
+    price: 75,
+    inventory: 15,
+    maxPerBooking: 1,
+    isOptional: true
+  },
+  { 
+    id: "tackle-box", 
+    label: "Premium Tackle Box", 
+    price: 25,
+    inventory: 8,
+    maxPerBooking: 2,
+    isOptional: true
+  },
 ];
 
 // Booking form schema
@@ -71,7 +99,12 @@ const bookingFormSchema = z.object({
   paymentOption: z.enum(["deposit", "full"], {
     required_error: "Please select a payment option",
   }),
-  addons: z.array(z.string()).optional(),
+  addons: z.array(
+    z.object({
+      id: z.string(),
+      quantity: z.number().min(1).default(1)
+    })
+  ).optional(),
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -776,27 +809,94 @@ function PublicBooking() {
                         name="addons"
                         render={({ field }) => (
                           <FormItem>
-                            <div className="space-y-2">
-                              {sampleAddons.map((addon) => (
-                                <div key={addon.id} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={addon.id}
-                                    checked={field.value?.includes(addon.id)}
-                                    onCheckedChange={(checked) => {
-                                      const currentValues = field.value || [];
-                                      if (checked) {
-                                        field.onChange([...currentValues, addon.id]);
-                                      } else {
-                                        field.onChange(currentValues.filter(value => value !== addon.id));
-                                      }
-                                    }}
-                                  />
-                                  <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex justify-between w-full">
-                                    <span>{addon.label}</span>
-                                    <span className="text-gray-500 ml-2">${addon.price}</span>
-                                  </label>
-                                </div>
-                              ))}
+                            <div className="space-y-3">
+                              {sampleAddons.map((addon) => {
+                                // Find this addon in current values
+                                const addonSelection = field.value?.find(a => a.id === addon.id);
+                                const isSelected = !!addonSelection;
+                                const quantity = addonSelection?.quantity || 1;
+                                
+                                return (
+                                  <div key={addon.id} className="border rounded-md p-3 bg-gray-50">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={addon.id}
+                                          checked={isSelected}
+                                          onCheckedChange={(checked) => {
+                                            const currentValues = field.value || [];
+                                            if (checked) {
+                                              field.onChange([...currentValues, { id: addon.id, quantity: 1 }]);
+                                            } else {
+                                              field.onChange(currentValues.filter(value => value.id !== addon.id));
+                                            }
+                                          }}
+                                        />
+                                        <div>
+                                          <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            {addon.label}
+                                          </label>
+                                          {addon.inventory && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {addon.inventory} available
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="text-sm font-medium text-primary">${addon.price}</span>
+                                    </div>
+                                    
+                                    {isSelected && addon.maxPerBooking > 1 && (
+                                      <div className="mt-3 pt-2 border-t flex items-center justify-between">
+                                        <span className="text-sm">Quantity:</span>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() => {
+                                              if (quantity > 1) {
+                                                const newValues = field.value.map(v => 
+                                                  v.id === addon.id 
+                                                    ? { ...v, quantity: v.quantity - 1 } 
+                                                    : v
+                                                );
+                                                field.onChange(newValues);
+                                              }
+                                            }}
+                                            disabled={quantity <= 1}
+                                          >
+                                            -
+                                          </Button>
+                                          
+                                          <span className="text-sm font-medium w-8 text-center">{quantity}</span>
+                                          
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() => {
+                                              if (quantity < addon.maxPerBooking) {
+                                                const newValues = field.value.map(v => 
+                                                  v.id === addon.id 
+                                                    ? { ...v, quantity: v.quantity + 1 } 
+                                                    : v
+                                                );
+                                                field.onChange(newValues);
+                                              }
+                                            }}
+                                            disabled={quantity >= addon.maxPerBooking}
+                                          >
+                                            +
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                             <FormMessage />
                           </FormItem>
