@@ -1555,7 +1555,6 @@ export default function Experiences() {
                   ) : (
                     <Button 
                       type="submit"
-                      onClick={() => console.log("Submit button clicked - should trigger form submission")}
                       className="gap-1 bg-green-600 hover:bg-green-700 text-white"
                     >
                       {form.formState.isSubmitting ? (
