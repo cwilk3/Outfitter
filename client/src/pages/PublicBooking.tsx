@@ -41,6 +41,14 @@ interface Experience {
   }[];
 }
 
+// Sample addons (would be fetched from API in real app)
+const sampleAddons = [
+  { id: "guide-service", label: "Professional Guide Service", price: 150 },
+  { id: "equipment-rental", label: "Equipment Rental", price: 50 },
+  { id: "photo-package", label: "Photo Package", price: 75 },
+  { id: "tackle-box", label: "Premium Tackle Box", price: 25 },
+];
+
 // Booking form schema
 const bookingFormSchema = z.object({
   experienceId: z.string(),
@@ -66,22 +74,13 @@ const bookingFormSchema = z.object({
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 function PublicBooking() {
-  const [_, setLocation] = useLocation();
-  const { outfitterId } = useParams();
+  // States
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
-
-  // Sample addons (would normally come from the experience data)
-  const sampleAddons = [
-    { id: "addon1", label: "Equipment Rental", price: 50 },
-    { id: "addon2", label: "Guide Tips (Recommended)", price: 100 },
-    { id: "addon3", label: "Photography Package", price: 75 },
-    { id: "addon4", label: "Transportation", price: 60 },
-  ];
-
-  // Fetch experiences from the API
+  
+  // Get experiences from API
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
     queryKey: ['/api/public/experiences'],
   });
@@ -199,15 +198,19 @@ function PublicBooking() {
       currency: 'USD',
     }).format(parseFloat(price));
   };
-
-  // Calculate booking summary
+  
+  // Calculate booking summary based on form values
   const calculateSummary = (formValues: BookingFormValues) => {
-    if (!selectedExperience) return { subtotal: 0, total: 0, deposit: 0 };
+    if (!selectedExperience) {
+      return { subtotal: 0, addonTotal: 0, total: 0, deposit: 0 };
+    }
     
-    const basePrice = parseFloat(selectedExperience.price);
+    const price = parseFloat(selectedExperience.price);
+    const groupSize = parseInt(formValues.groupSize) || 1;
+    const subtotal = price * groupSize;
+    
+    // Calculate addons
     let addonTotal = 0;
-    
-    // Add up selected addons
     if (formValues.addons && formValues.addons.length > 0) {
       formValues.addons.forEach(addonId => {
         const addon = sampleAddons.find(a => a.id === addonId);
@@ -217,63 +220,37 @@ function PublicBooking() {
       });
     }
     
-    const subtotal = basePrice;
     const total = subtotal + addonTotal;
-    const deposit = total / 2;
+    const deposit = total * 0.5;
     
-    return {
-      subtotal,
-      addonTotal,
-      total,
-      deposit,
-    };
+    return { subtotal, addonTotal, total, deposit };
   };
 
-  // If outfitterId is provided but invalid, show not found message
-  if (outfitterId && !isLoading && experiences.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-lg shadow-lg">
-          <CardHeader>
-            <CardTitle>Outfitter Not Found</CardTitle>
-            <CardDescription>
-              The outfitter you're looking for doesn't exist or has no available experiences.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button onClick={() => setLocation("/")}>Return Home</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Modern Header Section */}
-      <div className="relative overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/80 z-0"></div>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-b from-gray-900 to-primary-800 text-white">
+        <div className="absolute inset-0 bg-black/40 z-10"></div>
         
-        {/* Decorative elements */}
-        <div className="absolute inset-0 z-0 opacity-10">
-          <div className="absolute top-0 left-0 h-72 w-72 rounded-full bg-white/20 -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/10 translate-x-1/3 translate-y-1/3"></div>
-          <div className="absolute top-1/2 right-1/4 h-48 w-48 rounded-full bg-white/10 -translate-y-1/2"></div>
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <svg className="absolute right-0 top-0 h-full w-1/2 transform translate-x-1/3 text-primary/20" viewBox="0 0 100 100" preserveAspectRatio="none" fill="currentColor">
+            <polygon points="0,0 100,0 50,100 0,100" />
+          </svg>
+          <svg className="absolute left-0 bottom-0 h-full w-1/3 transform -translate-x-1/2 text-primary/10" viewBox="0 0 100 100" preserveAspectRatio="none" fill="currentColor">
+            <polygon points="0,0 100,0 100,100" />
+          </svg>
         </div>
         
-        <div className="relative z-10 max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              <span className="block">Discover Your Next</span>
-              <span className="block mt-1 text-white/90">Unforgettable Adventure</span>
-            </h1>
-            <p className="mt-6 text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Browse our exclusive collection of guided experiences and book the perfect outdoor getaway
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+          <div className="md:w-2/3">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">Unforgettable Outdoor Adventures</h1>
+            <p className="mt-6 text-xl md:text-2xl text-white/80 max-w-3xl">
+              Book your next premium hunting or fishing experience with the top guides in the industry.
             </p>
             
-            <div className="mt-8">
-              <div className="flex justify-center items-center space-x-2 text-white/70 text-sm">
+            <div className="mt-10">
+              <div className="flex flex-wrap gap-x-6 gap-y-4 text-sm md:text-base">
                 <div className="flex items-center">
                   <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
@@ -487,126 +464,58 @@ function PublicBooking() {
               </div>
             </div>
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Location Selection Step */}
-              {bookingStep === 'location' && selectedExperience && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Select a Location</h3>
-                  <p className="text-sm text-gray-500">
-                    This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
-                  </p>
-                  
-                  <FormField
-                    control={form.control}
-                    name="locationId"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            {selectedExperience.locations.map(location => (
-                              <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
-                                <FormItem className="flex items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value={location.id.toString()} />
-                                  </FormControl>
-                                  <div className="grid gap-1.5 leading-none">
-                                    <FormLabel className="text-base font-medium mb-0.5">
-                                      {location.name}
-                                    </FormLabel>
-                                    <p className="text-sm text-gray-500">
-                                      {location.city}, {location.state}
-                                    </p>
-                                  </div>
-                                </FormItem>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <DialogFooter className="mt-6">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setBookingDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="button" 
-                      onClick={nextStep}
-                      className="gap-1"
-                    >
-                      Continue
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </DialogFooter>
-                </div>
-              )}
-              
-              {/* Date Selection Step */}
-              {bookingStep === 'dates' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Start Date</FormLabel>
-                          <DatePicker 
-                            date={field.value}
-                            onSelect={field.onChange}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>End Date</FormLabel>
-                          <DatePicker 
-                            date={field.value}
-                            onSelect={field.onChange}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-lg text-sm mt-4">
-                    <p className="text-gray-600">
-                      <span className="font-medium">Duration:</span> {selectedExperience?.duration} {selectedExperience?.duration === 1 ? 'day' : 'days'}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Location Selection Step */}
+                {bookingStep === 'location' && selectedExperience && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Select a Location</h3>
+                    <p className="text-sm text-gray-500">
+                      This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
                     </p>
-                    {form.getValues().startDate && form.getValues().endDate && (
-                      <p className="text-gray-600 mt-1">
-                        <span className="font-medium">Selected Period:</span> {format(form.getValues().startDate, 'MMM d, yyyy')} to {format(form.getValues().endDate, 'MMM d, yyyy')}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <DialogFooter className="mt-6">
-                    <div className="flex justify-between w-full">
+                    
+                    <FormField
+                      control={form.control}
+                      name="locationId"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-3"
+                            >
+                              {selectedExperience.locations.map(location => (
+                                <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
+                                  <FormItem className="flex items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value={location.id.toString()} />
+                                    </FormControl>
+                                    <div className="grid gap-1.5 leading-none">
+                                      <FormLabel className="text-base font-medium mb-0.5">
+                                        {location.name}
+                                      </FormLabel>
+                                      <p className="text-sm text-gray-500">
+                                        {location.city}, {location.state}
+                                      </p>
+                                    </div>
+                                  </FormItem>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <DialogFooter className="mt-6">
                       <Button 
                         type="button" 
                         variant="outline" 
-                        onClick={prevStep}
-                        className="gap-1"
+                        onClick={() => setBookingDialogOpen(false)}
                       >
-                        <ChevronRight className="h-4 w-4 rotate-180" />
-                        Back
+                        Cancel
                       </Button>
                       <Button 
                         type="button" 
@@ -616,203 +525,273 @@ function PublicBooking() {
                         Continue
                         <ChevronRight className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </DialogFooter>
-                </div>
-              )}
-              
-              {/* Personal Details Step */}
-              {bookingStep === 'details' && (
-                <div className="space-y-6">
+                    </DialogFooter>
+                  </div>
+                )}
+                
+                {/* Date Selection Step */}
+                {bookingStep === 'dates' && (
                   <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Start Date</FormLabel>
+                            <DatePicker 
+                              date={field.value}
+                              onSelect={field.onChange}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>End Date</FormLabel>
+                            <DatePicker 
+                              date={field.value}
+                              onSelect={field.onChange}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg text-sm mt-4">
+                      <p className="text-gray-600">
+                        <span className="font-medium">Duration:</span> {selectedExperience?.duration} {selectedExperience?.duration === 1 ? 'day' : 'days'}
+                      </p>
+                      {form.getValues().startDate && form.getValues().endDate && (
+                        <p className="text-gray-600 mt-1">
+                          <span className="font-medium">Selected Period:</span> {format(form.getValues().startDate, 'MMM d, yyyy')} to {format(form.getValues().endDate, 'MMM d, yyyy')}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <DialogFooter className="mt-6">
+                      <div className="flex justify-between w-full">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={prevStep}
+                          className="gap-1"
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                          Back
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={nextStep}
+                          className="gap-1"
+                        >
+                          Continue
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </DialogFooter>
+                  </div>
+                )}
+                
+                {/* Personal Details Step */}
+                {bookingStep === 'details' && (
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="customerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="customerEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input placeholder="your@email.com" type="email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="customerPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input placeholder="(123) 456-7890" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="groupSize"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Group Size</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select group size" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
+                                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                    {i + 1} {i === 0 ? 'person' : 'people'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Optional Add-ons</h3>
+
+                      <FormField
+                        control={form.control}
+                        name="addons"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="space-y-2">
+                              {sampleAddons.map((addon) => (
+                                <div key={addon.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={addon.id}
+                                    checked={field.value?.includes(addon.id)}
+                                    onCheckedChange={(checked) => {
+                                      const currentValues = field.value || [];
+                                      if (checked) {
+                                        field.onChange([...currentValues, addon.id]);
+                                      } else {
+                                        field.onChange(currentValues.filter(value => value !== addon.id));
+                                      }
+                                    }}
+                                  />
+                                  <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex justify-between w-full">
+                                    <span>{addon.label}</span>
+                                    <span className="text-gray-500 ml-2">${addon.price}</span>
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator />
+
                     <FormField
                       control={form.control}
-                      name="customerName"
+                      name="paymentOption"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                        <FormItem className="space-y-3">
+                          <FormLabel>Payment Option</FormLabel>
                           <FormControl>
-                            <Input placeholder="John Doe" {...field} />
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="deposit" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  50% Deposit Now (${calculateSummary(form.getValues()).deposit.toFixed(2)})
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="full" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Pay in Full (${calculateSummary(form.getValues()).total.toFixed(2)})
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="customerEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="your@email.com" type="email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="customerPhone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input placeholder="(123) 456-7890" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="groupSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Group Size</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select group size" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
-                                <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                  {i + 1} {i === 0 ? 'person' : 'people'}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Optional Add-ons</h3>
-
-                    <FormField
-                      control={form.control}
-                      name="addons"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="space-y-2">
-                            {sampleAddons.map((addon) => (
-                              <div key={addon.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={addon.id}
-                                  checked={field.value?.includes(addon.id)}
-                                  onCheckedChange={(checked) => {
-                                    const currentValues = field.value || [];
-                                    if (checked) {
-                                      field.onChange([...currentValues, addon.id]);
-                                    } else {
-                                      field.onChange(currentValues.filter(value => value !== addon.id));
-                                    }
-                                  }}
-                                />
-                                <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex justify-between w-full">
-                                  <span>{addon.label}</span>
-                                  <span className="text-gray-500 ml-2">${addon.price}</span>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <FormField
-                    control={form.control}
-                    name="paymentOption"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Payment Option</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="deposit" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                50% Deposit Now (${calculateSummary(form.getValues()).deposit.toFixed(2)})
-                              </FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="full" />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                Pay in Full (${calculateSummary(form.getValues()).total.toFixed(2)})
-                              </FormLabel>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="text-base font-medium mb-2">Booking Summary</h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>Experience Fee:</span>
-                        <span>${calculateSummary(form.getValues()).subtotal.toFixed(2)}</span>
-                      </div>
-                      {calculateSummary(form.getValues()).addonTotal > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-base font-medium mb-2">Booking Summary</h4>
+                      <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span>Add-ons:</span>
-                          <span>${calculateSummary(form.getValues()).addonTotal.toFixed(2)}</span>
+                          <span>Experience Fee:</span>
+                          <span>${calculateSummary(form.getValues()).subtotal.toFixed(2)}</span>
                         </div>
-                      )}
-                      <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
-                        <span>Total:</span>
-                        <span>${calculateSummary(form.getValues()).total.toFixed(2)}</span>
+                        {calculateSummary(form.getValues()).addonTotal > 0 && (
+                          <div className="flex justify-between">
+                            <span>Add-ons:</span>
+                            <span>${calculateSummary(form.getValues()).addonTotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
+                          <span>Total:</span>
+                          <span>${calculateSummary(form.getValues()).total.toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <DialogFooter>
-                    <div className="flex justify-between w-full">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={prevStep}
-                        className="gap-1"
-                      >
-                        <ChevronRight className="h-4 w-4 rotate-180" />
-                        Back
-                      </Button>
-                      <Button type="submit" className="gap-1">
-                        <Check className="h-4 w-4" />
-                        Complete Booking
-                      </Button>
-                    </div>
-                  </DialogFooter>
-                </div>
-              )}
-            </form>
+                    <DialogFooter>
+                      <div className="flex justify-between w-full">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={prevStep}
+                          className="gap-1"
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                          Back
+                        </Button>
+                        <Button type="submit" className="gap-1">
+                          <Check className="h-4 w-4" />
+                          Complete Booking
+                        </Button>
+                      </div>
+                    </DialogFooter>
+                  </div>
+                )}
+              </form>
+            </Form>
           </div>
         </DialogContent>
       </Dialog>
@@ -823,41 +802,55 @@ function PublicBooking() {
           <DialogHeader>
             <DialogTitle>Booking Confirmed!</DialogTitle>
             <DialogDescription>
-              Thank you for your booking. We've sent a confirmation email with all the details.
+              Your booking has been successfully completed.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="py-4">
-            {bookingConfirmation && (
-              <div className="border rounded-md p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Booking Number:</span>
-                  <span className="text-sm font-medium">{bookingConfirmation.booking.bookingNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Dates:</span>
-                  <span className="text-sm font-medium">
-                    {format(new Date(bookingConfirmation.booking.startDate), 'MMM d, yyyy')} - 
-                    {format(new Date(bookingConfirmation.booking.endDate), 'MMM d, yyyy')}
+          
+          {bookingConfirmation && (
+            <div className="mt-6 space-y-4">
+              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium text-lg">Booking #{bookingConfirmation.booking.bookingNumber}</h3>
+                  <span className="px-2 py-1 bg-primary-500 text-white rounded text-xs font-medium">
+                    {bookingConfirmation.booking.status}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Payment Status:</span>
-                  <span className="text-sm font-medium">{bookingConfirmation.booking.paymentStatus}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Total Amount:</span>
-                  <span className="text-sm font-medium">${bookingConfirmation.booking.totalAmount}</span>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-gray-500">Experience:</span>
+                    <span className="font-medium">{bookingConfirmation.booking.experienceName}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-gray-500">Dates:</span>
+                    <span className="font-medium">
+                      {format(new Date(bookingConfirmation.booking.startDate), 'MMM d, yyyy')} - {format(new Date(bookingConfirmation.booking.endDate), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="text-gray-500">Total Amount:</span>
+                    <span className="font-medium">${bookingConfirmation.booking.totalAmount}</span>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => {
-              setConfirmationDialogOpen(false);
-              setBookingConfirmation(null);
-            }}>
+              
+              <p className="text-sm text-gray-600">
+                We've sent a confirmation email to <span className="font-medium">{bookingConfirmation.booking.customer.email}</span> with all the details of your booking.
+              </p>
+              
+              <div className="bg-yellow-50 p-3 rounded-md text-sm text-yellow-800 flex items-start">
+                <svg className="h-5 w-5 mr-2 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <p>
+                  Our team will contact you shortly to confirm all details and arrange any additional requirements.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-6">
+            <Button onClick={() => setConfirmationDialogOpen(false)}>
               Close
             </Button>
           </DialogFooter>
