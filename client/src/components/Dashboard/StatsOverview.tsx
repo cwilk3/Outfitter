@@ -11,7 +11,7 @@ export default function StatsOverview() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[...Array(4)].map((_, index) => (
           <div key={index} className="bg-white rounded-lg shadow p-5">
             <div className="flex items-center justify-between">
@@ -32,7 +32,7 @@ export default function StatsOverview() {
 
   if (error) {
     return (
-      <div className="bg-red-50 p-4 rounded-lg">
+      <div className="bg-red-50 p-4 rounded-lg mb-8">
         <p className="text-red-600">Error loading dashboard statistics</p>
       </div>
     );
@@ -46,7 +46,7 @@ export default function StatsOverview() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <StatCard
         title="Upcoming Bookings"
         value={stats?.upcomingBookings || 0}
