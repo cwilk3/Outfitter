@@ -687,6 +687,7 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
+      experienceAddon: 1,
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1194,6 +1195,51 @@ export class MemStorage implements IStorage {
     if (toRemove) {
       this.experienceLocations.delete(toRemove[0]);
     }
+  }
+  
+  // Experience Addon operations
+  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
+    return this.experienceAddons.get(id);
+  }
+  
+  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
+    return Array.from(this.experienceAddons.values())
+      .filter(addon => addon.experienceId === experienceId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
+    const id = this.currentIds.experienceAddon++;
+    const now = new Date();
+    const addon: ExperienceAddon = {
+      ...addonData,
+      id,
+      inventory: addonData.inventory || 0,
+      maxPerBooking: addonData.maxPerBooking || 1,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.experienceAddons.set(id, addon);
+    return addon;
+  }
+  
+  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
+    const addon = this.experienceAddons.get(id);
+    if (!addon) return undefined;
+    
+    const updatedAddon: ExperienceAddon = {
+      ...addon,
+      ...addonData,
+      updatedAt: new Date()
+    };
+    
+    this.experienceAddons.set(id, updatedAddon);
+    return updatedAddon;
+  }
+  
+  async deleteExperienceAddon(id: number): Promise<void> {
+    this.experienceAddons.delete(id);
   }
 
   // Customer operations
