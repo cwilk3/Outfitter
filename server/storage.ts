@@ -1339,6 +1339,10 @@ export class MemStorage implements IStorage {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
   
+  async listExperienceLocations(): Promise<ExperienceLocation[]> {
+    return Array.from(this.experienceLocations.values());
+  }
+  
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
     // Check if relationship already exists
     const existing = Array.from(this.experienceLocations.values()).find(
