@@ -18,19 +18,18 @@ export default function SidebarNavItem({
   onClick 
 }: SidebarNavItemProps) {
   return (
-    <Link href={to}>
-      <a 
-        className={cn(
-          "sidebar-item flex items-center px-3 py-3 text-sm font-medium rounded-md hover:bg-gray-100",
-          isActive ? "active" : ""
-        )}
-        onClick={onClick}
-      >
-        <span className={cn("h-5 w-5 mr-3", isActive ? "text-primary" : "text-gray-500")}>
-          {icon}
-        </span>
-        <span>{children}</span>
-      </a>
+    <Link 
+      href={to}
+      onClick={onClick}
+      className={cn(
+        "sidebar-item flex items-center px-3 py-3 text-sm font-medium rounded-md hover:bg-gray-100",
+        isActive ? "active" : ""
+      )}
+    >
+      <span className={cn("h-5 w-5 mr-3", isActive ? "text-primary" : "text-gray-500")}>
+        {icon}
+      </span>
+      <span>{children}</span>
     </Link>
   );
 }
