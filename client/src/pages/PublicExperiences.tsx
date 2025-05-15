@@ -24,10 +24,16 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, DollarSign, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 
-const PublicExperiences = () => {
+interface PublicExperiencesProps {
+  experienceId?: number;
+  companySlug?: string;
+}
+
+const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, companySlug }) => {
   const [, setLocation] = useLocation();
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [pageTitle, setPageTitle] = useState<string>("Explore Experiences");
 
   // Fetch experiences
   const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
