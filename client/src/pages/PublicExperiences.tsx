@@ -34,6 +34,30 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [pageTitle, setPageTitle] = useState<string>("Explore Experiences");
+  const [companyName, setCompanyName] = useState<string>("");
+
+  // Fetch company settings
+  const { data: settings } = useQuery({
+    queryKey: ['/api/settings'],
+    onSuccess: (data) => {
+      if (data && data.companyName) {
+        setCompanyName(data.companyName);
+      }
+    }
+  });
+
+  // Update page title based on props
+  useEffect(() => {
+    if (companySlug) {
+      if (companySlug === 'wilderness-adventures') {
+        setPageTitle(`${companyName || 'Company'} Experiences`);
+      } else {
+        setPageTitle(`${companySlug.replace(/-/g, ' ')} Experiences`);
+      }
+    } else if (experienceId) {
+      setPageTitle("Experience Details");
+    }
+  }, [companySlug, experienceId, companyName]);
 
   // Fetch experiences
   const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
@@ -59,12 +83,22 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
       .join(' ');
   };
 
-  // Filter experiences based on selected location and search query
+  // Filter experiences based on selected location, search query, and company slug
   const filteredExperiences = experiences.filter(exp => {
     // Check if the experience matches the search query
     const matchesSearch = searchQuery === "" || 
       exp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    // If using a company slug, only show experiences that are public
+    if (companySlug && exp.isPublic === false) {
+      return false;
+    }
+    
+    // If viewing a specific experience, only show that one
+    if (experienceId) {
+      return exp.id === experienceId;
+    }
     
     // If no location is selected, just check the search query
     if (selectedLocationId === "") {
@@ -91,10 +125,15 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Book Your Next Adventure</h1>
+        <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Discover our range of guided hunting and fishing experiences. 
-          Filter by location or search for specific adventures.
+          {companySlug 
+            ? `Browse our selection of guided hunting and fishing experiences.`
+            : experienceId
+              ? `View details and book this experience.`
+              : `Discover our range of guided hunting and fishing experiences. 
+                 Filter by location or search for specific adventures.`
+          }
         </p>
       </div>
 
