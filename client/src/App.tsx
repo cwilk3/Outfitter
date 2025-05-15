@@ -14,6 +14,7 @@ import Staff from "@/pages/Staff";
 import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Settings from "@/pages/Settings";
+import PublicBooking from "@/pages/PublicBooking";
 import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -62,7 +63,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <ProtectedRoutes />
+        <Switch>
+          {/* Public routes */}
+          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
+          
+          {/* Protected routes */}
+          <Route path="/*">
+            <ProtectedRoutes />
+          </Route>
+        </Switch>
       </TooltipProvider>
     </QueryClientProvider>
   );

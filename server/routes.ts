@@ -1022,6 +1022,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Public routes - no authentication required
+  
+  // GET public experiences
+  app.get('/api/public/experiences', async (req, res) => {
+    try {
+      // Get all active experiences
+      const experiences = await storage.listExperiences();
+      const experienceLocations = await storage.getAllExperienceLocations();
+      const locations = await storage.listLocations(true); // Only active locations
+      
+      // Enrich experiences with location info
+      const enrichedExperiences = experiences.map(experience => {
+        // Find location associations for this experience
+        const associatedLocationIds = experienceLocations
+          .filter(el => el.experienceId === experience.id)
+          .map(el => el.locationId);
+        
+        // Get location details
+        const associatedLocations = locations
+          .filter(location => associatedLocationIds.includes(location.id))
+          .map(location => ({
+            id: location.id,
+            name: location.name,
+            city: location.city,
+            state: location.state
+          }));
+        
+        return {
+          ...experience,
+          locations: associatedLocations
+        };
+      });
+      
+      res.json(enrichedExperiences);
+    } catch (error) {
+      console.error('Error fetching public experiences:', error);
+      res.status(500).json({ message: 'Failed to fetch experiences' });
+    }
+  });
+  
+  // Handle public booking submission
+  app.post('/api/public/book', async (req, res) => {
+    try {
+      const { 
+        experienceId, 
+        startDate, 
+        endDate, 
+        customerName,
+        customerEmail,
+        customerPhone,
+        groupSize,
+        paymentOption,
+        addons = []
+      } = req.body;
+      
+      // Validate required fields
+      if (!experienceId || !startDate || !endDate || !customerName || !customerEmail) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      // Parse experienceId as number
+      const expId = parseInt(experienceId);
+      
+      // Create or get customer
+      let customer = await storage.listCustomers(customerEmail)
+        .then(customers => customers.find(c => c.email === customerEmail));
+      
+      if (!customer) {
+        // Create new customer
+        const [firstName, ...lastNameParts] = customerName.split(' ');
+        const lastName = lastNameParts.join(' ');
+        
+        customer = await storage.createCustomer({
+          firstName, 
+          lastName: lastName || '',
+          email: customerEmail,
+          phone: customerPhone || ''
+        });
+      }
+      
+      // Get experience details to calculate price
+      const experience = await storage.getExperience(expId);
+      if (!experience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      // Generate a booking number
+      const bookingNumber = `B-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      
+      // Create booking
+      const booking = await storage.createBooking({
+        bookingNumber,
+        customerId: customer.id,
+        experienceId: expId,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        status: paymentOption === 'full' ? 'paid' : 'deposit_paid',
+        totalAmount: experience.price,
+        guestCount: parseInt(groupSize) || 1,
+        notes: addons.length > 0 ? `Add-ons: ${addons.join(', ')}` : '',
+        paymentStatus: paymentOption === 'full' ? 'Paid in Full' : '50% Deposit',
+        source: 'website'
+      });
+      
+      // Log activity
+      await storage.createActivity({
+        userId: '0', // Public booking, no user
+        action: 'Public booking created',
+        details: { bookingNumber, customerId: customer.id }
+      });
+      
+      // Return success with booking details
+      res.status(201).json({ 
+        success: true, 
+        message: 'Booking created successfully',
+        booking: {
+          ...booking,
+          customer
+        }
+      });
+      
+      // Simulate sending email notification
+      console.log(`Email notification would be sent to ${customerEmail} for booking ${bookingNumber}`);
+      
+    } catch (error) {
+      console.error('Error creating public booking:', error);
+      res.status(500).json({ message: 'Failed to create booking' });
+    }
+  });
+  
+  // Client-side routing will handle /public-booking routes
+
   const httpServer = createServer(app);
   return httpServer;
 }
