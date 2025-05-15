@@ -221,7 +221,8 @@ export default function Experiences() {
 
   // Form handling
   const form = useForm<ExperienceFormValues>({
-    resolver: zodResolver(experienceSchema),
+    // Temporarily disable resolver for debugging
+    // resolver: zodResolver(experienceSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -1554,7 +1555,35 @@ export default function Experiences() {
                     </Button>
                   ) : (
                     <Button 
-                      type="submit"
+                      type="button"
+                      onClick={async () => {
+                        console.log("Manual submit button clicked");
+                        
+                        // Log form errors if any
+                        if (Object.keys(form.formState.errors).length > 0) {
+                          console.error("Form has validation errors:", form.formState.errors);
+                          toast({
+                            title: "Form has errors",
+                            description: "Please fix form errors before submitting.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        try {
+                          // Get form values and call our onSubmit directly
+                          const values = form.getValues();
+                          console.log("Form values:", values);
+                          await onSubmit(values);
+                        } catch (error) {
+                          console.error("Error submitting form:", error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to submit form. Check console for details.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
                       className="gap-1 bg-green-600 hover:bg-green-700 text-white"
                     >
                       {form.formState.isSubmitting ? (
