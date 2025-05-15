@@ -18,16 +18,17 @@ interface QuickActionItemProps {
 }
 
 const QuickActionItem = ({ href, title, description, icon, bgColorClass }: QuickActionItemProps) => (
-  <Link href={href}>
-    <a className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg">
-      <div className={`flex-shrink-0 ${bgColorClass} text-white p-2 rounded-md`}>
-        {icon}
-      </div>
-      <div className="ml-3">
-        <h4 className="text-sm font-medium text-gray-800">{title}</h4>
-        <p className="text-xs text-gray-500">{description}</p>
-      </div>
-    </a>
+  <Link 
+    href={href}
+    className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg"
+  >
+    <div className={`flex-shrink-0 ${bgColorClass} text-white p-2 rounded-md`}>
+      {icon}
+    </div>
+    <div className="ml-3">
+      <h4 className="text-sm font-medium text-gray-800">{title}</h4>
+      <p className="text-xs text-gray-500">{description}</p>
+    </div>
   </Link>
 );
 

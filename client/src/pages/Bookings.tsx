@@ -44,16 +44,17 @@ import {
 
 export default function Bookings() {
   const { isAdmin } = useRole();
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10;
 
   // Fetch bookings data
-  const { data: bookings, isLoading: isLoadingBookings } = useQuery({
+  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<Booking[]>({
     queryKey: ['/api/bookings', statusFilter],
     queryFn: async () => {
-      const url = statusFilter 
+      // Only add status parameter if it's not "all" and not empty
+      const url = statusFilter && statusFilter !== "all" 
         ? `/api/bookings?status=${statusFilter}` 
         : '/api/bookings';
       const response = await fetch(url);
@@ -65,12 +66,12 @@ export default function Bookings() {
   });
 
   // Fetch experiences for reference
-  const { data: experiences, isLoading: isLoadingExperiences } = useQuery({
+  const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
     queryKey: ['/api/experiences'],
   });
 
   // Fetch customers for reference
-  const { data: customers, isLoading: isLoadingCustomers } = useQuery({
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],
   });
 
@@ -226,7 +227,7 @@ export default function Bookings() {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="deposit_paid">Deposit Paid</SelectItem>
@@ -236,7 +237,7 @@ export default function Bookings() {
               </Select>
               
               <Button variant="outline" onClick={() => {
-                setStatusFilter("");
+                setStatusFilter("all");
                 setSearchQuery("");
               }}>
                 Clear
