@@ -110,8 +110,8 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
       return exp.id === experienceId;
     }
     
-    // If no location is selected, just check the search query
-    if (selectedLocationId === "") {
+    // If no location is selected or "all" is selected, just check the search query
+    if (selectedLocationId === "" || selectedLocationId === "all") {
       return matchesSearch;
     }
     
@@ -158,7 +158,7 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
               <SelectValue placeholder="Filter by location" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Locations</SelectItem>
+              <SelectItem value="all">All Locations</SelectItem>
               {locations.map(location => (
                 <SelectItem key={location.id} value={location.id.toString()}>
                   {location.name} - {location.city}, {location.state}
