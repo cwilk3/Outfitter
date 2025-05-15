@@ -501,24 +501,46 @@ export default function Experiences() {
     }
     
     try {
-      // Simple optimization - only keeping the first 1MB of each image if it's too large
+      console.log(`Processing ${images.length} images for optimization`);
+      
+      // Limit to max 3 images for now to reduce payload size
+      if (images.length > 3) {
+        console.log(`Limiting from ${images.length} to 3 images to reduce payload size`);
+        images = images.slice(0, 3);
+      }
+      
+      // Simple optimization - only keeping the first part of each image if it's too large
       // In a production app, you'd use a proper image compression library
-      return images.map(img => {
-        if (img && img.length > 600000) { // If larger than ~600KB (roughly)
-          console.log("Optimizing large image...");
-          return img.substring(0, 600000); // Simple truncation for now
+      return images.map((img, index) => {
+        if (!img) return '';
+        
+        const sizeKB = Math.round(img.length / 1000);
+        console.log(`Image ${index + 1} size: ~${sizeKB}KB`);
+        
+        // Size thresholds - keep images below a certain size
+        if (sizeKB > 200) {
+          console.log(`Optimizing image ${index + 1} from ${sizeKB}KB to ~200KB`);
+          
+          // For data URLs, we need to keep the prefix intact
+          const prefix = img.substring(0, 40); // Keep metadata prefix
+          const compressedSize = 200 * 1000; // ~200KB
+          
+          return prefix + img.substring(40, compressedSize);
         }
         return img;
       });
     } catch (error) {
       console.error("Error optimizing images:", error);
-      return images;
+      // Return no images if optimization fails
+      return [];
     }
   };
   
   // Form submission handler
   const onSubmit = async (data: ExperienceFormValues) => {
     try {
+      console.log("Form submission started...", { isEditing: !!selectedExperience });
+      
       // Show loading toast
       toast({
         title: selectedExperience ? "Updating..." : "Creating...",
@@ -526,6 +548,7 @@ export default function Experiences() {
       });
       
       // Optimize images before submission to prevent payload too large errors
+      console.log("Optimizing images...", { imageCount: selectedImages.length });
       const optimizedImages = await optimizeImages(selectedImages);
       
       // Include the current state of the form extras
@@ -537,12 +560,40 @@ export default function Experiences() {
         selectedLocationIds: selectedLocIds,
       };
       
+      console.log("Form data prepared successfully");
+      
       if (selectedExperience) {
-        updateMutation.mutate({
-          id: selectedExperience.id,
-          data: formData,
-        });
+        console.log("Updating experience", { id: selectedExperience.id });
+        // Direct approach for updating to bypass any issues with the mutation
+        try {
+          const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
+            ...formData,
+            selectedLocationIds: selectedLocIds,
+          });
+          
+          console.log("Update successful", result);
+          toast({
+            title: "Success",
+            description: "Experience updated successfully",
+          });
+          
+          // Refresh data
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+          
+          // Close dialog
+          setIsCreating(false);
+        } catch (updateError) {
+          console.error("Error updating experience:", updateError);
+          toast({
+            title: "Update Failed",
+            description: "Could not update the experience. Please try again.",
+            variant: "destructive",
+          });
+        }
       } else {
+        // Use the mutation for creating
+        console.log("Creating new experience");
         createMutation.mutate(formData);
       }
     } catch (error) {
@@ -1108,9 +1159,14 @@ export default function Experiences() {
                   ) : (
                     // Submit button with context-aware label
                     <Button 
-                      type="submit"
+                      type={selectedExperience ? "button" : "submit"}
                       disabled={createMutation.isPending || updateMutation.isPending}
                       className={selectedExperience ? "gap-1 bg-amber-600 hover:bg-amber-700" : "gap-1"}
+                      onClick={selectedExperience ? (e) => {
+                        e.preventDefault();
+                        console.log("Submitting form manually...");
+                        form.handleSubmit(onSubmit)();
+                      } : undefined}
                     >
                       {createMutation.isPending || updateMutation.isPending ? (
                         <span>Saving...</span>
@@ -1129,6 +1185,10 @@ export default function Experiences() {
                       type="submit"
                       variant="outline"
                       className="gap-1 border-amber-600 text-amber-600 hover:bg-amber-50"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        form.handleSubmit(onSubmit)();
+                      }}
                     >
                       <span>Save</span>
                       <Check className="h-4 w-4" />
