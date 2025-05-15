@@ -69,7 +69,6 @@ export const locations = pgTable("locations", {
   state: text("state").notNull(),
   zip: text("zip"),
   description: text("description"),
-  image: text("image"), // URL to location image
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -87,7 +86,6 @@ export const experiences = pgTable("experiences", {
   category: categoryEnum("category").default('other_hunting'), // Default to 'other_hunting' for backward compatibility
   images: jsonb("images").default('[]'),
   availableDates: jsonb("available_dates").default('[]'),
-  isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -128,26 +126,17 @@ export const customers = pgTable("customers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Bookings table with extended fields for public booking
+// Bookings table
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   bookingNumber: text("booking_number").notNull().unique(),
   experienceId: integer("experience_id").notNull().references(() => experiences.id),
-  customerId: integer("customer_id").references(() => customers.id), // Allow null for direct bookings
-  // Customer info for direct bookings
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  email: text("email"),
-  phone: text("phone"),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
   startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date"),
-  numberOfPeople: integer("number_of_people").default(1),
+  endDate: timestamp("end_date").notNull(),
   status: bookingStatusEnum("status").notNull().default('pending'),
-  paymentStatus: text("payment_status").default('pending'),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).default('0'),
   notes: text("notes"),
-  selectedAddons: jsonb("selected_addons").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

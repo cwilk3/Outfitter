@@ -1,12 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, 
-  type ExperienceAddon, type InsertExperienceAddon
+  type ExperienceLocation, type InsertExperienceLocation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -33,21 +32,10 @@ export interface IStorage {
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number): Promise<Experience[]>;
   
-  // Public Experience operations
-  getPublicExperience(id: number): Promise<Experience | undefined>;
-  listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]>;
-  
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
-  listExperienceLocations(): Promise<ExperienceLocation[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
-  
-  // Experience Addons operations
-  getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]>;
-  createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
-  updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
-  deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -219,103 +207,6 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(experiences.name);
   }
   
-  // Public Experience methods
-  async getPublicExperience(id: number): Promise<Experience | undefined> {
-    // Get the experience that is public
-    const [experience] = await db
-      .select()
-      .from(experiences)
-      .where(and(
-        eq(experiences.id, id),
-        eq(experiences.isPublic, true)
-      ));
-    
-    if (!experience) {
-      return undefined;
-    }
-    
-    // Format the experience data for consistent return values
-    return {
-      ...experience,
-      price: experience.price?.toString() || "0", // Convert Decimal to string
-      images: experience.images ? JSON.parse(JSON.stringify(experience.images)) : [],
-      availableDates: experience.availableDates ? JSON.parse(JSON.stringify(experience.availableDates)) : [],
-    };
-  }
-  
-  async listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]> {
-    let query = db.select().from(experiences);
-    
-    const conditions = [];
-    
-    // Only show public experiences by default
-    conditions.push(eq(experiences.isPublic, true));
-    
-    // Apply locationId filter if provided using junction table
-    if (locationId) {
-      const experienceIds = await db
-        .select({ id: experienceLocations.experienceId })
-        .from(experienceLocations)
-        .where(eq(experienceLocations.locationId, locationId))
-        .then(results => results.map(r => r.id));
-
-      if (experienceIds.length > 0) {
-        conditions.push(inArray(experiences.id, experienceIds));
-      } else {
-        // Fallback to legacy locationId if no matches in junction table
-        conditions.push(eq(experiences.locationId, locationId));
-      }
-    }
-    
-    // Apply category filter
-    if (category) {
-      conditions.push(eq(experiences.category, category));
-    }
-    
-    // Apply all filters
-    query = query.where(and(...conditions));
-    
-    const result = await query.orderBy(experiences.name);
-    
-    // Format the data to ensure consistent return values
-    return result.map(exp => ({
-      ...exp,
-      price: exp.price?.toString() || "0", // Convert Decimal to string
-      images: exp.images ? JSON.parse(JSON.stringify(exp.images)) : [],
-      availableDates: exp.availableDates ? JSON.parse(JSON.stringify(exp.availableDates)) : [],
-    }));
-  }
-  
-  // Experience Addons methods
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    return db
-      .select()
-      .from(experienceAddons)
-      .where(eq(experienceAddons.experienceId, experienceId))
-      .orderBy(experienceAddons.name);
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    const [addon] = await db
-      .insert(experienceAddons)
-      .values(addonData)
-      .returning();
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    const [addon] = await db
-      .update(experienceAddons)
-      .set({...addonData, updatedAt: new Date()})
-      .where(eq(experienceAddons.id, id))
-      .returning();
-    return addon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    await db.delete(experienceAddons).where(eq(experienceAddons.id, id));
-  }
-  
   // Experience Locations operations
   async getExperienceLocations(experienceId: number): Promise<Location[]> {
     const locationIds = await db
@@ -332,12 +223,6 @@ export class DatabaseStorage implements IStorage {
       .from(locations)
       .where(inArray(locations.id, locationIds.map(r => r.id)))
       .orderBy(locations.name);
-  }
-  
-  async listExperienceLocations(): Promise<ExperienceLocation[]> {
-    return await db
-      .select()
-      .from(experienceLocations);
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
@@ -710,7 +595,6 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
-  private experienceAddons: Map<number, ExperienceAddon>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -724,7 +608,6 @@ export class MemStorage implements IStorage {
     location: number;
     experience: number;
     experienceLocation: number;
-    experienceAddons: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -738,7 +621,6 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
-    this.experienceAddons = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -751,7 +633,6 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
-      experienceAddons: 1,
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -828,8 +709,7 @@ export class MemStorage implements IStorage {
       capacity: 4,
       location: 'Mountain Lake',
       category: 'duck_hunting',
-      locationId: 1, // Texas Ranch
-      isPublic: true
+      locationId: 1 // Texas Ranch
     };
     this.createExperience(duckHunt);
     
@@ -841,8 +721,7 @@ export class MemStorage implements IStorage {
       capacity: 2,
       location: 'Western Ridge',
       category: 'other_hunting',
-      locationId: 2, // Oklahoma Lodge
-      isPublic: true
+      locationId: 2 // Oklahoma Lodge
     };
     this.createExperience(elkHunt);
     
@@ -854,8 +733,7 @@ export class MemStorage implements IStorage {
       capacity: 3,
       location: 'Clear Lake',
       category: 'bass_fishing',
-      locationId: 3, // Kansas Fields
-      isPublic: true
+      locationId: 3 // Kansas Fields
     };
     this.createExperience(bassFishing);
     
@@ -867,8 +745,7 @@ export class MemStorage implements IStorage {
       capacity: 4, 
       location: 'Oak Forest',
       category: 'deer_hunting',
-      locationId: 1, // Texas Ranch
-      isPublic: true
+      locationId: 1 // Texas Ranch
     };
     this.createExperience(deerHunting);
     
@@ -880,8 +757,7 @@ export class MemStorage implements IStorage {
       capacity: 2,
       location: 'Clear Creek',
       category: 'trout_fishing',
-      locationId: 2, // Oklahoma Lodge
-      isPublic: true
+      locationId: 2 // Oklahoma Lodge
     };
     this.createExperience(flyfishing);
     
@@ -1169,14 +1045,7 @@ export class MemStorage implements IStorage {
   async createExperience(experienceData: InsertExperience): Promise<Experience> {
     const id = this.currentIds.experience++;
     const now = new Date();
-    const experience: Experience = { 
-      ...experienceData, 
-      id, 
-      createdAt: now, 
-      updatedAt: now,
-      // Ensure isPublic is explicitly set to true by default
-      isPublic: experienceData.isPublic !== undefined ? experienceData.isPublic : true
-    };
+    const experience: Experience = { ...experienceData, id, createdAt: now, updatedAt: now };
     this.experiences.set(id, experience);
     return experience;
   }
@@ -1220,124 +1089,6 @@ export class MemStorage implements IStorage {
     return experiences.sort((a, b) => a.name.localeCompare(b.name));
   }
   
-  // Public Experience methods
-  async getPublicExperience(id: number): Promise<Experience | undefined> {
-    return this.getExperience(id);
-  }
-  
-  async listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]> {
-    let experiences = Array.from(this.experiences.values());
-    
-    // Filter by location if provided
-    if (locationId) {
-      // First try junction table for newer experiences
-      const experienceLocations = Array.from(this.experienceLocations.values())
-        .filter(el => el.locationId === locationId);
-      
-      if (experienceLocations.length > 0) {
-        const experienceIds = experienceLocations.map(el => el.experienceId);
-        experiences = experiences.filter(exp => experienceIds.includes(exp.id));
-      } else {
-        // Fallback to legacy locationId for older experiences
-        experiences = experiences.filter(exp => exp.locationId === locationId);
-      }
-    }
-    
-    // Filter by category if provided
-    if (category) {
-      experiences = experiences.filter(exp => exp.category === category);
-    }
-    
-    // Only return public experiences
-    experiences = experiences.filter(exp => exp.isPublic === true);
-    
-    return experiences.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  
-  // Experience Addons methods
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    // Get addons from the map or create default ones if none exist
-    const addons = Array.from(this.experienceAddons.values())
-      .filter(addon => addon.experienceId === experienceId);
-    
-    if (addons.length === 0) {
-      // If no addons exist yet for this experience, create some sample ones
-      const now = new Date();
-      const defaultAddons: ExperienceAddon[] = [
-        {
-          id: this.currentIds.experienceAddons++,
-          experienceId,
-          name: 'Guide Tips',
-          description: 'Pre-calculated guide gratuity (15%)',
-          price: '150.00',
-          optional: true,
-          createdAt: now,
-          updatedAt: now
-        },
-        {
-          id: this.currentIds.experienceAddons++, 
-          experienceId,
-          name: 'Trophy Fee',
-          description: 'Additional fee for trophy-sized catch or game',
-          price: '250.00',
-          optional: true,
-          createdAt: now,
-          updatedAt: now 
-        },
-        {
-          id: this.currentIds.experienceAddons++,
-          experienceId,
-          name: 'Equipment Rental',
-          description: 'Full equipment rental package',
-          price: '75.00',
-          optional: true,
-          createdAt: now,
-          updatedAt: now
-        }
-      ];
-      
-      // Save the default addons
-      defaultAddons.forEach(addon => this.experienceAddons.set(addon.id, addon));
-      
-      return defaultAddons;
-    }
-    
-    return addons;
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    const id = this.currentIds.experienceAddons++;
-    const now = new Date();
-    
-    const addon: ExperienceAddon = {
-      ...addonData,
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    this.experienceAddons.set(id, addon);
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    const addon = this.experienceAddons.get(id);
-    if (!addon) return undefined;
-    
-    const updatedAddon: ExperienceAddon = {
-      ...addon,
-      ...addonData,
-      updatedAt: new Date()
-    };
-    
-    this.experienceAddons.set(id, updatedAddon);
-    return updatedAddon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    this.experienceAddons.delete(id);
-  }
-  
   // Experience Locations operations
   async getExperienceLocations(experienceId: number): Promise<Location[]> {
     // Find all location IDs associated with this experience
@@ -1349,10 +1100,6 @@ export class MemStorage implements IStorage {
     return Array.from(this.locations.values())
       .filter(location => locationIds.includes(location.id))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }
-  
-  async listExperienceLocations(): Promise<ExperienceLocation[]> {
-    return Array.from(this.experienceLocations.values());
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {

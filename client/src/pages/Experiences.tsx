@@ -17,7 +17,6 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,7 +100,6 @@ const experienceSchema = z.object({
     "other_hunting",
     "other_fishing"
   ]).default("other_hunting").optional(),
-  isPublic: z.boolean().default(true),
   
   // Details
   duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
@@ -219,7 +217,6 @@ export default function Experiences() {
       price: 0,
       capacity: 1,
       category: "other_hunting",
-      isPublic: true,
       selectedLocationIds: [],
       images: [],
       availableDates: [],
@@ -463,7 +460,6 @@ export default function Experiences() {
       price: experience.price,
       capacity: experience.capacity,
       category: experience.category as any,
-      isPublic: experience.isPublic !== undefined ? experience.isPublic : true,
       selectedLocationIds: selectedLocIds,
       images: experience.images || [],
       availableDates: availableDates,
@@ -959,27 +955,6 @@ export default function Experiences() {
                           Provide a detailed description of the experience that will appear on the booking page.
                         </FormDescription>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="isPublic"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                          <FormLabel>Public Visibility</FormLabel>
-                          <FormDescription>
-                            Make this experience visible on the public booking site
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
                       </FormItem>
                     )}
                   />

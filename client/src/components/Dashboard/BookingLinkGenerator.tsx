@@ -5,18 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, CheckIcon } from "lucide-react";
 
-// Define the Settings type to fix TypeScript errors
-interface Settings {
-  companyName?: string;
-  bookingLink?: string;
-  [key: string]: any;
-}
-
 export default function BookingLinkGenerator() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const { data: settings, isLoading } = useQuery<Settings>({
+  const { data: settings, isLoading } = useQuery({
     queryKey: ['/api/settings'],
   });
 
@@ -50,10 +43,7 @@ export default function BookingLinkGenerator() {
     );
   }
 
-  // Use the company-specific link format as shown in the screenshots
-  const companyName = settings?.companyName ? settings.companyName.toLowerCase().replace(/\s+/g, '-') : 'wilderness-adventures';
-  const publicBookingLink = `https://outfitter.app/book/${companyName}`;
-  const bookingLink = settings?.bookingLink || publicBookingLink;
+  const bookingLink = settings?.bookingLink || "https://outfitter.app/book/your-company-name";
 
   return (
     <div className="bg-white rounded-lg shadow mt-6">
