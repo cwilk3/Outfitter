@@ -61,19 +61,26 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
     }
   }, [companySlug, experienceId, companyName]);
 
-  // Fetch experiences
-  const { data: experiences = [], isLoading: isLoadingExperiences } = useQuery<Experience[]>({
-    queryKey: ['/api/experiences'],
+  // Fetch experiences (use appropriate endpoint based on context)
+  const experiencesEndpoint = experienceId 
+    ? (companySlug ? `/api/public/experiences/${experienceId}` : `/api/experiences/${experienceId}`)
+    : (companySlug ? '/api/public/experiences' : '/api/experiences');
+    
+  const { data: experienceData = [], isLoading: isLoadingExperiences } = useQuery({
+    queryKey: [experiencesEndpoint],
   });
   
-  // Fetch all locations for the filter
+  // Format the data properly - could be a single experience or an array
+  const experiences = Array.isArray(experienceData) ? experienceData : [experienceData];
+  
+  // Fetch all locations for the filter (use public endpoint when company slug is provided)
   const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
-    queryKey: ['/api/locations'],
+    queryKey: [companySlug ? '/api/public/locations' : '/api/locations'],
   });
   
-  // Fetch experience-location mappings
+  // Fetch experience-location mappings (use public endpoint when company slug is provided)
   const { data: experienceLocations = [] } = useQuery<any[]>({
-    queryKey: ['/api/experienceLocations'],
+    queryKey: [companySlug ? '/api/public/experienceLocations' : '/api/experienceLocations'],
   });
   
   // Format experience category for display
