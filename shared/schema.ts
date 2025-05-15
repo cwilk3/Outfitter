@@ -87,6 +87,7 @@ export const experiences = pgTable("experiences", {
   category: categoryEnum("category").default('other_hunting'), // Default to 'other_hunting' for backward compatibility
   images: jsonb("images").default('[]'),
   availableDates: jsonb("available_dates").default('[]'),
+  isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

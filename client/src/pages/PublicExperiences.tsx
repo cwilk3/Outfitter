@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Experience, Location } from "@/types";
+import { Experience, Location, Settings } from "@shared/schema";
 import { 
   Card, 
   CardContent, 
@@ -37,14 +37,16 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
   const [companyName, setCompanyName] = useState<string>("");
 
   // Fetch company settings
-  const { data: settings } = useQuery({
-    queryKey: ['/api/settings'],
-    onSuccess: (data) => {
-      if (data && data.companyName) {
-        setCompanyName(data.companyName);
-      }
-    }
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings']
   });
+  
+  // Update company name when settings are fetched
+  useEffect(() => {
+    if (settings && settings.companyName) {
+      setCompanyName(settings.companyName);
+    }
+  }, [settings]);
 
   // Update page title based on props
   useEffect(() => {
@@ -91,6 +93,7 @@ const PublicExperiences: React.FC<PublicExperiencesProps> = ({ experienceId, com
       (exp.description && exp.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     // If using a company slug, only show experiences that are public
+    // Note: all experiences are public by default if isPublic is not specified
     if (companySlug && exp.isPublic === false) {
       return false;
     }
