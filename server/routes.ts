@@ -1137,17 +1137,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: paymentOption === 'full' ? 'paid' : 'deposit_paid',
         totalAmount: experience.price,
         notes: addons.length > 0 ? 
-          `Add-ons: ${addons.join(', ')}\nLocation: ${location.name}, ${location.city}, ${location.state}` : 
-          `Location: ${location.name}, ${location.city}, ${location.state}`,
-        paymentStatus: paymentOption === 'full' ? 'Paid in Full' : '50% Deposit',
-        source: 'website'
+          `Add-ons: ${addons.join(', ')}\nLocation: ${location.name}, ${location.city}, ${location.state}\nGroup Size: ${groupSize}` : 
+          `Location: ${location.name}, ${location.city}, ${location.state}\nGroup Size: ${groupSize}`
       });
       
       // Log activity
       await storage.createActivity({
-        userId: '0', // Public booking, no user
+        userId: 1, // Using admin user ID for system actions
         action: 'Public booking created',
-        details: { bookingNumber, customerId: customer.id }
+        details: {
+          bookingNumber,
+          experienceName: experience.name,
+          locationName: location.name,
+          customerName: customerName,
+          customerEmail: customerEmail,
+          startDate: startDate,
+          endDate: endDate
+        }
       });
       
       // Return success with booking details
