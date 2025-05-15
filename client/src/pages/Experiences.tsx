@@ -5,6 +5,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation, ExperienceAddon } from "@/types";
+// Import Image processing utility
+import { compress as imageCompressor } from 'browser-image-compression';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LocationsContent from "@/pages/LocationsContent";
 import { 
@@ -180,7 +182,7 @@ export default function Experiences() {
         selectedLocationIds: selectedLocIds,
       });
     },
-    onSuccess: (response) => {
+    onSuccess: (response: Experience) => {
       toast({
         title: "Success",
         description: "Experience created successfully",
@@ -311,7 +313,8 @@ export default function Experiences() {
   });
 
   // Format experience category for display
-  const formatCategory = (category: string) => {
+  const formatCategory = (category: string | undefined) => {
+    if (!category) return "Other Hunting";
     return category
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -1050,7 +1053,7 @@ export default function Experiences() {
                           </div>
                           <div>
                             <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Category</h4>
-                            <p className="font-medium">{formatCategory(form.getValues('category'))}</p>
+                            <p className="font-medium">{formatCategory(form.getValues('category') || 'other_hunting')}</p>
                           </div>
                           <div>
                             <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Duration</h4>
