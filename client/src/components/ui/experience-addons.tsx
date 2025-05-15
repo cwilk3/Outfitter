@@ -242,40 +242,66 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
       {addons.length > 0 ? (
         <div className="border rounded-md divide-y">
           {addons.map((addon, index) => (
-            <div key={index} className="p-4 flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-medium">{addon.name}</h4>
-                  <span className="text-sm font-medium text-primary">
-                    {formatPrice(addon.price)}
-                  </span>
-                  <span 
-                    className={cn(
-                      "text-xs rounded-full px-2 py-0.5",
-                      addon.isOptional 
-                        ? "bg-blue-100 text-blue-700" 
-                        : "bg-amber-100 text-amber-700"
+            <div key={index} className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-medium">{addon.name}</h4>
+                    <span className="text-sm font-medium text-primary">
+                      {formatPrice(addon.price)}
+                    </span>
+                    <span 
+                      className={cn(
+                        "text-xs rounded-full px-2 py-0.5",
+                        addon.isOptional 
+                          ? "bg-blue-100 text-blue-700" 
+                          : "bg-amber-100 text-amber-700"
+                      )}
+                    >
+                      {addon.isOptional ? "Optional" : "Required"}
+                    </span>
+                  </div>
+                  
+                  {addon.description && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {addon.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                    {addon.inventory !== undefined && (
+                      <div className="flex items-center">
+                        <Package className="h-3 w-3 mr-1" />
+                        <span>{addon.inventory} available</span>
+                      </div>
                     )}
-                  >
-                    {addon.isOptional ? "Optional" : "Required"}
-                  </span>
+                    {addon.maxPerBooking !== undefined && addon.maxPerBooking > 1 && (
+                      <div>
+                        <span>Max {addon.maxPerBooking} per booking</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
-                {addon.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {addon.description}
-                  </p>
-                )}
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-muted-foreground hover:text-blue-600 h-8 w-8"
+                    onClick={() => startEditingAddon(index)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive h-8 w-8"
+                    onClick={() => removeAddon(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="text-muted-foreground hover:text-destructive h-8 w-8"
-                onClick={() => removeAddon(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
             </div>
           ))}
         </div>
