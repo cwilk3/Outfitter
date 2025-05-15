@@ -138,7 +138,7 @@ export default function SettingsPage() {
         companyPhone: settings.companyPhone || "",
         companyEmail: settings.companyEmail || "",
         companyLogo: settings.companyLogo || "",
-        bookingLink: settings.bookingLink || `https://outfitter.app/book/${settings.companyName?.toLowerCase().replace(/\s+/g, '-') || 'your-company'}`,
+        bookingLink: settings.bookingLink || `https://outfitter.app/book/${settings.companyName?.toLowerCase().replace(/\s+/g, '-') || 'wilderness-adventures'}`,
       });
 
       if (isAdmin) {

@@ -5,11 +5,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, CheckIcon } from "lucide-react";
 
+// Define the Settings type to fix TypeScript errors
+interface Settings {
+  companyName?: string;
+  bookingLink?: string;
+  [key: string]: any;
+}
+
 export default function BookingLinkGenerator() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
 
@@ -43,9 +50,9 @@ export default function BookingLinkGenerator() {
     );
   }
 
-  // Get the domain name from the current window location
-  const domain = typeof window !== 'undefined' ? window.location.origin : '';
-  const publicBookingLink = `${domain}/experiences`;
+  // Use the company-specific link format as shown in the screenshots
+  const companyName = settings?.companyName ? settings.companyName.toLowerCase().replace(/\s+/g, '-') : 'wilderness-adventures';
+  const publicBookingLink = `https://outfitter.app/book/${companyName}`;
   const bookingLink = settings?.bookingLink || publicBookingLink;
 
   return (
