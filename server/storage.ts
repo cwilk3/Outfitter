@@ -1,11 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
+  type ExperienceLocation, type InsertExperienceLocation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -37,13 +37,6 @@ export interface IStorage {
   getAllExperienceLocations(): Promise<ExperienceLocation[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
-  
-  // Experience Addon operations
-  getExperienceAddon(id: number): Promise<ExperienceAddon | undefined>;
-  getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]>;
-  createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
-  updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
-  deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -273,43 +266,6 @@ export class DatabaseStorage implements IStorage {
           eq(experienceLocations.locationId, locationId)
         )
       );
-  }
-  
-  // Experience Addon operations
-  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
-    const [addon] = await db.select().from(experienceAddons).where(eq(experienceAddons.id, id));
-    return addon;
-  }
-  
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    return db
-      .select()
-      .from(experienceAddons)
-      .where(eq(experienceAddons.experienceId, experienceId))
-      .orderBy(experienceAddons.name);
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    const [addon] = await db
-      .insert(experienceAddons)
-      .values(addonData)
-      .returning();
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    const [addon] = await db
-      .update(experienceAddons)
-      .set({...addonData, updatedAt: new Date()})
-      .where(eq(experienceAddons.id, id))
-      .returning();
-    return addon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    await db
-      .delete(experienceAddons)
-      .where(eq(experienceAddons.id, id));
   }
 
   // Customer operations
@@ -646,7 +602,6 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
-  private experienceAddons: Map<number, ExperienceAddon>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -660,7 +615,6 @@ export class MemStorage implements IStorage {
     location: number;
     experience: number;
     experienceLocation: number;
-    experienceAddon: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -674,7 +628,6 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
-    this.experienceAddons = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -687,7 +640,6 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
-      experienceAddon: 1,
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1195,51 +1147,6 @@ export class MemStorage implements IStorage {
     if (toRemove) {
       this.experienceLocations.delete(toRemove[0]);
     }
-  }
-  
-  // Experience Addon operations
-  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
-    return this.experienceAddons.get(id);
-  }
-  
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    return Array.from(this.experienceAddons.values())
-      .filter(addon => addon.experienceId === experienceId)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    const id = this.currentIds.experienceAddon++;
-    const now = new Date();
-    const addon: ExperienceAddon = {
-      ...addonData,
-      id,
-      inventory: addonData.inventory !== undefined ? addonData.inventory : 0,
-      maxPerBooking: addonData.maxPerBooking !== undefined ? addonData.maxPerBooking : 1,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    this.experienceAddons.set(id, addon);
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    const addon = this.experienceAddons.get(id);
-    if (!addon) return undefined;
-    
-    const updatedAddon: ExperienceAddon = {
-      ...addon,
-      ...addonData,
-      updatedAt: new Date()
-    };
-    
-    this.experienceAddons.set(id, updatedAddon);
-    return updatedAddon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    this.experienceAddons.delete(id);
   }
 
   // Customer operations

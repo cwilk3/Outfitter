@@ -203,7 +203,7 @@ export default function Experiences() {
   const [rules, setRules] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
-  const [addons, setAddons] = useState<Addon[]>([]);
+  const [addons, setAddons] = useState<AddonType[]>([]);
 
   // Fetch experiences
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
@@ -450,7 +450,6 @@ export default function Experiences() {
 
   // Open dialog for editing an existing experience
   const openEditDialog = async (experience: Experience) => {
-    console.log('Opening edit dialog for experience:', experience);
     setSelectedExperience(experience);
     
     // Load all necessary data before showing the dialog to ensure a smooth editing experience
@@ -461,31 +460,20 @@ export default function Experiences() {
     );
     
     // Set selected location IDs
-    const locationIds: number[] = [];
     if (associatedLocations && associatedLocations.length > 0) {
-      locationIds.push(...associatedLocations.map((loc: ExperienceLocation) => loc.locationId));
+      const locationIds = associatedLocations?.map((loc: ExperienceLocation) => loc.locationId) || [];
+      setSelectedLocIds(locationIds);
+    } else {
+      setSelectedLocIds([]);
     }
-    setSelectedLocIds(locationIds);
     
     // Set images if available
     setSelectedImages(experience.images || []);
     
     // Set available dates if available (convert strings to Date objects)
-    let availableDates: Date[] = [];
-    if (experience.availableDates && experience.availableDates.length > 0) {
-      availableDates = experience.availableDates.map((dateStr: any) => {
-        // Handle both string dates and Date objects
-        if (dateStr instanceof Date) {
-          return dateStr;
-        } else if (typeof dateStr === 'string') {
-          return new Date(dateStr);
-        } else {
-          console.warn('Unknown date format:', dateStr);
-          return new Date(); // Fallback
-        }
-      });
-      console.log('Converted available dates:', availableDates);
-    }
+    const availableDates = experience.availableDates 
+      ? experience.availableDates.map(dateStr => new Date(dateStr))
+      : [];
     setSelectedDates(availableDates);
     
     // Set rules, amenities and trip inclusions
@@ -494,45 +482,37 @@ export default function Experiences() {
     setTripIncludes(experience.tripIncludes || []);
     
     // Set addons if available
-    if (experience.addons && experience.addons.length > 0) {
-      const formattedAddons = experience.addons.map(addon => ({
+    if (experience.addons) {
+      setAddons(experience.addons.map(addon => ({
         name: addon.name,
         description: addon.description || '',
-        price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
-        isOptional: addon.isOptional === undefined ? true : addon.isOptional,
-        inventory: addon.inventory || (addon as any).inventory || 0,
-        maxPerBooking: addon.maxPerBooking || (addon as any).maxPerBooking || 1
-      }));
-      console.log('Setting add-ons:', formattedAddons);
-      setAddons(formattedAddons);
+        price: addon.price,
+        isOptional: addon.isOptional
+      })));
     } else {
       setAddons([]);
     }
     
-    // We need to set the form values AFTER setting the state variables
-    // to ensure they're properly reflected in the form
-    setTimeout(() => {
-      // Reset the form with all the experience data to ensure it's correctly loaded
-      form.reset({
-        name: experience.name,
-        description: experience.description,
-        duration: experience.duration,
-        price: experience.price,
-        capacity: experience.capacity,
-        category: experience.category as any,
-        selectedLocationIds: locationIds,
-        images: experience.images || [],
-        availableDates,
-        rules: experience.rules || [],
-        amenities: experience.amenities || [],
-        tripIncludes: experience.tripIncludes || [],
-        addons: experience.addons || [],
-      });
-      
-      // Set to whatever step the user wants to start editing from (default to basic info)
-      setCurrentStep(1);
-      setIsCreating(true);
-    }, 0);
+    // Reset the form with all the experience data to ensure it's correctly loaded
+    form.reset({
+      name: experience.name,
+      description: experience.description,
+      duration: experience.duration,
+      price: experience.price,
+      capacity: experience.capacity,
+      category: experience.category as any,
+      selectedLocationIds: selectedLocIds,
+      images: experience.images || [],
+      availableDates: availableDates,
+      rules: experience.rules || [],
+      amenities: experience.amenities || [],
+      tripIncludes: experience.tripIncludes || [],
+      addons: experience.addons || [],
+    });
+    
+    // Set to whatever step the user wants to start editing from (default to basic info)
+    setCurrentStep(1);
+    setIsCreating(true);
   };
 
   // Open delete confirmation dialog
@@ -673,20 +653,6 @@ export default function Experiences() {
       
       // Include the current state of the form extras - ensure all values are included
       // Add fallback values for required fields to prevent validation issues
-      // Convert selectedDates to ISO strings for storage
-      const formattedDates = selectedDates.map(date => date.toISOString());
-      console.log("Formatted dates for storage:", formattedDates);
-      
-      // Ensure addons have proper types
-      const formattedAddons = addons.map(addon => ({
-        name: addon.name,
-        description: addon.description || '',
-        price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
-        isOptional: addon.isOptional === undefined ? true : addon.isOptional,
-        inventory: addon.inventory || 0,
-        maxPerBooking: addon.maxPerBooking || 1
-      }));
-      
       const formData = {
         ...data,
         name: data.name || "Untitled Experience",
@@ -696,11 +662,11 @@ export default function Experiences() {
         capacity: data.capacity || 1,
         category: data.category || "other_hunting",
         images: optimizedImages,
-        availableDates: formattedDates,
+        availableDates: selectedDates || [],
         rules: rules || [],
         amenities: amenities || [],
         tripIncludes: tripIncludes || [],
-        addons: formattedAddons,
+        addons: addons || [],
         selectedLocationIds: selectedLocIds || [],
       };
       
