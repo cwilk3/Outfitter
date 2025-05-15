@@ -28,16 +28,12 @@ export default function BookingLinkGenerator() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow mt-6">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Booking Link</h3>
-        </div>
-        <div className="p-4">
-          <Skeleton className="h-4 w-full mb-3" />
-          <div className="flex">
-            <Skeleton className="h-10 flex-grow rounded-l-md" />
-            <Skeleton className="h-10 w-16 rounded-r-md" />
-          </div>
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Booking Link</h3>
+        <Skeleton className="h-4 w-full mb-3" />
+        <div className="flex">
+          <Skeleton className="h-10 flex-grow rounded-l-md" />
+          <Skeleton className="h-10 w-16 rounded-r-md" />
         </div>
       </div>
     );
@@ -46,26 +42,22 @@ export default function BookingLinkGenerator() {
   const bookingLink = settings?.bookingLink || "https://outfitter.app/book/your-company-name";
 
   return (
-    <div className="bg-white rounded-lg shadow mt-6">
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800">Booking Link</h3>
-      </div>
-      <div className="p-4">
-        <p className="text-sm text-gray-600 mb-3">Share this unique link with customers to let them book directly.</p>
-        <div className="flex">
-          <input
-            type="text"
-            value={bookingLink}
-            readOnly
-            className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md text-sm focus:outline-none focus:ring-primary focus:border-primary"
-          />
-          <Button
-            onClick={handleCopy}
-            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-r-md text-sm font-medium"
-          >
-            {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
-          </Button>
-        </div>
+    <div>
+      <h3 className="text-lg font-semibold mb-4">Booking Link</h3>
+      <p className="text-sm text-gray-600 mb-3">Share this unique link with customers to let them book directly.</p>
+      <div className="flex">
+        <input
+          type="text"
+          value={bookingLink}
+          readOnly
+          className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md text-sm focus:outline-none focus:ring-primary focus:border-primary"
+        />
+        <Button
+          onClick={handleCopy}
+          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-r-md text-sm font-medium"
+        >
+          {copied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+        </Button>
       </div>
     </div>
   );

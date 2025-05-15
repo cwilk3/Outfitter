@@ -1,11 +1,11 @@
 import React from "react";
 import StatsOverview from "@/components/Dashboard/StatsOverview";
 import UpcomingBookings from "@/components/Dashboard/UpcomingBookings";
-import RecentActivity from "@/components/Dashboard/RecentActivity";
 import QuickActions from "@/components/Dashboard/QuickActions";
 import BookingLinkGenerator from "@/components/Dashboard/BookingLinkGenerator";
 import CalendarView from "@/components/Calendar/CalendarView";
 import { useRole } from "@/hooks/useRole";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Dashboard() {
   const { isAdmin } = useRole();
@@ -21,32 +21,27 @@ export default function Dashboard() {
       {/* Stats Overview Cards */}
       <StatsOverview />
 
-      {/* Calendar and Upcoming Bookings Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Dashboard Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         {/* Calendar Preview */}
         <div className="lg:col-span-2">
           <CalendarView />
         </div>
 
-        {/* Upcoming Bookings */}
-        <div className="lg:col-span-1">
+        {/* Sidebar Components */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Upcoming Bookings */}
           <UpcomingBookings />
-        </div>
-      </div>
-
-      {/* Recent Activity and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        {/* Recent Activity */}
-        <div className="lg:col-span-2">
-          <RecentActivity />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <QuickActions />
           
-          {/* Booking Link Generator - For Admins Only */}
-          {isAdmin && <BookingLinkGenerator />}
+          {/* Quick Actions Card */}
+          <Card>
+            <CardContent className="pt-6">
+              <QuickActions />
+              
+              {/* Booking Link Generator - For Admins Only */}
+              {isAdmin && <div className="mt-6"><BookingLinkGenerator /></div>}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>
