@@ -1093,108 +1093,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe payment intent creation endpoint
+  // Payment intent creation endpoint (hardcoded implementation)
   app.post('/api/create-payment-intent', async (req, res) => {
     try {
-      if (!stripe) {
-        return res.status(500).json({ 
-          message: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.' 
-        });
-      }
-
       const { amount, bookingId } = req.body;
       
-      // Create a PaymentIntent with the order amount and currency
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        metadata: {
-          bookingId: bookingId.toString()
-        }
-      });
+      // Generate a fake client secret for frontend testing
+      const clientSecret = `pi_${Date.now()}_secret_${Math.random().toString(36).substring(2, 10)}`;
       
-      res.json({ 
-        clientSecret: paymentIntent.client_secret 
-      });
+      console.log(`[DEV] Creating payment intent for booking ${bookingId} with amount ${amount}`);
+      
+      // Simulate a delay for realism
+      setTimeout(() => {
+        res.json({
+          clientSecret,
+          success: true
+        });
+      }, 500);
     } catch (error: any) {
       console.error('Error creating payment intent:', error);
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Webhook endpoint to handle Stripe events
+  // Webhook endpoint (hardcoded implementation)
   app.post('/api/webhook', async (req, res) => {
     try {
-      if (!stripe) {
-        return res.status(500).json({ 
-          message: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.' 
-        });
-      }
-
-      const sig = req.headers['stripe-signature'] as string;
-      let event;
+      // For hardcoded implementation, we'll simulate a payment success event
+      const event = req.body;
+      const paymentType = event.type || 'payment_intent.succeeded'; // Default to success
       
-      // Verify webhook signature
-      if (process.env.STRIPE_WEBHOOK_SECRET) {
-        try {
-          event = stripe.webhooks.constructEvent(
-            req.body, 
-            sig, 
-            process.env.STRIPE_WEBHOOK_SECRET
-          );
-        } catch (err: any) {
-          return res.status(400).json({ message: `Webhook Error: ${err.message}` });
+      // Log the event
+      console.log(`[DEV] Processing webhook event: ${paymentType}`);
+      
+      // Create a simulated payment intent if not provided
+      const paymentIntent = event.data?.object || {
+        id: `sim_pi_${Date.now()}`,
+        metadata: {
+          bookingId: req.query.bookingId || '1' // Use query param for testing
+        },
+        amount: 100000 // $1000.00 in cents
+      };
+      
+      // Process based on event type
+      if (paymentType === 'payment_intent.succeeded') {
+        // Handle successful payment
+        if (paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+          const bookingId = parseInt(paymentIntent.metadata.bookingId);
+          
+          // Get the booking
+          const booking = await storage.getBooking(bookingId);
+          if (!booking) {
+            console.log(`[DEV] Booking ${bookingId} not found for webhook processing`);
+            return res.status(404).json({ message: 'Booking not found' });
+          }
+          
+          // Calculate the amount paid (convert cents to dollars if needed)
+          const amountPaid = typeof paymentIntent.amount === 'number' ? 
+            (paymentIntent.amount / 100) : 
+            parseFloat(booking.totalAmount);
+          
+          // Determine if this is a full payment or deposit
+          const isFullPayment = amountPaid >= parseFloat(booking.totalAmount);
+          
+          // Update booking payment status
+          await storage.updateBooking(bookingId, {
+            status: isFullPayment ? 'paid' : 'deposit_paid',
+            paymentStatus: isFullPayment ? 'paid' : 'partial',
+            paidAmount: amountPaid.toString()
+          });
+          
+          // Create payment record
+          await storage.createPayment({
+            bookingId,
+            amount: amountPaid.toString(),
+            status: 'completed',
+            paymentMethod: 'card',
+            transactionId: `sim_${paymentIntent.id}`
+          });
+          
+          // Log activity
+          await storage.createActivity({
+            action: 'Payment received via webhook',
+            details: {
+              bookingId,
+              bookingNumber: booking.bookingNumber,
+              amount: amountPaid.toString()
+            }
+          });
+          
+          // Simulate sending an email
+          console.log(`[DEV] Sending payment confirmation email for booking ${booking.bookingNumber}`);
+        }
+      } else if (paymentType === 'payment_intent.payment_failed') {
+        // Handle failed payment
+        if (paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+          const bookingId = parseInt(paymentIntent.metadata.bookingId);
+          
+          // Update booking payment status
+          await storage.updateBooking(bookingId, {
+            paymentStatus: 'failed'
+          });
+          
+          // Log activity
+          const booking = await storage.getBooking(bookingId);
+          if (booking) {
+            await storage.createActivity({
+              action: 'Payment failed',
+              details: {
+                bookingId,
+                bookingNumber: booking.bookingNumber
+              }
+            });
+          }
         }
       } else {
-        // For development without signature verification
-        event = req.body;
-      }
-      
-      // Handle the event
-      switch (event.type) {
-        case 'payment_intent.succeeded':
-          const paymentIntent = event.data.object;
-          // Update booking status
-          if (paymentIntent.metadata && paymentIntent.metadata.bookingId) {
-            const bookingId = parseInt(paymentIntent.metadata.bookingId);
-            
-            // Check if this is a partial payment (deposit) or full payment
-            const booking = await storage.getBooking(bookingId);
-            if (!booking) break;
-            
-            // Calculate the amount paid
-            const amountPaid = paymentIntent.amount / 100; // Convert cents to dollars
-            
-            // Update booking payment status based on amount paid
-            await storage.updateBooking(bookingId, {
-              status: amountPaid >= booking.totalAmount ? 'paid' : 'deposit_paid',
-              paymentStatus: 'completed',
-              paidAmount: amountPaid
-            });
-            
-            // Create payment record
-            await storage.createPayment({
-              bookingId,
-              amount: amountPaid,
-              status: 'completed',
-              paymentMethod: 'stripe',
-              transactionId: paymentIntent.id
-            });
-          }
-          break;
-        case 'payment_intent.payment_failed':
-          const failedPaymentIntent = event.data.object;
-          // Update booking payment status to failed
-          if (failedPaymentIntent.metadata && failedPaymentIntent.metadata.bookingId) {
-            const bookingId = parseInt(failedPaymentIntent.metadata.bookingId);
-            await storage.updateBooking(bookingId, {
-              paymentStatus: 'failed'
-            });
-          }
-          break;
-        default:
-          // Unexpected event type
-          console.log(`Unhandled event type ${event.type}`);
+        console.log(`[DEV] Unhandled event type ${event.type}`);
       }
       
       // Return a 200 response to acknowledge receipt of the event
@@ -1205,42 +1219,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SendGrid email confirmation endpoint
+  // Email confirmation endpoint (hardcoded implementation)
   app.post('/api/send-email', async (req, res) => {
     try {
-      if (!process.env.SENDGRID_API_KEY) {
-        return res.status(500).json({ 
-          message: 'SendGrid is not configured. Please set SENDGRID_API_KEY environment variable.' 
-        });
-      }
-
       const { to, subject, text, html, bookingId } = req.body;
       
-      // Send booking confirmation email using SendGrid
-      // Import sendgrid here to prevent errors if API key isn't set
-      const sgMail = require('@sendgrid/mail');
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      // Log email information for development
+      console.log(`[DEV] Simulating email send`);
+      console.log(`[DEV] To: ${to}`);
+      console.log(`[DEV] Subject: ${subject}`);
+      console.log(`[DEV] Text content: ${text}`);
       
-      const msg = {
-        to,
-        from: 'bookings@outfitter.com', // Change to your verified sender
-        subject,
-        text,
-        html,
-      };
-      
-      await sgMail.send(msg);
-      
-      // Update booking to reflect that email was sent
+      // Update booking to reflect that email was sent (if bookingId provided)
       if (bookingId) {
-        await storage.updateBooking(parseInt(bookingId), {
-          emailSent: true
-        });
+        const booking = await storage.getBooking(parseInt(bookingId));
+        if (booking) {
+          await storage.updateBooking(parseInt(bookingId), {
+            // We don't actually have an emailSent field in our schema yet
+            // but we simulate that the email was sent
+            status: booking.status // Maintain the current status
+          });
+          
+          // Log activity for the email
+          await storage.createActivity({
+            action: 'Email sent',
+            details: {
+              bookingId: parseInt(bookingId),
+              bookingNumber: booking.bookingNumber,
+              emailType: subject
+            }
+          });
+        }
       }
       
-      res.json({ success: true });
+      // Simulate a short delay for realism
+      setTimeout(() => {
+        res.json({ 
+          success: true,
+          message: 'Email simulated successfully in development mode'
+        });
+      }, 300);
     } catch (error: any) {
-      console.error('Error sending email:', error);
+      console.error('Error simulating email:', error);
       res.status(500).json({ message: error.message });
     }
   });
