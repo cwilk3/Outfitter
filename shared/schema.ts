@@ -69,6 +69,7 @@ export const locations = pgTable("locations", {
   state: text("state").notNull(),
   zip: text("zip"),
   description: text("description"),
+  image: text("image"), // URL to location image
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -126,17 +127,26 @@ export const customers = pgTable("customers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Bookings table
+// Bookings table with extended fields for public booking
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   bookingNumber: text("booking_number").notNull().unique(),
   experienceId: integer("experience_id").notNull().references(() => experiences.id),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
+  customerId: integer("customer_id").references(() => customers.id), // Allow null for direct bookings
+  // Customer info for direct bookings
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  phone: text("phone"),
   startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date").notNull(),
+  endDate: timestamp("end_date"),
+  numberOfPeople: integer("number_of_people").default(1),
   status: bookingStatusEnum("status").notNull().default('pending'),
+  paymentStatus: text("payment_status").default('pending'),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  paidAmount: decimal("paid_amount", { precision: 10, scale: 2 }).default('0'),
   notes: text("notes"),
+  selectedAddons: jsonb("selected_addons").default('[]'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
