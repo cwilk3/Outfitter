@@ -854,7 +854,8 @@ export class MemStorage implements IStorage {
       capacity: 3,
       location: 'Clear Lake',
       category: 'bass_fishing',
-      locationId: 3 // Kansas Fields
+      locationId: 3, // Kansas Fields
+      isPublic: true
     };
     this.createExperience(bassFishing);
     
@@ -866,7 +867,8 @@ export class MemStorage implements IStorage {
       capacity: 4, 
       location: 'Oak Forest',
       category: 'deer_hunting',
-      locationId: 1 // Texas Ranch
+      locationId: 1, // Texas Ranch
+      isPublic: true
     };
     this.createExperience(deerHunting);
     
@@ -878,7 +880,8 @@ export class MemStorage implements IStorage {
       capacity: 2,
       location: 'Clear Creek',
       category: 'trout_fishing',
-      locationId: 2 // Oklahoma Lodge
+      locationId: 2, // Oklahoma Lodge
+      isPublic: true
     };
     this.createExperience(flyfishing);
     
