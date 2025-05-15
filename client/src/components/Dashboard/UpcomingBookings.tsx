@@ -4,9 +4,10 @@ import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { UpcomingBooking } from "@/types";
 
 export default function UpcomingBookings() {
-  const { data: bookings = [], isLoading, error } = useQuery<any[]>({
+  const { data: bookings = [], isLoading, error } = useQuery<UpcomingBooking[]>({
     queryKey: ['/api/dashboard/upcoming-bookings'],
   });
 
