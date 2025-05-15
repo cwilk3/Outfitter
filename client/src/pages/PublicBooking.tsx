@@ -245,13 +245,14 @@ function PublicBooking() {
     const groupSize = parseInt(formValues.groupSize) || 1;
     const subtotal = price * groupSize;
     
-    // Calculate addons
+    // Calculate addons with quantities
     let addonTotal = 0;
     if (formValues.addons && formValues.addons.length > 0) {
-      formValues.addons.forEach(addonId => {
-        const addon = sampleAddons.find(a => a.id === addonId);
+      formValues.addons.forEach(addonSelection => {
+        const addon = sampleAddons.find(a => a.id === addonSelection.id);
         if (addon) {
-          addonTotal += addon.price;
+          // Multiply addon price by the selected quantity
+          addonTotal += addon.price * addonSelection.quantity;
         }
       });
     }
@@ -857,7 +858,7 @@ function PublicBooking() {
                                             className="h-8 w-8 p-0"
                                             onClick={() => {
                                               if (quantity > 1) {
-                                                const newValues = field.value.map(v => 
+                                                const newValues = (field.value || []).map(v => 
                                                   v.id === addon.id 
                                                     ? { ...v, quantity: v.quantity - 1 } 
                                                     : v
@@ -879,7 +880,7 @@ function PublicBooking() {
                                             className="h-8 w-8 p-0"
                                             onClick={() => {
                                               if (quantity < addon.maxPerBooking) {
-                                                const newValues = field.value.map(v => 
+                                                const newValues = (field.value || []).map(v => 
                                                   v.id === addon.id 
                                                     ? { ...v, quantity: v.quantity + 1 } 
                                                     : v
