@@ -18,11 +18,25 @@ export default function Dashboard() {
         <p className="text-sm text-gray-600">Welcome back! Here's an overview of your business.</p>
       </div>
 
-      {/* Stats Overview Cards */}
-      <StatsOverview />
+      {/* Stats Overview and Quick Links Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Stats */}
+        <div className="lg:col-span-2">
+          <StatsOverview />
+        </div>
+        
+        {/* Quick Access Panel */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardContent className="pt-6">
+              <QuickActions />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* Main Dashboard Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      {/* Calendar and Bookings Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar Preview */}
         <div className="lg:col-span-2">
           <CalendarView />
@@ -33,15 +47,14 @@ export default function Dashboard() {
           {/* Upcoming Bookings */}
           <UpcomingBookings />
           
-          {/* Quick Actions Card */}
-          <Card>
-            <CardContent className="pt-6">
-              <QuickActions />
-              
-              {/* Booking Link Generator - For Admins Only */}
-              {isAdmin && <div className="mt-6"><BookingLinkGenerator /></div>}
-            </CardContent>
-          </Card>
+          {/* Booking Link Generator - For Admins Only */}
+          {isAdmin && (
+            <Card>
+              <CardContent className="pt-6">
+                <BookingLinkGenerator />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </>

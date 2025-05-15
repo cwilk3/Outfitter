@@ -17,7 +17,7 @@ export default function UpcomingBookings() {
         <div className="p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800">Upcoming Bookings</h3>
         </div>
-        <div className="overflow-y-auto" style={{ maxHeight: '550px' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
           <ul className="divide-y divide-gray-200">
             {[...Array(4)].map((_, index) => (
               <li key={index} className="p-4">
@@ -97,7 +97,7 @@ export default function UpcomingBookings() {
       <div className="p-4 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800">Upcoming Bookings</h3>
       </div>
-      <div className="overflow-y-auto" style={{ maxHeight: '550px' }}>
+      <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
         <ul className="divide-y divide-gray-200">
           {bookings && bookings.length > 0 ? (
             bookings.map((booking: any) => (
