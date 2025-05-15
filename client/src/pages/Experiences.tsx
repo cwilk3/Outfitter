@@ -677,7 +677,9 @@ export default function Experiences() {
           });
           
           // Refresh data
+          // Invalidate both admin and public experience queries
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
           
           // Close dialog
