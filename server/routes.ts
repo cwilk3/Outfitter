@@ -2,6 +2,8 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { nanoid } from "nanoid";
+import Stripe from "stripe";
 // Import authentication middleware but we'll use a custom version for development
 import { setupAuth } from "./replitAuth";
 import { 
@@ -14,8 +16,15 @@ import {
   insertPaymentSchema, 
   insertSettingsSchema,
   insertActivitySchema,
-  insertLocationSchema
+  insertLocationSchema,
+  insertExperienceLocationSchema,
+  insertExperienceAddonSchema
 } from "@shared/schema";
+
+// Initialize Stripe with the secret key
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" })
+  : null;
 
 // Development authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
@@ -1007,6 +1016,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: 'admin'
       }
     });
+  });
+
+  // Public Experience and Booking Routes (no authentication required)
+  // Public API for listing experiences
+  app.get('/api/public/experiences', async (req, res) => {
+    try {
+      const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+      const category = req.query.category as string | undefined;
+      const experiences = await storage.listPublicExperiences(locationId, category);
+      res.json(experiences);
+    } catch (error) {
+      console.error('Error fetching public experiences:', error);
+      res.status(500).json({ message: 'Failed to fetch experiences' });
+    }
+  });
+
+  // Get public locations for filtering
+  app.get('/api/public/locations', async (req, res) => {
+    try {
+      // Only active locations should be visible to the public
+      const locations = await storage.listLocations(true);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching public locations:', error);
+      res.status(500).json({ message: 'Failed to fetch locations' });
+    }
+  });
+
+  // Get specific experience details
+  app.get('/api/public/experiences/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const experience = await storage.getPublicExperience(id);
+      
+      if (!experience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      // Get associated locations
+      const locations = await storage.getExperienceLocations(id);
+      
+      // Get add-ons for this experience
+      const addons = await storage.getExperienceAddons(id);
+      
+      res.json({
+        ...experience,
+        locations,
+        addons
+      });
+    } catch (error) {
+      console.error('Error fetching public experience:', error);
+      res.status(500).json({ message: 'Failed to fetch experience' });
+    }
+  });
+
+  // Public booking creation route
+  app.post('/api/public/bookings', async (req, res) => {
+    try {
+      // Get the booking data
+      const bookingData = req.body;
+      
+      // Validate the booking data
+      const validatedData = insertBookingSchema.parse({
+        ...bookingData,
+        bookingNumber: `B-${new Date().getFullYear()}-${nanoid(6)}`, // Generate a booking number
+        status: 'pending'
+      });
+      
+      // Create the booking
+      const booking = await storage.createBooking(validatedData);
+      
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error('Error creating public booking:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to create booking' });
+    }
+  });
+
+  // Stripe payment intent creation endpoint
+  app.post('/api/create-payment-intent', async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ 
+          message: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.' 
+        });
+      }
+
+      const { amount, bookingId } = req.body;
+      
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          bookingId: bookingId.toString()
+        }
+      });
+      
+      res.json({ 
+        clientSecret: paymentIntent.client_secret 
+      });
+    } catch (error: any) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Webhook endpoint to handle Stripe events
+  app.post('/api/webhook', async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ 
+          message: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.' 
+        });
+      }
+
+      const sig = req.headers['stripe-signature'] as string;
+      let event;
+      
+      // Verify webhook signature
+      if (process.env.STRIPE_WEBHOOK_SECRET) {
+        try {
+          event = stripe.webhooks.constructEvent(
+            req.body, 
+            sig, 
+            process.env.STRIPE_WEBHOOK_SECRET
+          );
+        } catch (err: any) {
+          return res.status(400).json({ message: `Webhook Error: ${err.message}` });
+        }
+      } else {
+        // For development without signature verification
+        event = req.body;
+      }
+      
+      // Handle the event
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          // Update booking status
+          if (paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+            const bookingId = parseInt(paymentIntent.metadata.bookingId);
+            
+            // Check if this is a partial payment (deposit) or full payment
+            const booking = await storage.getBooking(bookingId);
+            if (!booking) break;
+            
+            // Calculate the amount paid
+            const amountPaid = paymentIntent.amount / 100; // Convert cents to dollars
+            
+            // Update booking payment status based on amount paid
+            await storage.updateBooking(bookingId, {
+              status: amountPaid >= booking.totalAmount ? 'paid' : 'deposit_paid',
+              paymentStatus: 'completed',
+              paidAmount: amountPaid
+            });
+            
+            // Create payment record
+            await storage.createPayment({
+              bookingId,
+              amount: amountPaid,
+              status: 'completed',
+              paymentMethod: 'stripe',
+              transactionId: paymentIntent.id
+            });
+          }
+          break;
+        case 'payment_intent.payment_failed':
+          const failedPaymentIntent = event.data.object;
+          // Update booking payment status to failed
+          if (failedPaymentIntent.metadata && failedPaymentIntent.metadata.bookingId) {
+            const bookingId = parseInt(failedPaymentIntent.metadata.bookingId);
+            await storage.updateBooking(bookingId, {
+              paymentStatus: 'failed'
+            });
+          }
+          break;
+        default:
+          // Unexpected event type
+          console.log(`Unhandled event type ${event.type}`);
+      }
+      
+      // Return a 200 response to acknowledge receipt of the event
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('Error processing webhook:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // SendGrid email confirmation endpoint
+  app.post('/api/send-email', async (req, res) => {
+    try {
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.status(500).json({ 
+          message: 'SendGrid is not configured. Please set SENDGRID_API_KEY environment variable.' 
+        });
+      }
+
+      const { to, subject, text, html, bookingId } = req.body;
+      
+      // Send booking confirmation email using SendGrid
+      // Import sendgrid here to prevent errors if API key isn't set
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      const msg = {
+        to,
+        from: 'bookings@outfitter.com', // Change to your verified sender
+        subject,
+        text,
+        html,
+      };
+      
+      await sgMail.send(msg);
+      
+      // Update booking to reflect that email was sent
+      if (bookingId) {
+        await storage.updateBooking(parseInt(bookingId), {
+          emailSent: true
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      res.status(500).json({ message: error.message });
+    }
   });
 
   const httpServer = createServer(app);
