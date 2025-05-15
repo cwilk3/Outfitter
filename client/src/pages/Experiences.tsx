@@ -340,7 +340,7 @@ export default function Experiences() {
   // Add experience-location association
   const addExperienceLocationMutation = useMutation({
     mutationFn: ({ experienceId, locationId }: { experienceId: number; locationId: number }) => {
-      return apiRequest('POST', '/api/experienceLocations', { experienceId, locationId });
+      return apiRequest('POST', '/api/experience-locations', { experienceId, locationId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
@@ -350,7 +350,7 @@ export default function Experiences() {
   // Remove experience-location association
   const removeExperienceLocationMutation = useMutation({
     mutationFn: ({ experienceId, locationId }: { experienceId: number; locationId: number }) => {
-      return apiRequest('DELETE', `/api/experienceLocations/${experienceId}/${locationId}`);
+      return apiRequest('DELETE', `/api/experience-locations/${experienceId}/${locationId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
