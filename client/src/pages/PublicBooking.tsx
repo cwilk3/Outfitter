@@ -195,15 +195,53 @@ function PublicBooking() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Hero Section */}
-      <div className="relative bg-primary text-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-            Which listing will be your next adventure?
-          </h1>
-          <p className="mt-6 text-xl max-w-3xl mx-auto">
-            Choose the listing you'd like to experience
-          </p>
+      {/* Modern Header Section */}
+      <div className="relative overflow-hidden">
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/80 z-0"></div>
+        
+        {/* Decorative elements */}
+        <div className="absolute inset-0 z-0 opacity-10">
+          <div className="absolute top-0 left-0 h-72 w-72 rounded-full bg-white/20 -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/10 translate-x-1/3 translate-y-1/3"></div>
+          <div className="absolute top-1/2 right-1/4 h-48 w-48 rounded-full bg-white/10 -translate-y-1/2"></div>
+        </div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <span className="block">Discover Your Next</span>
+              <span className="block mt-1 text-white/90">Unforgettable Adventure</span>
+            </h1>
+            <p className="mt-6 text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+              Browse our exclusive collection of guided experiences and book the perfect outdoor getaway
+            </p>
+            
+            <div className="mt-8">
+              <div className="flex justify-center items-center space-x-2 text-white/70 text-sm">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <span>Expert Guides</span>
+                </div>
+                <span className="text-white/50">•</span>
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <span>Premium Locations</span>
+                </div>
+                <span className="text-white/50">•</span>
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                  </svg>
+                  <span>Unforgettable Memories</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -227,48 +265,61 @@ function PublicBooking() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {experiences.map((experience) => (
-              <Card key={experience.id} className="overflow-hidden transition-all hover:shadow-lg">
-                <div className="aspect-w-16 aspect-h-9 bg-gray-200">
+              <div key={experience.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
+                {/* Image container with overlay */}
+                <div className="relative h-56 overflow-hidden">
                   {experience.images && experience.images.length > 0 ? (
                     <img 
                       src={Array.isArray(experience.images) ? experience.images[0] : "https://via.placeholder.com/400x225"}
                       alt={experience.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                       <span className="text-gray-400">{experience.name}</span>
                     </div>
                   )}
+                  
+                  {/* Image overlay with location */}
+                  {experience.locations.length > 0 && (
+                    <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-primary shadow-sm">
+                      {experience.locations[0].city}, {experience.locations[0].state}
+                    </div>
+                  )}
+                  
+                  {/* Price tag */}
+                  <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-primary text-white rounded-lg shadow-lg text-sm font-semibold">
+                    {formatPrice(experience.price)}
+                  </div>
                 </div>
-                <CardHeader>
-                  <CardTitle>{experience.name}</CardTitle>
-                  <CardDescription>
-                    {experience.locations.length > 0 
-                      ? `${experience.category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} in ${experience.locations[0].city}, ${experience.locations[0].state}`
-                      : experience.category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Calendar className="mr-2 h-4 w-4 text-primary" />
+                
+                {/* Content */}
+                <div className="p-5 flex-grow flex flex-col">
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">{experience.name}</h3>
+                  
+                  <div className="mt-3 flex items-center text-sm text-gray-600">
+                    <span className="capitalize">
+                      {experience.category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </span>
+                  </div>
+                  
+                  <p className="mt-3 text-sm text-gray-600 line-clamp-3 flex-grow">{experience.description}</p>
+                  
+                  {/* Features */}
+                  <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="mr-2 h-4 w-4 text-primary/70" />
                       <span>{experience.duration} {experience.duration > 1 ? 'days' : 'day'}</span>
                     </div>
-                    <div className="flex items-center text-sm">
-                      <Users className="mr-2 h-4 w-4 text-primary" />
-                      <span>Up to {experience.capacity} people</span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <DollarSign className="mr-2 h-4 w-4 text-primary" />
-                      <span>Starting at {formatPrice(experience.price)}</span>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="mr-2 h-4 w-4 text-primary/70" />
+                      <span>Up to {experience.capacity}</span>
                     </div>
                   </div>
-                  <p className="mt-4 text-sm text-gray-600 line-clamp-3">{experience.description}</p>
-                </CardContent>
-                <CardFooter>
+                  
+                  {/* Button */}
                   <Button 
-                    className="w-full"
+                    className="w-full mt-5 rounded-xl"
                     onClick={() => {
                       setSelectedExperience(experience);
                       setBookingDialogOpen(true);
@@ -276,8 +327,8 @@ function PublicBooking() {
                   >
                     Book Now
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -285,15 +336,60 @@ function PublicBooking() {
 
       {/* Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedExperience?.name || "Book Experience"}</DialogTitle>
-            <DialogDescription>
-              Fill out the form below to book your adventure.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
+          {/* Experience Header in Dialog */}
+          {selectedExperience && (
+            <div className="relative h-36 sm:h-48 w-full overflow-hidden rounded-t-2xl">
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                {selectedExperience.images && selectedExperience.images.length > 0 ? (
+                  <img 
+                    src={Array.isArray(selectedExperience.images) ? selectedExperience.images[0] : ""}
+                    alt={selectedExperience.name}
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-primary/20"></div>
+                )}
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30"></div>
+              </div>
+              
+              {/* Content */}
+              <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                <div className="flex items-center mb-2">
+                  {selectedExperience.locations.length > 0 && (
+                    <span className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mr-2">
+                      {selectedExperience.locations[0].city}, {selectedExperience.locations[0].state}
+                    </span>
+                  )}
+                  <span className="text-sm font-medium bg-primary/80 backdrop-blur-sm rounded-full px-3 py-1">
+                    {formatPrice(selectedExperience.price)}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
+                <div className="flex items-center mt-1 space-x-4 text-sm">
+                  <div className="flex items-center">
+                    <Calendar className="mr-1 h-4 w-4" />
+                    <span>{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="mr-1 h-4 w-4" />
+                    <span>Up to {selectedExperience.capacity} people</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="p-6">
+            <DialogHeader className="mb-4">
+              <DialogTitle>Complete Your Booking</DialogTitle>
+              <DialogDescription>
+                Fill out the form below to secure your adventure.
+              </DialogDescription>
+            </DialogHeader>
 
-          <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -413,31 +509,29 @@ function PublicBooking() {
                   name="addons"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-2">
                         {sampleAddons.map((addon) => (
                           <div key={addon.id} className="flex items-center space-x-2">
                             <Checkbox
                               id={addon.id}
                               checked={field.value?.includes(addon.id)}
                               onCheckedChange={(checked) => {
+                                const currentValues = field.value || [];
                                 if (checked) {
-                                  field.onChange([...(field.value || []), addon.id]);
+                                  field.onChange([...currentValues, addon.id]);
                                 } else {
-                                  field.onChange(
-                                    field.value?.filter((value) => value !== addon.id) || []
-                                  );
+                                  field.onChange(currentValues.filter(value => value !== addon.id));
                                 }
                               }}
                             />
-                            <label
-                              htmlFor={addon.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {addon.label} (+${addon.price})
+                            <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex justify-between w-full">
+                              <span>{addon.label}</span>
+                              <span className="text-gray-500 ml-2">${addon.price}</span>
                             </label>
                           </div>
                         ))}
                       </div>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -445,48 +539,76 @@ function PublicBooking() {
 
               <Separator />
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Payment Options</h3>
+              <FormField
+                control={form.control}
+                name="paymentOption"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Payment Option</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="deposit" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            50% Deposit Now (${calculateSummary(form.getValues()).deposit.toFixed(2)})
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="full" />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            Pay in Full (${calculateSummary(form.getValues()).total.toFixed(2)})
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="paymentOption"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="space-y-3"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="deposit" id="deposit" />
-                            <Label htmlFor="deposit">
-                              Pay 50% now (${calculateSummary(form.getValues()).deposit.toFixed(2)})
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="full" id="full" />
-                            <Label htmlFor="full">
-                              Pay in full (${calculateSummary(form.getValues()).total.toFixed(2)})
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium mb-2">Booking Summary</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Experience Fee:</span>
+                    <span>${calculateSummary(form.getValues()).subtotal.toFixed(2)}</span>
+                  </div>
+                  {calculateSummary(form.getValues()).addonTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span>Add-ons:</span>
+                      <span>${calculateSummary(form.getValues()).addonTotal.toFixed(2)}</span>
+                    </div>
                   )}
-                />
+                  <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
+                    <span>Total:</span>
+                    <span>${calculateSummary(form.getValues()).total.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setBookingDialogOpen(false)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setBookingDialogOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit">Complete Booking</Button>
+                <Button type="submit" className="gap-1">
+                  <Check className="h-4 w-4" />
+                  Complete Booking
+                </Button>
               </DialogFooter>
             </form>
-          </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -494,29 +616,14 @@ function PublicBooking() {
       <Dialog open={confirmationDialogOpen} onOpenChange={setConfirmationDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center text-green-600">
-              <Check className="mr-2 h-6 w-6" /> Booking Confirmed!
-            </DialogTitle>
+            <DialogTitle>Booking Confirmed!</DialogTitle>
             <DialogDescription>
-              Your adventure has been booked successfully.
+              Thank you for your booking. We've sent a confirmation email with all the details.
             </DialogDescription>
           </DialogHeader>
 
-          {bookingConfirmation && (
-            <div className="space-y-4">
-              <div className="rounded-md bg-green-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <Check className="h-5 w-5 text-green-400" aria-hidden="true" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-green-800">
-                      Confirmation email sent to {bookingConfirmation.booking.customer.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+          <div className="py-4">
+            {bookingConfirmation && (
               <div className="border rounded-md p-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-500">Booking Number:</span>
@@ -538,8 +645,8 @@ function PublicBooking() {
                   <span className="text-sm font-medium">${bookingConfirmation.booking.totalAmount}</span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <DialogFooter>
             <Button onClick={() => {
