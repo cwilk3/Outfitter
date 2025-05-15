@@ -650,20 +650,24 @@ export default function Experiences() {
       console.log("Optimizing images...", { imageCount: selectedImages.length });
       const optimizedImages = await optimizeImages(selectedImages);
       
-      // Include the current state of the form extras
+      // Include the current state of the form extras - ensure all values are included
       const formData = {
         ...data,
         images: optimizedImages,
-        availableDates: selectedDates,
-        addons: addons,
-        selectedLocationIds: selectedLocIds,
+        availableDates: selectedDates || [],
+        rules: rules || [],
+        amenities: amenities || [],
+        tripIncludes: tripIncludes || [],
+        addons: addons || [],
+        selectedLocationIds: selectedLocIds || [],
       };
       
-      console.log("Form data prepared successfully");
+      console.log("Form data prepared successfully:", formData);
       
       if (selectedExperience) {
+        // Update workflow for existing experience
         console.log("Updating experience", { id: selectedExperience.id });
-        // Direct approach for updating to bypass any issues with the mutation
+        
         try {
           const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
             ...formData,
@@ -693,9 +697,58 @@ export default function Experiences() {
           });
         }
       } else {
-        // Use the mutation for creating
-        console.log("Creating new experience");
-        createMutation.mutate(formData);
+        // Create workflow for new experience
+        console.log("Creating new experience with data:", formData);
+        
+        try {
+          // Direct API call to ensure we can debug any issues
+          const result = await apiRequest<Experience>('POST', '/api/experiences', {
+            ...formData,
+            selectedLocationIds: selectedLocIds,
+            rules: rules,
+            amenities: amenities,
+            tripIncludes: tripIncludes,
+          });
+          
+          console.log("Creation successful:", result);
+          
+          // Success notification
+          toast({
+            title: "Success",
+            description: "Experience created successfully",
+          });
+          
+          // If there are selected locations, associate them with the new experience
+          if (selectedLocIds.length > 0 && result) {
+            const experienceId = result.id;
+            
+            for (const locationId of selectedLocIds) {
+              try {
+                await apiRequest('POST', '/api/experience-locations', { 
+                  experienceId, 
+                  locationId 
+                });
+              } catch (err) {
+                console.error("Error associating location:", err);
+              }
+            }
+          }
+          
+          // Invalidate data
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+          
+          // Reset and close the form
+          closeDialog();
+        } catch (createError) {
+          console.error("Error creating experience:", createError);
+          toast({
+            title: "Creation Failed",
+            description: "Could not create the experience. Please try again.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       // Handle submission errors
@@ -1502,16 +1555,16 @@ export default function Experiences() {
                   ) : (
                     <Button 
                       type="submit"
-                      disabled={createMutation.isPending}
-                      className="gap-1"
+                      onClick={() => console.log("Submit button clicked - should trigger form submission")}
+                      className="gap-1 bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {!selectedExperience && createMutation.isPending ? (
+                      {form.formState.isSubmitting ? (
                         <span className="flex items-center">
                           <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Creating...
+                          {selectedExperience ? 'Updating...' : 'Creating...'}
                         </span>
                       ) : (
                         <>
