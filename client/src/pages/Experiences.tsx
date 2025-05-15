@@ -82,8 +82,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Info as InfoIcon,
-  FileEdit
+  FileEdit,
+  X
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 // Define form validation schema
 const experienceSchema = z.object({
@@ -462,6 +464,11 @@ export default function Experiences() {
       : [];
     setSelectedDates(availableDates);
     
+    // Set rules, amenities and trip inclusions
+    setRules(experience.rules || []);
+    setAmenities(experience.amenities || []);
+    setTripIncludes(experience.tripIncludes || []);
+    
     // Set addons if available
     if (experience.addons) {
       setAddons(experience.addons.map(addon => ({
@@ -485,6 +492,9 @@ export default function Experiences() {
       selectedLocationIds: selectedLocIds,
       images: experience.images || [],
       availableDates: availableDates,
+      rules: experience.rules || [],
+      amenities: experience.amenities || [],
+      tripIncludes: experience.tripIncludes || [],
       addons: experience.addons || [],
     });
     
@@ -506,6 +516,9 @@ export default function Experiences() {
     setSelectedLocIds([]);
     setSelectedImages([]);
     setSelectedDates([]);
+    setRules([]);
+    setAmenities([]);
+    setTripIncludes([]);
     setAddons([]);
     setCurrentStep(1);
     form.reset();
@@ -1114,8 +1127,231 @@ export default function Experiences() {
                 </div>
               )}
               
-              {/* Step 4: Add-ons */}
+              {/* Step 4: Features (Rules, Amenities, Trip Inclusions) */}
               {currentStep === 4 && (
+                <div className="space-y-6">
+                  {/* Rules Section */}
+                  <div className="pb-6">
+                    <h3 className="text-base font-medium mb-1">Rules & Requirements</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Specify any rules, licenses or permits required for this experience.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            id="new-rule" 
+                            placeholder="e.g. Hunting License Required" 
+                            className="flex-1"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && e.currentTarget.value.trim() !== '') {
+                                setRules([...rules, e.currentTarget.value.trim()]);
+                                e.currentTarget.value = '';
+                                e.preventDefault();
+                              }
+                            }}
+                          />
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={(e) => {
+                              const input = document.getElementById('new-rule') as HTMLInputElement;
+                              if (input.value.trim() !== '') {
+                                setRules([...rules, input.value.trim()]);
+                                input.value = '';
+                              }
+                            }}
+                          >
+                            Add Rule
+                          </Button>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground ml-1">
+                          Press Enter to add a rule, or click the Add Rule button
+                        </div>
+                      </div>
+                      
+                      {/* Rules List */}
+                      <div className="border rounded-md p-4 bg-muted/30 min-h-[100px]">
+                        {rules.length === 0 ? (
+                          <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                            No rules added yet. Add some rules to inform your customers.
+                          </div>
+                        ) : (
+                          <ul className="space-y-2">
+                            {rules.map((rule, index) => (
+                              <li key={index} className="flex items-center justify-between gap-2 group">
+                                <div className="flex items-start gap-2">
+                                  <span className="inline-block w-1 h-1 bg-primary rounded-full mt-2"></span>
+                                  <span>{rule}</span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                                  onClick={() => {
+                                    setRules(rules.filter((_, i) => i !== index));
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Amenities Section */}
+                  <div className="py-6">
+                    <h3 className="text-base font-medium mb-1">Amenities</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select amenities available during this experience.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {[
+                        { id: 'bird_dogs', label: 'Bird dogs', icon: '🐕' },
+                        { id: 'guided', label: 'Guided', icon: '🧭' },
+                        { id: 'air_conditioning', label: 'Air conditioning', icon: '❄️' },
+                        { id: 'keep_meat', label: 'Keep the meat', icon: '🥩' },
+                        { id: 'toilet', label: 'Toilet', icon: '🚽' },
+                        { id: 'cable_tv', label: 'Cable TV', icon: '📺' },
+                        { id: 'mud_room', label: 'Mud room', icon: '👢' },
+                        { id: 'wifi', label: 'WiFi', icon: '📶' },
+                        { id: 'kid_friendly', label: 'Kid friendly', icon: '👶' },
+                        { id: 'corporate_trips', label: 'Corporate trips', icon: '💼' },
+                      ].map((item) => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`amenity-${item.id}`}
+                            checked={amenities.includes(item.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setAmenities([...amenities, item.id]);
+                              } else {
+                                setAmenities(amenities.filter(a => a !== item.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`amenity-${item.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                          >
+                            <span className="mr-1">{item.icon}</span> {item.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Custom Amenity */}
+                    <div className="mt-4 flex gap-2">
+                      <Input 
+                        id="custom-amenity" 
+                        placeholder="Add custom amenity" 
+                        className="max-w-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value.trim() !== '') {
+                            setAmenities([...amenities, e.currentTarget.value.trim()]);
+                            e.currentTarget.value = '';
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          const input = document.getElementById('custom-amenity') as HTMLInputElement;
+                          if (input.value.trim() !== '') {
+                            setAmenities([...amenities, input.value.trim()]);
+                            input.value = '';
+                          }
+                        }}
+                      >
+                        Add Custom
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Trip Inclusions Section */}
+                  <div className="pt-6">
+                    <h3 className="text-base font-medium mb-1">Trip Includes</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Specify what's included in this experience package.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {[
+                        { id: 'animal_cleaning', label: 'Animal cleaning', icon: '🧹' },
+                        { id: 'lodging', label: 'Lodging', icon: '🏠' },
+                        { id: 'meals', label: 'Meals', icon: '🍽️' },
+                        { id: 'ice', label: 'Ice', icon: '🧊' },
+                        { id: 'byob', label: 'BYOB', icon: '🍺' },
+                      ].map((item) => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`include-${item.id}`}
+                            checked={tripIncludes.includes(item.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setTripIncludes([...tripIncludes, item.id]);
+                              } else {
+                                setTripIncludes(tripIncludes.filter(i => i !== item.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`include-${item.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                          >
+                            <span className="mr-1">{item.icon}</span> {item.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Custom Inclusion */}
+                    <div className="mt-4 flex gap-2">
+                      <Input 
+                        id="custom-inclusion" 
+                        placeholder="Add custom inclusion" 
+                        className="max-w-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && e.currentTarget.value.trim() !== '') {
+                            setTripIncludes([...tripIncludes, e.currentTarget.value.trim()]);
+                            e.currentTarget.value = '';
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          const input = document.getElementById('custom-inclusion') as HTMLInputElement;
+                          if (input.value.trim() !== '') {
+                            setTripIncludes([...tripIncludes, input.value.trim()]);
+                            input.value = '';
+                          }
+                        }}
+                      >
+                        Add Custom
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 5: Add-ons */}
+              {currentStep === 5 && (
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-base font-medium mb-1">Add-ons & Extras</h3>
