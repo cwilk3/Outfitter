@@ -390,7 +390,13 @@ function PublicBooking() {
       </div>
 
       {/* Booking Dialog */}
-      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+      <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Reset booking step when dialog is closed
+          setBookingStep('location');
+        }
+        setBookingDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {/* Experience Header in Dialog */}
           {selectedExperience && (
