@@ -1067,6 +1067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { 
         experienceId, 
+        locationId,
         startDate, 
         endDate, 
         customerName,
@@ -1078,12 +1079,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.body;
       
       // Validate required fields
-      if (!experienceId || !startDate || !endDate || !customerName || !customerEmail) {
+      if (!experienceId || !locationId || !startDate || !endDate || !customerName || !customerEmail) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
       
-      // Parse experienceId as number
+      // Parse IDs as numbers
       const expId = parseInt(experienceId);
+      const locId = parseInt(locationId);
       
       // Create or get customer
       let customer = await storage.listCustomers(customerEmail)
@@ -1111,6 +1113,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a booking number
       const bookingNumber = `B-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
       
+      // Verify that this location is valid for this experience
+      const experienceLocations = await storage.getExperienceLocations(expId);
+      const isValidLocation = experienceLocations.some(loc => loc.id === locId);
+      
+      if (!isValidLocation) {
+        return res.status(400).json({ message: 'Invalid location for this experience' });
+      }
+      
+      // Get location details
+      const location = await storage.getLocation(locId);
+      if (!location) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
       // Create booking
       const booking = await storage.createBooking({
         bookingNumber,
@@ -1120,8 +1136,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(endDate),
         status: paymentOption === 'full' ? 'paid' : 'deposit_paid',
         totalAmount: experience.price,
-        guestCount: parseInt(groupSize) || 1,
-        notes: addons.length > 0 ? `Add-ons: ${addons.join(', ')}` : '',
+        notes: addons.length > 0 ? 
+          `Add-ons: ${addons.join(', ')}\nLocation: ${location.name}, ${location.city}, ${location.state}` : 
+          `Location: ${location.name}, ${location.city}, ${location.state}`,
         paymentStatus: paymentOption === 'full' ? 'Paid in Full' : '50% Deposit',
         source: 'website'
       });
