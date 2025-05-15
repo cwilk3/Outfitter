@@ -203,7 +203,7 @@ export default function Experiences() {
   const [rules, setRules] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
-  const [addons, setAddons] = useState<AddonType[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
 
   // Fetch experiences
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
@@ -500,8 +500,8 @@ export default function Experiences() {
         description: addon.description || '',
         price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
         isOptional: addon.isOptional === undefined ? true : addon.isOptional,
-        inventory: addon.inventory || 0,
-        maxPerBooking: addon.maxPerBooking || 1
+        inventory: addon.inventory || (addon as any).inventory || 0,
+        maxPerBooking: addon.maxPerBooking || (addon as any).maxPerBooking || 1
       }));
       console.log('Setting add-ons:', formattedAddons);
       setAddons(formattedAddons);
@@ -673,6 +673,20 @@ export default function Experiences() {
       
       // Include the current state of the form extras - ensure all values are included
       // Add fallback values for required fields to prevent validation issues
+      // Convert selectedDates to ISO strings for storage
+      const formattedDates = selectedDates.map(date => date.toISOString());
+      console.log("Formatted dates for storage:", formattedDates);
+      
+      // Ensure addons have proper types
+      const formattedAddons = addons.map(addon => ({
+        name: addon.name,
+        description: addon.description || '',
+        price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
+        isOptional: addon.isOptional === undefined ? true : addon.isOptional,
+        inventory: addon.inventory || 0,
+        maxPerBooking: addon.maxPerBooking || 1
+      }));
+      
       const formData = {
         ...data,
         name: data.name || "Untitled Experience",
@@ -682,11 +696,11 @@ export default function Experiences() {
         capacity: data.capacity || 1,
         category: data.category || "other_hunting",
         images: optimizedImages,
-        availableDates: selectedDates || [],
+        availableDates: formattedDates,
         rules: rules || [],
         amenities: amenities || [],
         tripIncludes: tripIncludes || [],
-        addons: addons || [],
+        addons: formattedAddons,
         selectedLocationIds: selectedLocIds || [],
       };
       
