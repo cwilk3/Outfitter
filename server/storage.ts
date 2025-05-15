@@ -39,6 +39,7 @@ export interface IStorage {
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
+  listExperienceLocations(): Promise<ExperienceLocation[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
   
@@ -331,6 +332,12 @@ export class DatabaseStorage implements IStorage {
       .from(locations)
       .where(inArray(locations.id, locationIds.map(r => r.id)))
       .orderBy(locations.name);
+  }
+  
+  async listExperienceLocations(): Promise<ExperienceLocation[]> {
+    return await db
+      .select()
+      .from(experienceLocations);
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
