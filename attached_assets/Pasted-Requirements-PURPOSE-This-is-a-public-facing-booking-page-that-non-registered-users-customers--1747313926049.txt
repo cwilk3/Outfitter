@@ -1,0 +1,99 @@
+Requirements:
+
+🔷 PURPOSE
+This is a public-facing booking page that non-registered users (customers) use to book and pay for available experiences. The page should pull data from the Experiences and Locations configured by the Admin in the platform.
+
+🔷 FRONTEND
+Tech stack: React + Tailwind CSS
+Design direction: Follow the visual style in the attached image — clean cards, bold header text, strong CTA buttons, modern layout with soft shadows and rounded corners. Use Tailwind for layout and design consistency.
+
+UI Components:
+Hero Section
+
+Text: Which listing will be your next adventure?
+
+Subtext: Choose the listing you'd like to experience
+
+Experience Cards (fetched from backend)
+
+Title (e.g., “Whiskey Sloughs 3 Day All-Inclusive Goose Package”)
+
+Location (e.g., “Hunting in Kearney, Nebraska”)
+
+Image
+
+Starting Price (e.g., $1,850)
+
+“Book Now” button
+
+Booking Modal / Page
+
+Experience details
+
+Customer fields: name, email, phone number
+
+Date picker (filtered based on availability)
+
+Group size selector
+
+Optional add-ons section (if available)
+
+Payment method selector: hardcoded logic for “Pay 50% now” or “Pay in Full”
+
+Submit button
+
+Confirmation Screen
+
+Booking summary
+
+Fake “Email Sent” success notice
+
+🔷 BACKEND
+Tech stack: Node.js + Express + Supabase SDK
+Data Source: Supabase — use existing "locations" and "experiences" tables created in the Admin dashboard
+
+API Endpoints:
+GET /api/public/experiences
+
+Returns list of published experiences with location and pricing info.
+
+POST /api/public/book
+
+Accepts booking form data (name, contact, experience ID, selected dates, payment method).
+
+Stores booking in Supabase's “bookings” table.
+
+Simulates sending an email confirmation (fake function, no integration required).
+
+Automatically updates:
+
+bookings table
+
+calendar view (based on experience dates)
+
+customers list
+
+🔷 SPECIAL LOGIC
+When a booking is submitted, update:
+
+calendar: reflect on date range
+
+bookings: include customer info and status
+
+dashboard metrics: increment counters (Upcoming Trips, Payments Pending)
+
+customers: add/update customer record
+
+Create a fake email notification using a timeout or console log (e.g., console.log("Reminder email would be sent here"))
+
+No real integrations required for email or payment at this stage; use a placeholder function.
+
+Add a placeholder success banner after the customer submits a booking.
+
+Save partial or full payment method as a string in the bookings table (e.g., “Paid in Full”, “50% Deposit”).
+
+🔷 EXTRA FUNCTIONALITY
+Provide a unique public URL like /public-booking/:outfitterId that Admins can copy from their Dashboard.
+
+If no experiences exist or are unpublished, show a message like: “No adventures currently available. Check back soon!”
+
