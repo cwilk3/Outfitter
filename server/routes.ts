@@ -1222,15 +1222,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the experience's addons field for easier retrieval
       const experience = await storage.getExperience(addon.experienceId);
       if (experience) {
-        const currentAddons = experience.addons || [];
+        // Make sure we have a proper array to work with
+        const currentAddons = Array.isArray(experience.addons) ? experience.addons : [];
         const updatedAddons = [...currentAddons, {
           id: addon.id,
           name: addon.name,
           description: addon.description,
           price: Number(addon.price),
           isOptional: addon.isOptional,
-          inventory: addon.inventory,
-          maxPerBooking: addon.maxPerBooking
+          inventory: addon.inventory !== undefined ? addon.inventory : 0,
+          maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 1
         }];
         
         await storage.updateExperience(addon.experienceId, {
@@ -1275,8 +1276,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the experience's addons field for easier retrieval
       const experience = await storage.getExperience(updatedAddon.experienceId);
       if (experience) {
-        const currentAddons = experience.addons || [];
-        const updatedAddons = currentAddons.map(addon => 
+        // Make sure we have a proper array to work with
+        const currentAddons = Array.isArray(experience.addons) ? experience.addons : [];
+        const updatedAddons = currentAddons.map((addon: any) => 
           addon.id === updatedAddon.id 
             ? {
                 id: updatedAddon.id,
@@ -1284,8 +1286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 description: updatedAddon.description,
                 price: Number(updatedAddon.price),
                 isOptional: updatedAddon.isOptional,
-                inventory: updatedAddon.inventory,
-                maxPerBooking: updatedAddon.maxPerBooking
+                inventory: updatedAddon.inventory !== undefined ? updatedAddon.inventory : 0,
+                maxPerBooking: updatedAddon.maxPerBooking !== undefined ? updatedAddon.maxPerBooking : 1
               }
             : addon
         );
@@ -1334,8 +1336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the experience's addons field for easier retrieval
       const experience = await storage.getExperience(experienceId);
       if (experience) {
-        const currentAddons = experience.addons || [];
-        const updatedAddons = currentAddons.filter(a => a.id !== id);
+        // Make sure we have a proper array to work with
+        const currentAddons = Array.isArray(experience.addons) ? experience.addons : [];
+        const updatedAddons = currentAddons.filter((a: any) => a.id !== id);
         
         await storage.updateExperience(experienceId, {
           addons: updatedAddons

@@ -1214,8 +1214,8 @@ export class MemStorage implements IStorage {
     const addon: ExperienceAddon = {
       ...addonData,
       id,
-      inventory: addonData.inventory || 0,
-      maxPerBooking: addonData.maxPerBooking || 1,
+      inventory: addonData.inventory !== undefined ? addonData.inventory : 0,
+      maxPerBooking: addonData.maxPerBooking !== undefined ? addonData.maxPerBooking : 1,
       createdAt: now,
       updatedAt: now
     };
