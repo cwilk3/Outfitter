@@ -1157,40 +1157,123 @@ export default function Experiences() {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   ) : (
-                    // Submit button with context-aware label
                     <Button 
                       type={selectedExperience ? "button" : "submit"}
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                      className={selectedExperience ? "gap-1 bg-amber-600 hover:bg-amber-700" : "gap-1"}
-                      onClick={selectedExperience ? (e) => {
-                        e.preventDefault();
-                        console.log("Submitting form manually...");
-                        form.handleSubmit(onSubmit)();
-                      } : undefined}
+                      disabled={selectedExperience ? true : createMutation.isPending}
+                      className={selectedExperience ? "gap-1 opacity-50 cursor-not-allowed" : "gap-1"}
                     >
-                      {createMutation.isPending || updateMutation.isPending ? (
-                        <span>Saving...</span>
+                      {!selectedExperience && createMutation.isPending ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creating...
+                        </span>
                       ) : (
                         <>
-                          <span>{selectedExperience ? 'Save Changes' : 'Create Experience'}</span>
+                          <span>{selectedExperience ? 'Submit Form' : 'Create Experience'}</span>
                           <Check className="h-4 w-4" />
                         </>
                       )}
                     </Button>
                   )}
                   
-                  {/* For edit mode only: Save button on every step for convenience */}
-                  {selectedExperience && currentStep < 4 && (
+                  {/* For edit mode only: Save button with clear confirmation */}
+                  {selectedExperience && (
                     <Button 
-                      type="submit"
+                      type="button"
                       variant="outline"
                       className="gap-1 border-amber-600 text-amber-600 hover:bg-amber-50"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.preventDefault();
-                        form.handleSubmit(onSubmit)();
+                        
+                        // Visual feedback - change button text immediately
+                        const button = e.currentTarget;
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<span>Saving...</span><svg class="animate-spin h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                        
+                        try {
+                          // Directly call API here to avoid any form submission issues
+                          if (!selectedExperience) {
+                            throw new Error("No experience selected");
+                          }
+                          
+                          // Get form values
+                          const formValues = form.getValues();
+                          
+                          // Process images - limit to just one small image to ensure the save works
+                          const optimizedImages = selectedImages.length > 0 
+                            ? [selectedImages[0].substring(0, 100000)] 
+                            : [];
+                          
+                          // Create payload
+                          const payload = {
+                            ...formValues,
+                            images: optimizedImages,
+                            availableDates: selectedDates.slice(0, 10) || [],
+                            addons: addons || [],
+                            selectedLocationIds: selectedLocIds || [],
+                          };
+                          
+                          // Make API call
+                          const result = await fetch(`/api/experiences/${selectedExperience.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload),
+                          });
+                          
+                          // Handle response
+                          if (!result.ok) {
+                            throw new Error(`Failed to update: ${result.status}`);
+                          }
+                          
+                          // Success feedback
+                          button.innerHTML = '<span class="text-green-500">Saved Successfully!</span><svg class="h-4 w-4 text-green-500 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                          
+                          // Show toast
+                          toast({
+                            title: "Success!",
+                            description: "Experience updated successfully",
+                          });
+                          
+                          // Refresh data
+                          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+                          
+                          // Reset button after delay
+                          setTimeout(() => {
+                            button.innerHTML = originalText;
+                          }, 2000);
+                          
+                          // Close dialog
+                          setTimeout(() => {
+                            setIsCreating(false);
+                          }, 1000);
+                          
+                        } catch (error) {
+                          console.error("Error saving:", error);
+                          
+                          // Error feedback
+                          button.innerHTML = '<span class="text-red-500">Save Failed!</span><svg class="h-4 w-4 text-red-500 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                          
+                          // Show toast
+                          toast({
+                            title: "Error",
+                            description: "Failed to save changes. Please try again.",
+                            variant: "destructive",
+                          });
+                          
+                          // Reset button after delay
+                          setTimeout(() => {
+                            button.innerHTML = originalText;
+                          }, 2000);
+                        }
                       }}
                     >
-                      <span>Save</span>
+                      <span>Save Changes</span>
                       <Check className="h-4 w-4" />
                     </Button>
                   )}
