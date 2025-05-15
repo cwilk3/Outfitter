@@ -243,6 +243,9 @@ export default function Experiences() {
       return apiRequest<Experience>('POST', '/api/experiences', {
         ...data,
         selectedLocationIds: selectedLocIds,
+        rules: rules,
+        amenities: amenities,
+        tripIncludes: tripIncludes,
       });
     },
     onSuccess: (response: Experience) => {
@@ -897,7 +900,7 @@ export default function Experiences() {
               <div className="space-y-2">
                 <Steps 
                   currentStep={currentStep} 
-                  steps={["Basic Info", "Details", "Media", "Add-ons"]} 
+                  steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
                   onStepClick={setCurrentStep} 
                   clickable={true}
                 />
@@ -914,7 +917,7 @@ export default function Experiences() {
             ) : (
               <Steps 
                 currentStep={currentStep} 
-                steps={["Basic Info", "Details", "Media", "Add-ons"]} 
+                steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
               />
             )}
           </div>
@@ -1303,6 +1306,9 @@ export default function Experiences() {
                             ...formValues,
                             images: optimizedImages,
                             availableDates: selectedDates || [],
+                            rules: rules || [],
+                            amenities: amenities || [],
+                            tripIncludes: tripIncludes || [],
                             addons: addons || [],
                             selectedLocationIds: selectedLocIds || [],
                           };
