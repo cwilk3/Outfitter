@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation, ExperienceAddon } from "@/types";
 // Import Image processing utility
-import { compress as imageCompressor } from 'browser-image-compression';
+import imageCompression from 'browser-image-compression';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LocationsContent from "@/pages/LocationsContent";
 import { 
@@ -121,6 +121,56 @@ const experienceSchema = z.object({
 });
 
 type ExperienceFormValues = z.infer<typeof experienceSchema>;
+
+/**
+ * Optimizes image data URIs to reduce payload size
+ */
+const optimizeImages = async (imageDataUrls: string[]): Promise<string[]> => {
+  if (!imageDataUrls || imageDataUrls.length === 0) return [];
+  
+  const compressOptions = {
+    maxSizeMB: 0.5,           // Max size in MB
+    maxWidthOrHeight: 1200,   // Max width/height in pixels
+    useWebWorker: true,       // Use web worker for better performance
+    initialQuality: 0.7,      // Initial compression quality (0-1)
+  };
+  
+  try {
+    const results: string[] = [];
+    
+    for (const dataUrl of imageDataUrls) {
+      // Skip if not a data URL
+      if (!dataUrl.startsWith('data:')) {
+        results.push(dataUrl);
+        continue;
+      }
+      
+      // Convert data URL to File object
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+      
+      // Compress the file
+      const compressedFile = await imageCompression(file, compressOptions);
+      
+      // Convert compressed file back to data URL
+      const reader = new FileReader();
+      const dataUrlPromise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(compressedFile);
+      });
+      
+      const optimizedDataUrl = await dataUrlPromise;
+      results.push(optimizedDataUrl);
+    }
+    
+    return results;
+  } catch (error) {
+    console.error("Image optimization failed:", error);
+    // Return original images if optimization fails
+    return imageDataUrls;
+  }
+};
 
 export default function Experiences() {
   const { toast } = useToast();
@@ -1205,19 +1255,21 @@ export default function Experiences() {
                           // Get form values
                           const formValues = form.getValues();
                           
-                          // Process images - limit to just one small image to ensure the save works
-                          const optimizedImages = selectedImages.length > 0 
-                            ? [selectedImages[0].substring(0, 100000)] 
-                            : [];
+                          // Process images with proper optimization
+                          console.log("Starting image optimization");
+                          const optimizedImages = await optimizeImages(selectedImages);
                           
-                          // Create payload
+                          // Create payload with all necessary data
+                          console.log("Creating payload with optimized images");
                           const payload = {
                             ...formValues,
                             images: optimizedImages,
-                            availableDates: selectedDates.slice(0, 10) || [],
+                            availableDates: selectedDates || [],
                             addons: addons || [],
                             selectedLocationIds: selectedLocIds || [],
                           };
+                          
+                          console.log("Payload size:", JSON.stringify(payload).length);
                           
                           // Make API call
                           const result = await fetch(`/api/experiences/${selectedExperience.id}`, {
@@ -1246,15 +1298,23 @@ export default function Experiences() {
                           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
                           queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
                           
-                          // Reset button after delay
+                          // Show prominent success message
+                          toast({
+                            title: "Success!",
+                            description: "Experience saved successfully",
+                            variant: "default",
+                            duration: 5000,
+                          });
+                          
+                          // Reset button after delay but keep the success indicator for a bit
                           setTimeout(() => {
                             button.innerHTML = originalText;
-                          }, 2000);
+                          }, 2500);
                           
-                          // Close dialog
+                          // Close dialog with enough delay to see the confirmation
                           setTimeout(() => {
                             setIsCreating(false);
-                          }, 1000);
+                          }, 1500);
                           
                         } catch (error) {
                           console.error("Error saving:", error);
