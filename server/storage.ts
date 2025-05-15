@@ -677,6 +677,7 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
+  private experienceAddons: Map<number, ExperienceAddon>;
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -690,6 +691,7 @@ export class MemStorage implements IStorage {
     location: number;
     experience: number;
     experienceLocation: number;
+    experienceAddons: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -703,6 +705,7 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
+    this.experienceAddons = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -715,6 +718,7 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
+      experienceAddons: 1,
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1169,6 +1173,124 @@ export class MemStorage implements IStorage {
     }
     
     return experiences.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  // Public Experience methods
+  async getPublicExperience(id: number): Promise<Experience | undefined> {
+    return this.getExperience(id);
+  }
+  
+  async listPublicExperiences(locationId?: number, category?: string): Promise<Experience[]> {
+    let experiences = Array.from(this.experiences.values());
+    
+    // Filter by location if provided
+    if (locationId) {
+      // First try junction table for newer experiences
+      const experienceLocations = Array.from(this.experienceLocations.values())
+        .filter(el => el.locationId === locationId);
+      
+      if (experienceLocations.length > 0) {
+        const experienceIds = experienceLocations.map(el => el.experienceId);
+        experiences = experiences.filter(exp => experienceIds.includes(exp.id));
+      } else {
+        // Fallback to legacy locationId for older experiences
+        experiences = experiences.filter(exp => exp.locationId === locationId);
+      }
+    }
+    
+    // Filter by category if provided
+    if (category) {
+      experiences = experiences.filter(exp => exp.category === category);
+    }
+    
+    // Only return published experiences
+    experiences = experiences.filter(exp => exp.status === 'published');
+    
+    return experiences.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  // Experience Addons methods
+  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
+    // Get addons from the map or create default ones if none exist
+    const addons = Array.from(this.experienceAddons.values())
+      .filter(addon => addon.experienceId === experienceId);
+    
+    if (addons.length === 0) {
+      // If no addons exist yet for this experience, create some sample ones
+      const now = new Date();
+      const defaultAddons: ExperienceAddon[] = [
+        {
+          id: this.currentIds.experienceAddons++,
+          experienceId,
+          name: 'Guide Tips',
+          description: 'Pre-calculated guide gratuity (15%)',
+          price: '150.00',
+          optional: true,
+          createdAt: now,
+          updatedAt: now
+        },
+        {
+          id: this.currentIds.experienceAddons++, 
+          experienceId,
+          name: 'Trophy Fee',
+          description: 'Additional fee for trophy-sized catch or game',
+          price: '250.00',
+          optional: true,
+          createdAt: now,
+          updatedAt: now 
+        },
+        {
+          id: this.currentIds.experienceAddons++,
+          experienceId,
+          name: 'Equipment Rental',
+          description: 'Full equipment rental package',
+          price: '75.00',
+          optional: true,
+          createdAt: now,
+          updatedAt: now
+        }
+      ];
+      
+      // Save the default addons
+      defaultAddons.forEach(addon => this.experienceAddons.set(addon.id, addon));
+      
+      return defaultAddons;
+    }
+    
+    return addons;
+  }
+  
+  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
+    const id = this.currentIds.experienceAddons++;
+    const now = new Date();
+    
+    const addon: ExperienceAddon = {
+      ...addonData,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.experienceAddons.set(id, addon);
+    return addon;
+  }
+  
+  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
+    const addon = this.experienceAddons.get(id);
+    if (!addon) return undefined;
+    
+    const updatedAddon: ExperienceAddon = {
+      ...addon,
+      ...addonData,
+      updatedAt: new Date()
+    };
+    
+    this.experienceAddons.set(id, updatedAddon);
+    return updatedAddon;
+  }
+  
+  async deleteExperienceAddon(id: number): Promise<void> {
+    this.experienceAddons.delete(id);
   }
   
   // Experience Locations operations
