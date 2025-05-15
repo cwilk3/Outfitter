@@ -303,7 +303,7 @@ export default function Experiences() {
       }
       
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
       closeDialog();
     },
     onError: (error: Error) => {
@@ -343,7 +343,7 @@ export default function Experiences() {
       return apiRequest('POST', '/api/experience-locations', { experienceId, locationId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
     },
   });
 
@@ -353,13 +353,13 @@ export default function Experiences() {
       return apiRequest('DELETE', `/api/experience-locations/${experienceId}/${locationId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
     },
   });
 
   // Fetch experience-location associations
   const { data: experienceLocationData = [] } = useQuery<ExperienceLocation[]>({
-    queryKey: ['/api/experienceLocations'],
+    queryKey: ['/api/experience-locations'],
   });
 
   // Format experience category for display
@@ -632,7 +632,7 @@ export default function Experiences() {
           
           // Refresh data
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
           
           // Close dialog
           setIsCreating(false);
@@ -1315,7 +1315,7 @@ export default function Experiences() {
                           
                           // Refresh data
                           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-                          queryClient.invalidateQueries({ queryKey: ['/api/experienceLocations'] });
+                          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
                           
                           // Show prominent success message
                           toast({
