@@ -89,6 +89,7 @@ export const experiences = pgTable("experiences", {
   rules: jsonb("rules").default('[]'), // List of rules like required licenses, etc.
   amenities: jsonb("amenities").default('[]'), // List of available amenities (bird dogs, guided, etc)
   tripIncludes: jsonb("trip_includes").default('[]'), // List of what's included in the trip (lodging, meals, etc)
+  addons: jsonb("addons").default('[]'), // Store addons directly in the experience for easier retrieval
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -109,6 +110,8 @@ export const experienceAddons = pgTable("experience_addons", {
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   isOptional: boolean("is_optional").notNull().default(true),
+  inventory: integer("inventory").default(0),
+  maxPerBooking: integer("max_per_booking").default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
