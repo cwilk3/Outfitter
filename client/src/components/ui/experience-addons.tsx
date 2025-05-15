@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Tag, Trash2, DollarSign } from "lucide-react";
+import { PlusCircle, Tag, Trash2, DollarSign, Package, Edit, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Addon {
@@ -13,6 +13,8 @@ export interface Addon {
   description: string;
   price: number;
   isOptional: boolean;
+  inventory?: number; // How many are available
+  maxPerBooking?: number; // Maximum that can be selected per booking
 }
 
 interface ExperienceAddonsProps {
@@ -25,6 +27,48 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
   const [description, setDescription] = React.useState("");
   const [price, setPrice] = React.useState<number | "">(0);
   const [isOptional, setIsOptional] = React.useState(true);
+  const [inventory, setInventory] = React.useState<number | "">(0);
+  const [maxPerBooking, setMaxPerBooking] = React.useState<number | "">(1);
+  const [editingAddonIndex, setEditingAddonIndex] = React.useState<number | null>(null);
+  
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setPrice(0);
+    setIsOptional(true);
+    setInventory(0);
+    setMaxPerBooking(1);
+    setEditingAddonIndex(null);
+  };
+  
+  const startEditingAddon = (index: number) => {
+    const addon = addons[index];
+    setName(addon.name);
+    setDescription(addon.description);
+    setPrice(addon.price);
+    setIsOptional(addon.isOptional);
+    setInventory(addon.inventory || 0);
+    setMaxPerBooking(addon.maxPerBooking || 1);
+    setEditingAddonIndex(index);
+  };
+  
+  const updateAddon = () => {
+    if (editingAddonIndex === null || !name || price === "") return;
+    
+    const updatedAddons = [...addons];
+    updatedAddons[editingAddonIndex] = {
+      ...updatedAddons[editingAddonIndex],
+      name,
+      description,
+      price: Number(price),
+      isOptional,
+      inventory: inventory === "" ? undefined : Number(inventory),
+      maxPerBooking: maxPerBooking === "" ? undefined : Number(maxPerBooking)
+    };
+    
+    onChange(updatedAddons);
+    resetForm();
+  };
   
   const addAddon = () => {
     if (!name || price === "") return;
@@ -33,16 +77,13 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
       name,
       description,
       price: Number(price),
-      isOptional
+      isOptional,
+      inventory: inventory === "" ? undefined : Number(inventory),
+      maxPerBooking: maxPerBooking === "" ? undefined : Number(maxPerBooking)
     };
     
     onChange([...addons, newAddon]);
-    
-    // Reset form
-    setName("");
-    setDescription("");
-    setPrice(0);
-    setIsOptional(true);
+    resetForm();
   };
   
   const removeAddon = (index: number) => {
@@ -62,7 +103,9 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
     <div className="space-y-6">
       {/* Add-ons Form */}
       <div className="space-y-4 p-4 border rounded-md bg-muted/20">
-        <h4 className="text-sm font-medium mb-1">Add New Add-on</h4>
+        <h4 className="text-sm font-medium mb-1">
+          {editingAddonIndex !== null ? 'Edit Add-on' : 'Add New Add-on'}
+        </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="addon-name">Name</Label>
@@ -108,7 +151,46 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
           />
         </div>
         
-        <div className="flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <Label htmlFor="addon-inventory">
+              Inventory Available
+              <span className="text-xs text-muted-foreground ml-1">(optional)</span>
+            </Label>
+            <div className="mt-1 flex items-center">
+              <Package className="h-4 w-4 mr-2 text-muted-foreground" />
+              <Input 
+                id="addon-inventory"
+                type="number"
+                min="0"
+                value={inventory}
+                onChange={(e) => setInventory(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="Unlimited if blank"
+                className="flex-1"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="addon-max-per-booking">
+              Max Per Booking
+              <span className="text-xs text-muted-foreground ml-1">(optional)</span>
+            </Label>
+            <div className="mt-1 flex items-center">
+              <Input 
+                id="addon-max-per-booking"
+                type="number"
+                min="1"
+                value={maxPerBooking}
+                onChange={(e) => setMaxPerBooking(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="1"
+                className="flex-1"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between mt-2">
           <div className="flex items-center space-x-2">
             <Switch 
               id="addon-optional" 
@@ -120,15 +202,39 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
             </Label>
           </div>
           
-          <Button 
-            onClick={addAddon}
-            type="button"
-            disabled={!name || price === ""}
-            size="sm"
-          >
-            <PlusCircle className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          {editingAddonIndex !== null ? (
+            <div className="flex gap-2">
+              <Button
+                variant="outline" 
+                onClick={resetForm}
+                type="button"
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={updateAddon}
+                type="button"
+                disabled={!name || price === ""}
+                size="sm"
+                className="bg-primary"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Update
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={addAddon}
+              type="button"
+              disabled={!name || price === ""}
+              size="sm"
+              className="bg-primary"
+            >
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          )}
         </div>
       </div>
       
