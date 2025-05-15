@@ -728,29 +728,41 @@ export default function Experiences() {
           {experiences && experiences.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {experiences.map((experience: Experience) => (
-                <Card key={experience.id} className="shadow-md">
-                  <CardHeader className="pb-2">
-                    <CardTitle>{experience.name}</CardTitle>
-                    <CardDescription>{formatCategory(experience.category)}</CardDescription>
+                <Card key={experience.id} className="shadow-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-all">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-lg text-green-800">{experience.name}</CardTitle>
+                    <CardDescription className="text-xs">{formatCategory(experience.category)}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pb-3">
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">{experience.description}</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1 text-gray-500" />
-                        <span>{experience.location}</span>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div className="flex items-start">
+                        <MapPin className="h-4 w-4 mr-1 mt-0.5 text-gray-500 flex-shrink-0" />
+                        {experienceLocations[experience.id] && experienceLocations[experience.id].length > 0 ? (
+                          <span className="text-xs text-gray-700 line-clamp-2">
+                            {experienceLocations[experience.id]
+                              .map(locId => {
+                                const location = locations.find(l => l.id === locId);
+                                return location?.name;
+                              })
+                              .filter(Boolean)
+                              .join(', ')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No lodges assigned</span>
+                        )}
                       </div>
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-                        <span>{experience.duration} day{experience.duration > 1 ? 's' : ''}</span>
+                        <Calendar className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">{experience.duration} day{experience.duration > 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1 text-gray-500" />
-                        <span>Max {experience.capacity} people</span>
+                        <Users className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs text-gray-700">Max {experience.capacity} people</span>
                       </div>
                       <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
-                        <span>
+                        <DollarSign className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs text-gray-700 font-medium">
                           {new Intl.NumberFormat('en-US', {
                             style: 'currency',
                             currency: 'USD'
