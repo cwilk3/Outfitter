@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { ChevronRight, Calendar, Users, Check, Clock, DollarSign, MapPin, Info, Plus, Minus } from "lucide-react";
 import { z } from "zod";
 import { format, addDays, differenceInDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
 import { DateRange } from "react-day-picker";
 
 // Components
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { DateRangePicker, Booking } from "@/components/ui/date-range-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 
 // Types
@@ -45,7 +42,14 @@ interface Experience {
   }[];
 }
 
-// Sample addons (would be fetched from API based on the experience's addons in real app)
+interface Location {
+  id: number;
+  name: string;
+  city: string;
+  state: string;
+}
+
+// Sample addons for booking
 const sampleAddons = [
   { 
     id: "guide-service", 
@@ -119,18 +123,18 @@ type BookingFormValues = z.infer<typeof bookingFormSchema>;
 function PublicBooking() {
   // States
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<{id: number, name: string, city: string, state: string} | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
   
   // Get experiences from API
-  const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
+  const { data: experiences = [], isLoading, error } = useQuery({
     queryKey: ['/api/public/experiences'],
   });
   
   // Get locations from API
-  const { data: locations = [], isLoading: locationsLoading } = useQuery<{id: number, name: string, city: string, state: string}[]>({
+  const { data: locations = [], isLoading: locationsLoading } = useQuery({
     queryKey: ['/api/public/locations'],
   });
 
@@ -139,15 +143,12 @@ function PublicBooking() {
   
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
-  
-  // State for tracking number of hunters (people)
-  const [hunterCount, setHunterCount] = useState<number>(1);
-  
+
   // Set up the booking form
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
-      experienceId: selectedExperience?.id.toString() || "",
+      experienceId: "",
       locationId: "",
       dateRange: undefined,
       hunterCount: 1,
@@ -161,38 +162,41 @@ function PublicBooking() {
   });
 
   // Query for bookings data when an experience is selected
-  const { data: bookings = [] } = useQuery<any[]>({
+  const { data: bookings = [] } = useQuery({
     queryKey: ['/api/public/bookings', selectedExperience?.id],
-    enabled: !!selectedExperience?.id,
+    enabled: !!selectedExperience,
   });
-  
-  // Update bookingData state when bookings data is fetched
+
+  // Update booking data state when bookings change
   useEffect(() => {
-    if (bookings && bookings.length > 0) {
-      // Convert booking data to the format expected by DateRangePicker
-      const formattedBookings: Booking[] = bookings.map(booking => ({
-        startDate: new Date(booking.startDate),
-        endDate: new Date(booking.endDate),
-        bookedCount: booking.groupSize || 1
-      }));
-      setBookingData(formattedBookings);
-    } else {
-      setBookingData([]);
+    if (bookings && Array.isArray(bookings) && bookings.length > 0) {
+      setBookingData(bookings as Booking[]);
     }
   }, [bookings]);
+
+  // Extract experience ID from URL if provided
+  const [_, params] = useParams<{ id: string }>();
   
-  // Update form when an experience is selected
+  // Find and set the selected experience based on URL param
+  useEffect(() => {
+    if (params?.id && experiences.length > 0) {
+      const experience = experiences.find(e => e.id.toString() === params.id);
+      if (experience) {
+        setSelectedExperience(experience);
+        form.setValue("experienceId", experience.id.toString());
+        
+        // If the experience only has one location, auto-select it
+        if (experience.locations.length === 1) {
+          form.setValue("locationId", experience.locations[0].id.toString());
+          setSelectedLocation(experience.locations[0]);
+        }
+      }
+    }
+  }, [params, experiences, form]);
+
+  // Reset date range when selected experience changes
   useEffect(() => {
     if (selectedExperience) {
-      form.setValue("experienceId", selectedExperience.id.toString());
-      
-      // Reset the booking steps to location selection
-      setBookingStep('location');
-      
-      // Reset location selection
-      form.setValue("locationId", "");
-      
-      // Reset date range
       form.setValue("dateRange", undefined);
     }
   }, [selectedExperience, form]);
@@ -231,44 +235,13 @@ function PublicBooking() {
     }
   };
 
-  // Handle form submission
-  const onSubmit = async (data: BookingFormValues) => {
-    try {
-      // Convert dateRange to startDate and endDate for API submission
-      const apiData = {
-        ...data,
-        startDate: data.dateRange?.from,
-        endDate: data.dateRange?.to,
-      };
-      
-      // Remove dateRange as it's not needed by the API
-      delete (apiData as any).dateRange;
-      
-      const response = await apiRequest('POST', '/api/public/book', apiData);
-      
-      // Show success message and close booking dialog
-      setBookingConfirmation(response);
-      setBookingDialogOpen(false);
-      setConfirmationDialogOpen(true);
-      
-      // Reset form and steps
-      form.reset();
-      setBookingStep('location');
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit booking. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Format price as currency
-  const formatPrice = (price: string) => {
+  // Format price with currency
+  const formatPrice = (price: string | number) => {
+    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(parseFloat(price));
+    }).format(numericPrice);
   };
   
   // Calculate booking summary based on form values
@@ -294,290 +267,175 @@ function PublicBooking() {
     }
     
     const total = subtotal + addonTotal;
-    const deposit = total * 0.5;
+    const deposit = Math.round(total * 0.30); // 30% deposit
     
     return { subtotal, addonTotal, total, deposit };
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Hero Section - More compact and visually pleasing */}
-      <div className="relative bg-gradient-to-r from-gray-900 via-primary-900 to-gray-900 text-white overflow-hidden">
-        {/* Background pattern overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMxLjIzIDAgMi4xOTguOTY4IDIuMTk4IDIuMnYxOS42YzAgMS4yMzItLjk2OCAyLjItMi4xOTggMi4yaC0xMi42Yy0xLjIzIDAtMi4yLTEuMTY4LTIuMi0yLjRWMjAuMmMwLTEuMjMyLjk3LTIuMiAyLjItMi4yaC0uMDAxeiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjA1IiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMzkuNiA0Mi42YzAgMS4yMy0uOTY4IDIuMi0yLjIgMi4ySDIwLjJjLTEuMjMyIDAtMi4yLS45Ny0yLjItMi4yVjE3LjJjMC0xLjIzMi45NjgtMi4yIDIuMi0yLjJoMTcuMmMxLjIzMiAwIDIuMi45NjggMi4yIDIuMnYyNS40eiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjA1IiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-10 bg-fixed"></div>
-        
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40 z-10"></div>
-        
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">Book Your Next Experience</h1>
-            <p className="mt-4 text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
-              Connect with the top hunting and fishing guides for premium outdoor adventures
-            </p>
-            
-            {/* Feature badges */}
-            <div className="mt-6 inline-flex flex-wrap justify-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
-              <div className="flex items-center text-sm font-medium">
-                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                </svg>
-                <span>Expert Guides</span>
-              </div>
-              <span className="text-white/30">•</span>
-              <div className="flex items-center text-sm font-medium">
-                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                </svg>
-                <span>Premium Locations</span>
-              </div>
-              <span className="text-white/30">•</span>
-              <div className="flex items-center text-sm font-medium">
-                <svg className="h-4 w-4 mr-1 text-primary-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                </svg>
-                <span>Unforgettable Memories</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  // Calculate total for booking
+  const calculateBookingTotal = (formValues: BookingFormValues) => {
+    const summary = calculateSummary(formValues);
+    return formValues.paymentOption === 'deposit' ? summary.deposit : summary.total;
+  };
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-            <span className="ml-3 text-gray-500">Loading experiences...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center p-6 bg-red-50 rounded-lg">
-            <h3 className="text-lg font-medium text-red-800">Failed to load experiences</h3>
-            <p className="mt-2 text-red-700">Please try again later.</p>
-          </div>
-        ) : experiences.length === 0 ? (
-          <div className="text-center p-12 bg-gray-50 rounded-lg border border-gray-200">
-            <h3 className="text-xl font-medium text-gray-700">No adventures currently available</h3>
-            <p className="mt-2 text-gray-500">Check back soon!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {experiences.map((experience) => (
-              <div key={experience.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
-                {/* Image container with overlay */}
-                <div className="relative h-56 overflow-hidden">
-                  {experience.images && experience.images.length > 0 ? (
-                    <img 
-                      src={Array.isArray(experience.images) ? experience.images[0] : "https://via.placeholder.com/400x225"}
-                      alt={experience.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400">{experience.name}</span>
-                    </div>
-                  )}
-                  
-                  {/* Image overlay with location */}
-                  {experience.locations.length > 0 && (
-                    <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium text-primary shadow-sm">
-                      {experience.locations[0].city}, {experience.locations[0].state}
-                    </div>
-                  )}
-                  
-                  {/* Price tag */}
-                  <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-primary text-white rounded-lg shadow-lg text-sm font-semibold">
-                    {formatPrice(experience.price)}
+  // Handle form submission
+  const onSubmit = async (data: BookingFormValues) => {
+    try {
+      const experience = experiences.find(exp => exp.id.toString() === data.experienceId);
+      if (!experience) {
+        throw new Error("Experience not found");
+      }
+      
+      // Build booking object for the API
+      const bookingData = {
+        experienceId: parseInt(data.experienceId),
+        locationId: parseInt(data.locationId),
+        startDate: data.dateRange?.from,
+        endDate: data.dateRange?.to,
+        customerName: data.customerName,
+        customerEmail: data.customerEmail,
+        customerPhone: data.customerPhone,
+        hunterCount: data.hunterCount,
+        notes: data.notes || "",
+        paymentOption: data.paymentOption,
+        addons: data.addons || [],
+        totalAmount: calculateBookingTotal(data),
+      };
+      
+      // Submit booking to API
+      const response = await fetch('/api/public/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bookingData),
+      }).then(res => res.json());
+      
+      if (response) {
+        // Show confirmation dialog with booking details
+        setBookingConfirmation({
+          ...response,
+          experience,
+          addons: data.addons?.map(addon => {
+            const addonDetails = sampleAddons.find(a => a.id === addon.id);
+            return {
+              ...addon,
+              label: addonDetails?.label,
+              price: addonDetails?.price,
+            };
+          }),
+        });
+        
+        setBookingDialogOpen(false);
+        setConfirmationDialogOpen(true);
+        form.reset();
+      }
+    } catch (err: any) {
+      toast({
+        title: "Booking Failed",
+        description: err.message || "There was an error processing your booking. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Close the confirmation dialog and reset state
+  const handleCloseConfirmation = () => {
+    setConfirmationDialogOpen(false);
+    setBookingConfirmation(null);
+    setBookingStep('location');
+  };
+
+  return (
+    <div className="container py-8 px-4 max-w-6xl">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-2">
+          Book Your Adventure
+        </h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Select from our available experiences and book your dates
+        </p>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center">
+          <p>Loading experiences...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-600">
+          <p>Error loading experiences. Please try again later.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {experiences.map((experience: any) => (
+            <Card key={experience.id} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl">{experience.name}</CardTitle>
+                <CardDescription>{experience.category}</CardDescription>
+              </CardHeader>
+              
+              <CardContent className="pb-0">
+                <div className="space-y-4">
+                  <div className="line-clamp-3 text-sm text-gray-500">
+                    {experience.description}
                   </div>
-                </div>
-                
-                {/* Content */}
-                <div className="p-5 flex-grow flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">{experience.name}</h3>
                   
-                  <div className="mt-3 flex items-center text-sm text-gray-600">
-                    <span className="capitalize">
-                      {experience.category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                    </span>
-                  </div>
-                  
-                  <p className="mt-3 text-sm text-gray-600 line-clamp-3 flex-grow">{experience.description}</p>
-                  
-                  {/* Basic Features */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="mr-2 h-4 w-4 text-primary/70" />
-                      <span>{experience.duration} {experience.duration > 1 ? 'days' : 'day'}</span>
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      <span>{experience.duration} {experience.duration === 1 ? 'day' : 'days'}</span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="mr-2 h-4 w-4 text-primary/70" />
+                    
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-gray-400" />
                       <span>Up to {experience.capacity}</span>
                     </div>
                   </div>
                   
-                  {/* Amenities & Inclusions Highlights */}
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {experience.tripIncludes && experience.tripIncludes.includes('lodging') && (
-                      <span className="text-xs px-2 py-1 bg-primary-50 text-primary-700 rounded-full">🏠 Lodging</span>
-                    )}
-                    {experience.tripIncludes && experience.tripIncludes.includes('meals') && (
-                      <span className="text-xs px-2 py-1 bg-primary-50 text-primary-700 rounded-full">🍽️ Meals</span>
-                    )}
-                    {experience.amenities && experience.amenities.includes('guided') && (
-                      <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">🧭 Guided</span>
-                    )}
-                    {experience.amenities && experience.amenities.includes('wifi') && (
-                      <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">📶 WiFi</span>
-                    )}
-                    {experience.amenities && experience.amenities.length + (experience.tripIncludes?.length || 0) > 2 && (
-                      <span className="text-xs px-2 py-1 bg-gray-100 text-primary rounded-full">+more</span>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-semibold">
+                      {formatPrice(experience.price)}
+                      <span className="text-sm font-normal text-gray-500"> / person</span>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => {
+                        setSelectedExperience(experience);
+                        form.setValue("experienceId", experience.id.toString());
+                        setBookingStep('location');
+                        setBookingDialogOpen(true);
+                      }}
+                      className="gap-1"
+                    >
+                      Book Now
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                  
-                  {/* Button */}
-                  <Button 
-                    className="w-full mt-5 rounded-xl"
-                    onClick={() => {
-                      setSelectedExperience(experience);
-                      setBookingDialogOpen(true);
-                    }}
-                  >
-                    Book Now
-                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Booking Dialog */}
-      <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          // Reset booking step when dialog is closed
-          setBookingStep('location');
-        }
-        setBookingDialogOpen(open);
-      }}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
-          {/* Experience Header in Dialog */}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {/* Booking Dialog with 3-step process */}
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="sm:max-w-4xl p-0">
           {selectedExperience && (
-            <>
-              <div className="relative h-36 sm:h-48 w-full overflow-hidden rounded-t-2xl">
-                {/* Background Image */}
-                <div className="absolute inset-0">
-                  {selectedExperience.images && selectedExperience.images.length > 0 ? (
-                    <img 
-                      src={Array.isArray(selectedExperience.images) ? selectedExperience.images[0] : ""}
-                      alt={selectedExperience.name}
-                      className="w-full h-full object-cover opacity-60"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-primary/20"></div>
-                  )}
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/30"></div>
-                </div>
-                
-                {/* Content */}
-                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                  <div className="flex items-center mb-2">
-                    {selectedExperience.locations.length > 0 && (
-                      <span className="text-sm font-medium bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 mr-2">
-                        {selectedExperience.locations[0].city}, {selectedExperience.locations[0].state}
-                      </span>
-                    )}
-                    <span className="text-sm font-medium bg-primary/80 backdrop-blur-sm rounded-full px-3 py-1">
-                      {formatPrice(selectedExperience.price)}
-                    </span>
-                  </div>
-                  <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
-                  <div className="flex items-center mt-1 space-x-4 text-sm">
-                    <div className="flex items-center">
-                      <Calendar className="mr-1 h-4 w-4" />
-                      <span>{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Users className="mr-1 h-4 w-4" />
-                      <span>Up to {selectedExperience.capacity} people</span>
-                    </div>
-                  </div>
-                </div>
+            <div className="relative h-48 bg-gray-800">
+              {selectedExperience.images && selectedExperience.images[0] ? (
+                <img 
+                  src={selectedExperience.images[0]} 
+                  alt={selectedExperience.name} 
+                  className="absolute inset-0 w-full h-full object-cover opacity-60"
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-gray-900/20"></div>
+              <div className="absolute bottom-4 left-6 text-white">
+                <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
+                <p className="text-gray-200 text-sm">{selectedExperience.category}</p>
               </div>
-
-              {/* Features details - Rules, Amenities, What's Included - Only shown before starting booking process */}
-              {!bookingStep && (
-                <div className="px-6 py-4 border-t border-gray-100">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Rules Section */}
-                    {selectedExperience.rules && selectedExperience.rules.length > 0 && (
-                      <div>
-                        <h3 className="text-base font-semibold mb-3">Rules</h3>
-                        <ul className="space-y-2 text-sm">
-                          {selectedExperience.rules.map((rule, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="inline-block w-1 h-1 bg-primary rounded-full mt-2 mr-2"></span>
-                              <span>{rule}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {selectedExperience.rules.length > 5 && (
-                          <button className="text-xs text-primary-600 mt-2 hover:underline">
-                            Show all rules
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Amenities Section */}
-                    {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
-                      <div>
-                        <h3 className="text-base font-semibold mb-3">Amenities</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedExperience.amenities.map((amenity, index) => (
-                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {amenity === 'bird_dogs' && '🐕 Bird dogs'}
-                              {amenity === 'guided' && '🧭 Guided'}
-                              {amenity === 'air_conditioning' && '❄️ Air conditioning'} 
-                              {amenity === 'keep_meat' && '🥩 Keep the meat'}
-                              {amenity === 'toilet' && '🚽 Toilet'}
-                              {amenity === 'cable_tv' && '📺 Cable TV'}
-                              {amenity === 'mud_room' && '👢 Mud room'}
-                              {amenity === 'wifi' && '📶 WiFi'}
-                              {amenity === 'kid_friendly' && '👶 Kid friendly'}
-                              {amenity === 'corporate_trips' && '💼 Corporate trips'}
-                              {![
-                                'bird_dogs', 'guided', 'air_conditioning', 'keep_meat', 
-                                'toilet', 'cable_tv', 'mud_room', 'wifi', 'kid_friendly', 'corporate_trips'
-                              ].includes(amenity) && amenity}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Trip Includes Section */}
-                    {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
-                      <div>
-                        <h3 className="text-base font-semibold mb-3">Trip Includes</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedExperience.tripIncludes.map((item, index) => (
-                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700">
-                              {item === 'animal_cleaning' && '🧹 Animal cleaning'}
-                              {item === 'lodging' && '🏠 Lodging'}
-                              {item === 'meals' && '🍽️ Meals'}
-                              {item === 'ice' && '🧊 Ice'}
-                              {item === 'byob' && '🍺 BYOB'}
-                              {!['animal_cleaning', 'lodging', 'meals', 'ice', 'byob'].includes(item) && item}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
           
           <div className="p-6">
@@ -626,71 +484,65 @@ function PublicBooking() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Location Selection Step */}
-                {bookingStep === 'location' && selectedExperience && (
+                {/* Step 1: Location Selection */}
+                {bookingStep === 'location' && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Select a Location</h3>
+                    <h3 className="text-lg font-medium">Choose a Location</h3>
                     <p className="text-sm text-gray-500">
-                      This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
+                      Select where you would like to experience your adventure.
                     </p>
                     
-                    <FormField
-                      control={form.control}
-                      name="locationId"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-3"
-                            >
-                              {selectedExperience.locations.map(location => (
-                                <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
-                                  <FormItem className="flex items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                      <RadioGroupItem value={location.id.toString()} />
-                                    </FormControl>
-                                    <div className="grid gap-1.5 leading-none">
-                                      <FormLabel className="text-base font-medium mb-0.5">
-                                        {location.name}
+                    {locationsLoading ? (
+                      <div className="flex justify-center py-8">
+                        <p>Loading locations...</p>
+                      </div>
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="locationId"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  const location = locations.find((loc: any) => loc.id.toString() === value);
+                                  if (location) {
+                                    setSelectedLocation(location);
+                                  }
+                                }}
+                                defaultValue={field.value}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                              >
+                                {locations.map((location: any) => (
+                                  <div key={location.id} className={`border-2 rounded-xl p-5 transition-all cursor-pointer hover:shadow-md ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/20'}`} 
+                                      onClick={() => {
+                                        field.onChange(location.id.toString());
+                                        setSelectedLocation(location);
+                                      }}>
+                                    <FormItem className="flex items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                        <RadioGroupItem value={location.id.toString()} />
+                                      </FormControl>
+                                      <FormLabel className="font-normal cursor-pointer flex-1">
+                                        <div className="font-medium text-base">{location.name}</div>
+                                        <div className="text-gray-500 text-sm">{location.city}, {location.state}</div>
                                       </FormLabel>
-                                      <p className="text-sm text-gray-500">
-                                        {location.city}, {location.state}
-                                      </p>
-                                    </div>
-                                  </FormItem>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <DialogFooter className="mt-6">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setBookingDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={nextStep}
-                        className="gap-1"
-                      >
-                        Continue
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </DialogFooter>
+                                    </FormItem>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 )}
                 
-                {/* Experience Details + Date Selection Step */}
-                {bookingStep === 'experience-details' && selectedExperience && (
+                {/* Step 2: Experience Details + Date Selection */}
+                {bookingStep === 'experience-details' && selectedExperience && selectedLocation && (
                   <div className="space-y-6">
                     <div className="md:flex gap-6">
                       {/* Left Side: Experience Details */}
@@ -709,7 +561,7 @@ function PublicBooking() {
                             </div>
                             <div className="flex items-center gap-1.5 text-sm">
                               <MapPin className="h-4 w-4 text-gray-500" />
-                              <span>{selectedLocation?.name}, {selectedLocation?.city}</span>
+                              <span>{selectedLocation.name}, {selectedLocation.city}</span>
                             </div>
                           </div>
                           
@@ -735,7 +587,6 @@ function PublicBooking() {
                                           onClick={() => {
                                             const newValue = Math.max(1, field.value - 1);
                                             field.onChange(newValue);
-                                            setHunterCount(newValue);
                                           }}
                                           disabled={field.value <= 1}
                                           className="h-8 w-8 p-0"
@@ -750,7 +601,6 @@ function PublicBooking() {
                                           onClick={() => {
                                             const newValue = Math.min(selectedExperience.capacity, field.value + 1);
                                             field.onChange(newValue);
-                                            setHunterCount(newValue);
                                           }}
                                           disabled={field.value >= selectedExperience.capacity}
                                           className="h-8 w-8 p-0"
@@ -779,7 +629,7 @@ function PublicBooking() {
                             <div className="mt-4">
                               <h4 className="text-sm font-medium mb-2">What's Included</h4>
                               <div className="grid grid-cols-2 gap-2">
-                                {selectedExperience.amenities.map((amenity, index) => (
+                                {selectedExperience.amenities.map((amenity: string, index: number) => (
                                   <div key={index} className="flex items-center gap-2 text-sm">
                                     <Check className="h-4 w-4 text-primary" />
                                     <span>{amenity}</span>
@@ -794,7 +644,7 @@ function PublicBooking() {
                             <div className="mt-4">
                               <h4 className="text-sm font-medium mb-2">Rules & Safety</h4>
                               <div className="space-y-1.5">
-                                {selectedExperience.rules.map((rule, index) => (
+                                {selectedExperience.rules.map((rule: string, index: number) => (
                                   <div key={index} className="flex items-start gap-2 text-sm">
                                     <Info className="h-4 w-4 text-amber-500 mt-0.5" />
                                     <span>{rule}</span>
@@ -822,7 +672,7 @@ function PublicBooking() {
                                   experience={{
                                     duration: selectedExperience.duration,
                                     capacity: selectedExperience.capacity,
-                                    id: selectedExperience.id
+                                    availableDates: selectedExperience.availableDates || []
                                   }}
                                   bookings={bookingData}
                                 />
@@ -855,33 +705,9 @@ function PublicBooking() {
                       </div>
                     </div>
                   </div>
-                )
-                    
-                    <DialogFooter className="mt-6">
-                      <div className="flex justify-between w-full">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={prevStep}
-                          className="gap-1"
-                        >
-                          <ChevronRight className="h-4 w-4 rotate-180" />
-                          Back
-                        </Button>
-                        <Button 
-                          type="button" 
-                          onClick={nextStep}
-                          className="gap-1"
-                        >
-                          Continue
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </DialogFooter>
-                  </div>
                 )}
                 
-                {/* Personal Details Step */}
+                {/* Step 3: Personal Details & Booking Summary */}
                 {bookingStep === 'details' && (
                   <div className="space-y-6">
                     <div className="space-y-4">
@@ -898,7 +724,7 @@ function PublicBooking() {
                           </FormItem>
                         )}
                       />
-
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -907,19 +733,19 @@ function PublicBooking() {
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input placeholder="your@email.com" type="email" {...field} />
+                                <Input placeholder="john@example.com" type="email" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
+                        
                         <FormField
                           control={form.control}
                           name="customerPhone"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Phone</FormLabel>
+                              <FormLabel>Phone Number</FormLabel>
                               <FormControl>
                                 <Input placeholder="(123) 456-7890" {...field} />
                               </FormControl>
@@ -928,281 +754,188 @@ function PublicBooking() {
                           )}
                         />
                       </div>
-
+                      
                       <FormField
                         control={form.control}
-                        name="groupSize"
+                        name="notes"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Group Size</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select group size" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
-                                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                    {i + 1} {i === 0 ? 'person' : 'people'}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Special Requests or Notes</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Add any special requests or notes for your booking" 
+                                className="min-h-[100px]" 
+                                {...field} 
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-
-                    <Separator />
-
+                    
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Optional Add-ons</h3>
-
+                      <h3 className="text-lg font-medium">Payment Option</h3>
+                      
                       <FormField
                         control={form.control}
-                        name="addons"
+                        name="paymentOption"
                         render={({ field }) => (
-                          <FormItem>
-                            <div className="space-y-3">
-                              {sampleAddons.map((addon) => {
-                                // Find this addon in current values
-                                const addonSelection = field.value?.find(a => a.id === addon.id);
-                                const isSelected = !!addonSelection;
-                                const quantity = addonSelection?.quantity || 1;
+                          <FormItem className="space-y-3">
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-3"
+                              >
+                                <div className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === 'deposit' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange('deposit')}>
+                                  <FormItem className="flex items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="deposit" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      <div className="font-medium text-base">Pay Deposit Now (30%)</div>
+                                      <div className="text-gray-500 text-sm">Pay {formatPrice(calculateSummary(form.getValues()).deposit)} now and the rest later</div>
+                                    </FormLabel>
+                                  </FormItem>
+                                </div>
                                 
-                                return (
-                                  <div key={addon.id} className="border rounded-md p-3 bg-gray-50">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={addon.id}
-                                          checked={isSelected}
-                                          onCheckedChange={(checked) => {
-                                            const currentValues = field.value || [];
-                                            if (checked) {
-                                              field.onChange([...currentValues, { id: addon.id, quantity: 1 }]);
-                                            } else {
-                                              field.onChange(currentValues.filter(value => value.id !== addon.id));
-                                            }
-                                          }}
-                                        />
-                                        <div>
-                                          <label htmlFor={addon.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            {addon.label}
-                                          </label>
-                                          {addon.inventory && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                              {addon.inventory} available
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <span className="text-sm font-medium text-primary">${addon.price}</span>
-                                    </div>
-                                    
-                                    {isSelected && addon.maxPerBooking > 1 && (
-                                      <div className="mt-3 pt-2 border-t flex items-center justify-between">
-                                        <span className="text-sm">Quantity:</span>
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 w-8 p-0"
-                                            onClick={() => {
-                                              if (quantity > 1) {
-                                                const newValues = (field.value || []).map(v => 
-                                                  v.id === addon.id 
-                                                    ? { ...v, quantity: v.quantity - 1 } 
-                                                    : v
-                                                );
-                                                field.onChange(newValues);
-                                              }
-                                            }}
-                                            disabled={quantity <= 1}
-                                          >
-                                            -
-                                          </Button>
-                                          
-                                          <span className="text-sm font-medium w-8 text-center">{quantity}</span>
-                                          
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 w-8 p-0"
-                                            onClick={() => {
-                                              if (quantity < addon.maxPerBooking) {
-                                                const newValues = (field.value || []).map(v => 
-                                                  v.id === addon.id 
-                                                    ? { ...v, quantity: v.quantity + 1 } 
-                                                    : v
-                                                );
-                                                field.onChange(newValues);
-                                              }
-                                            }}
-                                            disabled={quantity >= addon.maxPerBooking}
-                                          >
-                                            +
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                                <div className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === 'full' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange('full')}>
+                                  <FormItem className="flex items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="full" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      <div className="font-medium text-base">Pay in Full</div>
+                                      <div className="text-gray-500 text-sm">Pay the total amount of {formatPrice(calculateSummary(form.getValues()).total)} now</div>
+                                    </FormLabel>
+                                  </FormItem>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-
-                    <Separator />
-
-                    <FormField
-                      control={form.control}
-                      name="paymentOption"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel>Payment Option</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-1"
-                            >
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="deposit" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  50% Deposit Now (${calculateSummary(form.getValues()).deposit.toFixed(2)})
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="full" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Pay in Full (${calculateSummary(form.getValues()).total.toFixed(2)})
-                                </FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Base Price ({form.getValues().hunterCount} {form.getValues().hunterCount === 1 ? 'hunter' : 'hunters'})</span>
+                        <span>{formatPrice(calculateSummary(form.getValues()).subtotal)}</span>
+                      </div>
+                      
+                      {form.getValues().addons && form.getValues().addons.length > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span>Addons</span>
+                          <span>{formatPrice(calculateSummary(form.getValues()).addonTotal)}</span>
+                        </div>
                       )}
-                    />
-
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="text-base font-medium mb-2">Booking Summary</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Experience Fee:</span>
-                          <span>${calculateSummary(form.getValues()).subtotal.toFixed(2)}</span>
-                        </div>
-                        {calculateSummary(form.getValues()).addonTotal > 0 && (
-                          <div className="flex justify-between">
-                            <span>Add-ons:</span>
-                            <span>${calculateSummary(form.getValues()).addonTotal.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
-                          <span>Total:</span>
-                          <span>${calculateSummary(form.getValues()).total.toFixed(2)}</span>
-                        </div>
+                      
+                      <div className="flex justify-between font-medium pt-2 border-t border-gray-200 mt-2">
+                        <span>Total</span>
+                        <span>{formatPrice(calculateSummary(form.getValues()).total)}</span>
                       </div>
+                      
+                      {form.getValues().paymentOption === 'deposit' && (
+                        <div className="flex justify-between text-sm text-primary font-medium">
+                          <span>Due Now (30% Deposit)</span>
+                          <span>{formatPrice(calculateSummary(form.getValues()).deposit)}</span>
+                        </div>
+                      )}
                     </div>
-
-                    <DialogFooter>
-                      <div className="flex justify-between w-full">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={prevStep}
-                          className="gap-1"
-                        >
-                          <ChevronRight className="h-4 w-4 rotate-180" />
-                          Back
-                        </Button>
-                        <Button type="submit" className="gap-1">
-                          <Check className="h-4 w-4" />
-                          Complete Booking
-                        </Button>
-                      </div>
-                    </DialogFooter>
+                    
+                    <div className="text-sm text-gray-500">
+                      By proceeding with this booking, you agree to our terms and conditions.
+                    </div>
                   </div>
                 )}
+                    
+                <DialogFooter className="mt-6">
+                  <div className="flex justify-between w-full">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={prevStep}
+                      className="gap-1"
+                      disabled={bookingStep === 'location'}
+                    >
+                      <ChevronRight className="h-4 w-4 rotate-180" />
+                      Back
+                    </Button>
+                    
+                    {bookingStep === 'details' ? (
+                      <Button type="submit" className="gap-1">
+                        Complete Booking
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        onClick={nextStep}
+                        className="gap-1"
+                      >
+                        Continue
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </DialogFooter>
               </form>
             </Form>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Confirmation Dialog */}
+      
+      {/* Booking Confirmation Dialog */}
       <Dialog open={confirmationDialogOpen} onOpenChange={setConfirmationDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Booking Confirmed!</DialogTitle>
             <DialogDescription>
-              Your booking has been successfully completed.
+              Your booking has been successfully confirmed. Check your email for details.
             </DialogDescription>
           </DialogHeader>
           
           {bookingConfirmation && (
-            <div className="mt-6 space-y-4">
-              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium text-lg">Booking #{bookingConfirmation.booking.bookingNumber}</h3>
-                  <span className="px-2 py-1 bg-primary-500 text-white rounded text-xs font-medium">
-                    {bookingConfirmation.booking.status}
-                  </span>
+            <div className="space-y-4">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex items-center gap-3">
+                <div className="bg-green-100 rounded-full p-2">
+                  <Check className="h-5 w-5 text-green-600" />
                 </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2 gap-1">
-                    <span className="text-gray-500">Experience:</span>
-                    <span className="font-medium">{bookingConfirmation.booking.experienceName}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span className="text-gray-500">Dates:</span>
-                    <span className="font-medium">
-                      {format(new Date(bookingConfirmation.booking.startDate), 'MMM d, yyyy')} - {format(new Date(bookingConfirmation.booking.endDate), 'MMM d, yyyy')}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span className="text-gray-500">Total Amount:</span>
-                    <span className="font-medium">${bookingConfirmation.booking.totalAmount}</span>
-                  </div>
+                <div>
+                  <h3 className="font-medium">Booking #{bookingConfirmation.bookingNumber}</h3>
+                  <p className="text-sm text-gray-600">Confirmation sent to {bookingConfirmation.customerEmail}</p>
                 </div>
               </div>
               
-              <p className="text-sm text-gray-600">
-                We've sent a confirmation email to <span className="font-medium">{bookingConfirmation.booking.customer.email}</span> with all the details of your booking.
-              </p>
+              <div className="space-y-2">
+                <div className="font-medium">{bookingConfirmation.experience.name}</div>
+                <div className="text-sm text-gray-600">
+                  {bookingConfirmation.startDate && bookingConfirmation.endDate && (
+                    <div>
+                      {format(new Date(bookingConfirmation.startDate), 'MMM d, yyyy')} - {format(new Date(bookingConfirmation.endDate), 'MMM d, yyyy')}
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {bookingConfirmation.hunterCount} {bookingConfirmation.hunterCount === 1 ? 'Hunter' : 'Hunters'}
+                </div>
+              </div>
               
-              <div className="bg-yellow-50 p-3 rounded-md text-sm text-yellow-800 flex items-start">
-                <svg className="h-5 w-5 mr-2 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <p>
-                  Our team will contact you shortly to confirm all details and arrange any additional requirements.
-                </p>
+              <div className="pt-2 border-t border-gray-200">
+                <div className="font-medium">Payment Details</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  {bookingConfirmation.paymentOption === 'deposit' ? 'Deposit paid: ' : 'Total paid: '}
+                  {formatPrice(bookingConfirmation.totalAmount)}
+                </div>
               </div>
             </div>
           )}
           
-          <DialogFooter className="mt-6">
-            <Button onClick={() => setConfirmationDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
+          <Button onClick={handleCloseConfirmation} className="w-full mt-2">
+            Done
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
