@@ -1,0 +1,79 @@
+You're redesigning the **booking page experience** for a SaaS platform called **Outfitter**, used by hunting and fishing outfitters. Customers (non-logged-in) use this public-facing page to book trips like "Bass Fishing" or "Elk Hunt."
+
+---
+
+## 🎯 GOAL
+
+Reimagine the UI/UX of the public booking process to be **modern, smooth, and informative**. Begin with a **location picker**, and upon selecting a location, transition to a **Date Selection + Experience Overview** screen that presents all essential trip details pulled dynamically from the dashboard.
+
+This redesign should:
+- Feel **clean, modern, and mobile-friendly**
+- Surface **everything the customer needs to know** before booking (without returning to another page)
+- Be styled in a way that visually aligns with the rest of the app (clean white/dark green theme)
+
+---
+
+## ✅ BOOKING FLOW
+
+### 1️⃣ LOCATION SELECTION (Step 1)
+- A grid or list of available business locations (e.g., Kansas Fields, Oklahoma Lodge, Texas Ranch).
+- Each location card should:
+  - Display the name, city/state
+  - Optional: Small photo or icon
+- Once a location is selected, transition to the next step.
+
+---
+
+### 2️⃣ DATE SELECTION + EXPERIENCE DETAILS (Step 2)
+When the user reaches this step, **display a full experience overview**, populated directly from the experience object created in the dashboard.
+
+#### 🗂️ Layout: Split-screen or stacked layout
+**Left Side (or top for mobile)** — Experience Details:
+- Experience title (e.g., "Bass Fishing")
+- Duration (e.g., 2 days)
+- Max Capacity (e.g., Up to 3 people)
+- Base Price per hunter (e.g., $250 / hunter)
+- Rich description text
+- Photo carousel or featured media
+- List of included amenities (lodging, meals, equipment, etc.)
+- Rules & safety info
+- Location map or marker
+
+**Right Side (or bottom for mobile)** — Calendar UI:
+- Modern calendar picker (like `react-day-picker`)
+- Automatically selects a full range based on duration
+- Disabled start dates if full capacity is reached (backend-enforced)
+- Displays selected dates and total price summary (based on selected hunters)
+
+#### 👥 Hunter Count Selector:
+- Inline control for selecting number of hunters (e.g., dropdown or stepper)
+- Price should update dynamically (e.g., 2 hunters × $250 = $500)
+
+---
+
+### 3️⃣ DETAILS & BOOKING (Step 3)
+Once dates are selected:
+- Show confirmation of selected experience, location, dates, number of hunters, and total cost
+- Capture name, phone, email, and optional notes
+- "Book Now" button with subtle loading state
+
+---
+
+## 🎨 DESIGN STYLE
+
+- Font: Clean, modern (e.g., Inter, Roboto)
+- Colors: Dark green, white, light grey background sections
+- UI Patterns: Cards, shadowed panels, hover interactions
+- Animations: Slide/fade transitions between steps, range selection highlight on calendar
+- Mobile-First: Stacked layout on mobile, fluid transitions
+
+---
+
+## 🔌 TECH TIPS (optional React-based build)
+
+- Pull experience data via backend API (`GET /experiences/:id`)
+- Calendar: Use `react-day-picker` or `react-calendar` with custom range logic
+- Store selections in local state or context (`location`, `experienceId`, `dates`, `hunters`)
+- Use a global price calculator function based on:
+  ```js
+  totalPrice = pricePerHunter × numberOfHunters

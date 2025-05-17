@@ -98,10 +98,11 @@ const bookingFormSchema = z.object({
     message: "Please select a date range",
     path: ["dateRange"],
   }),
+  hunterCount: z.number().min(1, "At least one hunter is required").max(10, "Maximum 10 hunters allowed"),
   customerName: z.string().min(3, "Full name is required"),
   customerEmail: z.string().email("Please enter a valid email"),
   customerPhone: z.string().min(10, "Please enter a valid phone number"),
-  groupSize: z.string().min(1, "Group size is required"),
+  notes: z.string().optional(),
   paymentOption: z.enum(["deposit", "full"], {
     required_error: "Please select a payment option",
   }),
@@ -118,6 +119,7 @@ type BookingFormValues = z.infer<typeof bookingFormSchema>;
 function PublicBooking() {
   // States
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{id: number, name: string, city: string, state: string} | null>(null);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
@@ -126,12 +128,20 @@ function PublicBooking() {
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
     queryKey: ['/api/public/experiences'],
   });
+  
+  // Get locations from API
+  const { data: locations = [], isLoading: locationsLoading } = useQuery<{id: number, name: string, city: string, state: string}[]>({
+    queryKey: ['/api/public/locations'],
+  });
 
   // State for tracking booking steps
-  const [bookingStep, setBookingStep] = useState<'location' | 'dates' | 'details'>('location');
+  const [bookingStep, setBookingStep] = useState<'location' | 'experience-details' | 'details'>('location');
   
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
+  
+  // State for tracking number of hunters (people)
+  const [hunterCount, setHunterCount] = useState<number>(1);
   
   // Set up the booking form
   const form = useForm<BookingFormValues>({
@@ -140,10 +150,11 @@ function PublicBooking() {
       experienceId: selectedExperience?.id.toString() || "",
       locationId: "",
       dateRange: undefined,
+      hunterCount: 1,
       customerName: "",
       customerEmail: "",
       customerPhone: "",
-      groupSize: "1",
+      notes: "",
       paymentOption: "deposit",
       addons: [],
     },
@@ -197,8 +208,8 @@ function PublicBooking() {
         });
         return;
       }
-      setBookingStep('dates');
-    } else if (bookingStep === 'dates') {
+      setBookingStep('experience-details');
+    } else if (bookingStep === 'experience-details') {
       // Validate date selection
       const dateRange = form.getValues().dateRange;
       if (!dateRange || !dateRange.from || !dateRange.to) {
@@ -213,10 +224,10 @@ function PublicBooking() {
   };
   
   const prevStep = () => {
-    if (bookingStep === 'dates') {
+    if (bookingStep === 'experience-details') {
       setBookingStep('location');
     } else if (bookingStep === 'details') {
-      setBookingStep('dates');
+      setBookingStep('experience-details');
     }
   };
 
@@ -267,8 +278,8 @@ function PublicBooking() {
     }
     
     const price = parseFloat(selectedExperience.price);
-    const groupSize = parseInt(formValues.groupSize) || 1;
-    const subtotal = price * groupSize;
+    const hunterCount = formValues.hunterCount || 1;
+    const subtotal = price * hunterCount;
     
     // Calculate addons with quantities
     let addonTotal = 0;
@@ -573,12 +584,12 @@ function PublicBooking() {
             <DialogHeader className="mb-4">
               <DialogTitle>
                 {bookingStep === 'location' && 'Select Location'}
-                {bookingStep === 'dates' && 'Choose Dates'}
+                {bookingStep === 'experience-details' && 'Experience Details & Dates'}
                 {bookingStep === 'details' && 'Complete Your Booking'}
               </DialogTitle>
               <DialogDescription>
                 {bookingStep === 'location' && 'Choose where you would like to experience this adventure.'}
-                {bookingStep === 'dates' && 'Select your preferred dates for this adventure.'}
+                {bookingStep === 'experience-details' && 'Review experience details and select your preferred dates.'}
                 {bookingStep === 'details' && 'Fill out the form below to secure your adventure.'}
               </DialogDescription>
             </DialogHeader>
