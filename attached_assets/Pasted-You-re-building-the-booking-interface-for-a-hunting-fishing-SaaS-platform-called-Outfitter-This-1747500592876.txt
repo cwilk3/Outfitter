@@ -1,0 +1,63 @@
+You're building the booking interface for a hunting/fishing SaaS platform called **Outfitter**. This booking UI is used by customers (non-logged-in) on the public-facing booking page. 
+
+---
+
+## 🔧 GOAL
+
+Replace the current "Start Date" and "End Date" fields with a **calendar view UI** that:
+- Displays a calendar with **only available dates**.
+- Automatically selects **the correct range of days** based on the experience duration once the customer clicks the first date.
+- Prevents selecting any dates that overlap with already booked dates.
+- Prevents double bookings at all times.
+
+---
+
+## ✅ FEATURES & RULES
+
+### 🗓️ 1. CALENDAR SELECTION LOGIC
+- Show a **monthly calendar view** (multi-month if possible).
+- When a customer clicks a **start date**, the system should:
+  - Automatically calculate the **end date** based on the experience's duration (e.g., 2 days, 3 days, etc.).
+  - Visually highlight the entire selected date range.
+  - Disable or grey out any unavailable or already-booked start dates.
+  - Disable any date selections where the entire range cannot be accommodated.
+
+### 📆 2. AVAILABILITY ENFORCEMENT
+- Query available date ranges dynamically based on the experience data.
+- A date range becomes **unavailable** once the **Max Hunter Capacity** for that experience is met for the given days.
+- Do not allow overlapping or partial date selections.
+- Block out any past dates or unavailable windows.
+
+### 🔗 3. UX FLOW
+- After selecting a valid date range, allow the user to continue to the next step (Details → Contact Info → Booking).
+- Display the full selected date range and duration summary below the calendar.
+- If the selected start date does not allow for the full duration (due to limited availability), prevent selection and show a tooltip or small message like “Not enough available days for this experience.”
+
+### 🧩 UI/UX STYLE
+- Match current dark-green/white aesthetic as seen in the reference screenshot.
+- Use clean hover states and range highlighting.
+- Prefer a mobile-friendly calendar component (e.g., `react-day-picker` or similar).
+- Display a subtle animation when the date range is confirmed.
+
+---
+
+## 📦 TECH HINTS (Optional if building in React)
+- Use a calendar library like:
+  - `react-day-picker` with `disabledDays` and `selectedRange`
+  - or `react-calendar` with `tileDisabled`
+- Pull `experience.duration`, `experience.maxCapacity`, and current `bookings[]` from the backend API.
+- When the user clicks a date:
+  - Check if the following `N` days (where `N = duration`) still have enough remaining hunter capacity.
+  - If any day in the range has already reached `maxCapacity`, block selection of that entire range.
+  - Highlight valid ranges only; otherwise show a tooltip like “Capacity full for this date range.”
+
+---
+
+## ✅ END RESULT
+
+A slick, intuitive **calendar-based booking step** that:
+- Auto-selects correct ranges
+- Prevents double bookings
+- Enforces max hunter capacity
+- Enhances the customer experience
+- Fully aligns with the current visual style

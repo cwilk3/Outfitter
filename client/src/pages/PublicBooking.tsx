@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { ChevronRight, Calendar, Users, Check, Clock, DollarSign } from "lucide-react";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
+import { DateRange } from "react-day-picker";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker, Booking } from "@/components/ui/date-range-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -86,11 +87,16 @@ const bookingFormSchema = z.object({
   locationId: z.string({
     required_error: "Please select a location", 
   }),
-  startDate: z.date({
-    required_error: "Please select a start date",
-  }),
-  endDate: z.date({
-    required_error: "Please select an end date",
+  dateRange: z.object({
+    from: z.date({
+      required_error: "Please select dates",
+    }),
+    to: z.date({
+      required_error: "Please select dates",
+    }),
+  }).optional().refine(data => data?.from && data?.to, {
+    message: "Please select a date range",
+    path: ["dateRange"],
   }),
   customerName: z.string().min(3, "Full name is required"),
   customerEmail: z.string().email("Please enter a valid email"),
