@@ -6,7 +6,6 @@ import { z } from "zod";
 import { format, addDays, differenceInDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
 import { DateRange } from "react-day-picker";
 
 // Components
@@ -50,7 +49,7 @@ interface Location {
   state: string;
 }
 
-// Sample addons for the booking
+// Sample addons for booking
 const sampleAddons = [
   { 
     id: "guide-service", 
@@ -86,7 +85,7 @@ const sampleAddons = [
   },
 ];
 
-// Booking form schema with validation
+// Booking form schema
 const bookingFormSchema = z.object({
   experienceId: z.string(),
   locationId: z.string({
@@ -129,23 +128,23 @@ function PublicBooking() {
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
   
-  // Booking step state (3-step process)
-  const [bookingStep, setBookingStep] = useState<'location' | 'experience-details' | 'details'>('location');
-  
   // Get experiences from API
-  const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
+  const { data: experiences = [], isLoading, error } = useQuery({
     queryKey: ['/api/public/experiences'],
   });
   
   // Get locations from API
-  const { data: locations = [], isLoading: locationsLoading } = useQuery<Location[]>({
+  const { data: locations = [], isLoading: locationsLoading } = useQuery({
     queryKey: ['/api/public/locations'],
   });
 
+  // State for tracking booking steps
+  const [bookingStep, setBookingStep] = useState<'location' | 'experience-details' | 'details'>('location');
+  
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
-  
-  // Initialize the booking form
+
+  // Set up the booking form
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
@@ -202,15 +201,6 @@ function PublicBooking() {
     }
   }, [selectedExperience, form]);
 
-  // Format price with currency
-  const formatPrice = (price: string | number) => {
-    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(numericPrice);
-  };
-
   // Navigation functions for booking steps
   const nextStep = () => {
     if (bookingStep === 'location') {
@@ -245,6 +235,15 @@ function PublicBooking() {
     }
   };
 
+  // Format price with currency
+  const formatPrice = (price: string | number) => {
+    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(numericPrice);
+  };
+  
   // Calculate booking summary based on form values
   const calculateSummary = (formValues: BookingFormValues) => {
     if (!selectedExperience) {
@@ -368,7 +367,7 @@ function PublicBooking() {
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {experiences.map(experience => (
+          {experiences.map((experience: any) => (
             <Card key={experience.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="text-xl">{experience.name}</CardTitle>
@@ -507,7 +506,7 @@ function PublicBooking() {
                               <RadioGroup
                                 onValueChange={(value) => {
                                   field.onChange(value);
-                                  const location = locations.find(loc => loc.id.toString() === value);
+                                  const location = locations.find((loc: any) => loc.id.toString() === value);
                                   if (location) {
                                     setSelectedLocation(location);
                                   }
@@ -515,7 +514,7 @@ function PublicBooking() {
                                 defaultValue={field.value}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
                               >
-                                {locations.map(location => (
+                                {locations.map((location: any) => (
                                   <div key={location.id} className={`border-2 rounded-xl p-5 transition-all cursor-pointer hover:shadow-md ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/20'}`} 
                                       onClick={() => {
                                         field.onChange(location.id.toString());
@@ -630,7 +629,7 @@ function PublicBooking() {
                             <div className="mt-4">
                               <h4 className="text-sm font-medium mb-2">What's Included</h4>
                               <div className="grid grid-cols-2 gap-2">
-                                {selectedExperience.amenities.map((amenity, index) => (
+                                {selectedExperience.amenities.map((amenity: string, index: number) => (
                                   <div key={index} className="flex items-center gap-2 text-sm">
                                     <Check className="h-4 w-4 text-primary" />
                                     <span>{amenity}</span>
@@ -645,7 +644,7 @@ function PublicBooking() {
                             <div className="mt-4">
                               <h4 className="text-sm font-medium mb-2">Rules & Safety</h4>
                               <div className="space-y-1.5">
-                                {selectedExperience.rules.map((rule, index) => (
+                                {selectedExperience.rules.map((rule: string, index: number) => (
                                   <div key={index} className="flex items-start gap-2 text-sm">
                                     <Info className="h-4 w-4 text-amber-500 mt-0.5" />
                                     <span>{rule}</span>

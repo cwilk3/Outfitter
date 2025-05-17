@@ -14,7 +14,7 @@ import Staff from "@/pages/Staff";
 import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Settings from "@/pages/Settings";
-import PublicBooking from "@/pages/PublicBookingNew";
+import PublicBooking from "@/pages/PublicBooking";
 import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 
