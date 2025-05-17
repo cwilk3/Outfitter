@@ -830,23 +830,32 @@ function PublicBooking() {
                               </FormItem>
                             )}
                           />
-                    
-                    <div className="bg-gray-50 p-4 rounded-lg text-sm mt-4">
-                      <p className="text-gray-600">
-                        <span className="font-medium">Duration:</span> {selectedExperience?.duration} {selectedExperience?.duration === 1 ? 'day' : 'days'}
-                      </p>
-                      {(() => {
-                        const dateRange = form.getValues().dateRange;
-                        if (dateRange && dateRange.from && dateRange.to) {
-                          return (
-                            <p className="text-gray-600 mt-1">
-                              <span className="font-medium">Selected Period:</span> {format(dateRange.from, 'MMM d, yyyy')} to {format(dateRange.to, 'MMM d, yyyy')}
-                            </p>
-                          );
-                        }
-                        return null;
-                      })()}
+                          
+                          {/* Selected Date Summary */}
+                          {form.getValues().dateRange?.from && form.getValues().dateRange?.to && (
+                            <div className="mt-4 pt-4 border-t">
+                              <h4 className="text-sm font-medium mb-2">Your Trip</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span>Check-in:</span>
+                                  <span className="font-medium">{format(form.getValues().dateRange.from, 'EEEE, MMM d, yyyy')}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>Check-out:</span>
+                                  <span className="font-medium">{format(form.getValues().dateRange.to, 'EEEE, MMM d, yyyy')}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>Duration:</span>
+                                  <span className="font-medium">{differenceInDays(form.getValues().dateRange.to, form.getValues().dateRange.from) + 1} days</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  </div>
+                )
                     
                     <DialogFooter className="mt-6">
                       <div className="flex justify-between w-full">
