@@ -130,14 +130,16 @@ function PublicBooking() {
   // State for tracking booking steps
   const [bookingStep, setBookingStep] = useState<'location' | 'dates' | 'details'>('location');
   
+  // State for tracking booking availability data
+  const [bookingData, setBookingData] = useState<Booking[]>([]);
+  
   // Set up the booking form
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       experienceId: selectedExperience?.id.toString() || "",
       locationId: "",
-      startDate: undefined,
-      endDate: undefined,
+      dateRange: undefined,
       customerName: "",
       customerEmail: "",
       customerPhone: "",
@@ -147,6 +149,27 @@ function PublicBooking() {
     },
   });
 
+  // Query for bookings data when an experience is selected
+  const { data: bookings = [] } = useQuery<any[]>({
+    queryKey: ['/api/public/bookings', selectedExperience?.id],
+    enabled: !!selectedExperience?.id,
+  });
+  
+  // Update bookingData state when bookings data is fetched
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      // Convert booking data to the format expected by DateRangePicker
+      const formattedBookings: Booking[] = bookings.map(booking => ({
+        startDate: new Date(booking.startDate),
+        endDate: new Date(booking.endDate),
+        bookedCount: booking.groupSize || 1
+      }));
+      setBookingData(formattedBookings);
+    } else {
+      setBookingData([]);
+    }
+  }, [bookings]);
+  
   // Update form when an experience is selected
   useEffect(() => {
     if (selectedExperience) {
@@ -158,15 +181,8 @@ function PublicBooking() {
       // Reset location selection
       form.setValue("locationId", "");
       
-      // If we have dates available, set default dates
-      if (selectedExperience.availableDates && selectedExperience.availableDates.length > 0) {
-        form.setValue("startDate", new Date(selectedExperience.availableDates[0]));
-        
-        // Calculate end date based on duration
-        const endDate = new Date(selectedExperience.availableDates[0]);
-        endDate.setDate(endDate.getDate() + selectedExperience.duration - 1);
-        form.setValue("endDate", endDate);
-      }
+      // Reset date range
+      form.setValue("dateRange", undefined);
     }
   }, [selectedExperience, form]);
 
@@ -184,19 +200,12 @@ function PublicBooking() {
       setBookingStep('dates');
     } else if (bookingStep === 'dates') {
       // Validate date selection
-      if (!form.getValues().startDate || !form.getValues().endDate) {
-        if (!form.getValues().startDate) {
-          form.setError('startDate', { 
-            type: 'manual', 
-            message: 'Please select a start date' 
-          });
-        }
-        if (!form.getValues().endDate) {
-          form.setError('endDate', { 
-            type: 'manual', 
-            message: 'Please select an end date' 
-          });
-        }
+      const dateRange = form.getValues().dateRange;
+      if (!dateRange || !dateRange.from || !dateRange.to) {
+        form.setError('dateRange', { 
+          type: 'manual', 
+          message: 'Please select a date range' 
+        });
         return;
       }
       setBookingStep('details');
@@ -214,7 +223,17 @@ function PublicBooking() {
   // Handle form submission
   const onSubmit = async (data: BookingFormValues) => {
     try {
-      const response = await apiRequest('POST', '/api/public/book', data);
+      // Convert dateRange to startDate and endDate for API submission
+      const apiData = {
+        ...data,
+        startDate: data.dateRange?.from,
+        endDate: data.dateRange?.to,
+      };
+      
+      // Remove dateRange as it's not needed by the API
+      delete (apiData as any).dateRange;
+      
+      const response = await apiRequest('POST', '/api/public/book', apiData);
       
       // Show success message and close booking dialog
       setBookingConfirmation(response);
@@ -660,49 +679,49 @@ function PublicBooking() {
                 )}
                 
                 {/* Date Selection Step */}
-                {bookingStep === 'dates' && (
+                {bookingStep === 'dates' && selectedExperience && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Start Date</FormLabel>
-                            <DatePicker 
-                              date={field.value}
-                              onSelect={field.onChange}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>End Date</FormLabel>
-                            <DatePicker 
-                              date={field.value}
-                              onSelect={field.onChange}
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <h3 className="text-lg font-medium">Choose Dates</h3>
+                    <p className="text-sm text-gray-500">
+                      Select your preferred dates for this adventure.
+                    </p>
+                    
+                    <FormField
+                      control={form.control}
+                      name="dateRange"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col space-y-3">
+                          <DateRangePicker
+                            dateRange={field.value}
+                            onSelect={field.onChange}
+                            experience={{
+                              duration: selectedExperience.duration,
+                              capacity: selectedExperience.capacity,
+                              availableDates: selectedExperience.availableDates || []
+                            }}
+                            bookings={bookingData}
+                            className="w-full"
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
                     <div className="bg-gray-50 p-4 rounded-lg text-sm mt-4">
                       <p className="text-gray-600">
                         <span className="font-medium">Duration:</span> {selectedExperience?.duration} {selectedExperience?.duration === 1 ? 'day' : 'days'}
                       </p>
-                      {form.getValues().startDate && form.getValues().endDate && (
-                        <p className="text-gray-600 mt-1">
-                          <span className="font-medium">Selected Period:</span> {format(form.getValues().startDate, 'MMM d, yyyy')} to {format(form.getValues().endDate, 'MMM d, yyyy')}
-                        </p>
-                      )}
+                      {(() => {
+                        const dateRange = form.getValues().dateRange;
+                        if (dateRange && dateRange.from && dateRange.to) {
+                          return (
+                            <p className="text-gray-600 mt-1">
+                              <span className="font-medium">Selected Period:</span> {format(dateRange.from, 'MMM d, yyyy')} to {format(dateRange.to, 'MMM d, yyyy')}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     
                     <DialogFooter className="mt-6">

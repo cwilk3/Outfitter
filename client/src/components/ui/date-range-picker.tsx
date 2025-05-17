@@ -173,10 +173,10 @@ export function DateRangePicker({
             numberOfMonths={2}
             disabled={isDateDisabled}
             modifiers={{
-              range: dateRange?.from && dateRange?.to ? { 
-                from: dateRange.from, 
-                to: dateRange.to 
-              } : { from: new Date(0), to: new Date(0) }
+              range: { 
+                from: dateRange?.from || new Date(0), 
+                to: dateRange?.to || new Date(0) 
+              }
             }}
             className="p-3"
             classNames={{
