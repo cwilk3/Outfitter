@@ -175,12 +175,12 @@ function PublicBooking() {
   }, [bookings]);
 
   // Extract experience ID from URL if provided
-  const [_, params] = useParams<{ id: string }>();
+  const params = useParams();
   
   // Find and set the selected experience based on URL param
   useEffect(() => {
-    if (params?.id && experiences.length > 0) {
-      const experience = experiences.find(e => e.id.toString() === params.id);
+    if (params?.id && Array.isArray(experiences) && experiences.length > 0) {
+      const experience = experiences.find((e: any) => e.id.toString() === params.id);
       if (experience) {
         setSelectedExperience(experience);
         form.setValue("experienceId", experience.id.toString());
@@ -281,7 +281,9 @@ function PublicBooking() {
   // Handle form submission
   const onSubmit = async (data: BookingFormValues) => {
     try {
-      const experience = experiences.find(exp => exp.id.toString() === data.experienceId);
+      const experience = Array.isArray(experiences) 
+        ? experiences.find((exp: any) => exp.id.toString() === data.experienceId) 
+        : null;
       if (!experience) {
         throw new Error("Experience not found");
       }
@@ -506,15 +508,17 @@ function PublicBooking() {
                               <RadioGroup
                                 onValueChange={(value) => {
                                   field.onChange(value);
-                                  const location = locations.find((loc: any) => loc.id.toString() === value);
-                                  if (location) {
-                                    setSelectedLocation(location);
+                                  if (Array.isArray(locations)) {
+                                    const location = locations.find((loc: any) => loc.id.toString() === value);
+                                    if (location) {
+                                      setSelectedLocation(location);
+                                    }
                                   }
                                 }}
                                 defaultValue={field.value}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
                               >
-                                {locations.map((location: any) => (
+                                {Array.isArray(locations) && locations.map((location: any) => (
                                   <div key={location.id} className={`border-2 rounded-xl p-5 transition-all cursor-pointer hover:shadow-md ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/20'}`} 
                                       onClick={() => {
                                         field.onChange(location.id.toString());
