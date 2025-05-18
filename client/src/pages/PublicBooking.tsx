@@ -687,53 +687,168 @@ function PublicBooking() {
                   </div>
                 )}
                 
-                {/* Date Selection Step */}
+                {/* Date Selection + Experience Details Step */}
                 {bookingStep === 'dates' && selectedExperience && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Choose Dates</h3>
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-medium">Date Selection + Experience Details</h3>
                     <p className="text-sm text-gray-500">
                       Select your preferred dates for this adventure.
                     </p>
                     
-                    <FormField
-                      control={form.control}
-                      name="dateRange"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col space-y-3">
-                          <DateRangePicker
-                            dateRange={field.value}
-                            onSelect={field.onChange}
-                            experience={{
-                              duration: selectedExperience.duration,
-                              capacity: selectedExperience.capacity,
-                              availableDates: selectedExperience.availableDates || []
-                            }}
-                            bookings={bookingData}
-                            className="w-full"
+                    {/* Split-screen layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Left Side: Experience Details */}
+                      <div className="space-y-4">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h4 className="text-base font-medium mb-2">{selectedExperience.name}</h4>
+                          
+                          <div className="flex items-center gap-3 text-sm text-gray-700 mb-3">
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-1 text-primary" />
+                              <span>{selectedExperience.duration} {selectedExperience.duration === 1 ? 'day' : 'days'}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-1 text-primary" />
+                              <span>Up to {selectedExperience.capacity} {selectedExperience.capacity === 1 ? 'person' : 'people'}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <DollarSign className="h-4 w-4 mr-1 text-primary" />
+                              <span>{formatPrice(selectedExperience.price)}/hunter</span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-700 mb-4">{selectedExperience.description}</p>
+                          
+                          {/* Amenities */}
+                          {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
+                            <div className="mb-4">
+                              <h5 className="text-sm font-medium mb-2">Amenities</h5>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedExperience.amenities.map((amenity, index) => (
+                                  <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {amenity === 'guided' && '🧭 Guided'}
+                                    {amenity === 'equipment' && '🎣 Equipment'}
+                                    {amenity === 'transportation' && '🚐 Transportation'}
+                                    {amenity === 'wifi' && '📶 WiFi'}
+                                    {!['guided', 'equipment', 'transportation', 'wifi'].includes(amenity) && amenity}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Trip Includes */}
+                          {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
+                            <div>
+                              <h5 className="text-sm font-medium mb-2">Trip Includes</h5>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedExperience.tripIncludes.map((item, index) => (
+                                  <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700">
+                                    {item === 'animal_cleaning' && '🧹 Animal cleaning'}
+                                    {item === 'lodging' && '🏠 Lodging'}
+                                    {item === 'meals' && '🍽️ Meals'}
+                                    {item === 'ice' && '🧊 Ice'}
+                                    {item === 'byob' && '🍺 BYOB'}
+                                    {!['animal_cleaning', 'lodging', 'meals', 'ice', 'byob'].includes(item) && item}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Hunter Count Selector */}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h5 className="text-sm font-medium mb-2">Number of Hunters</h5>
+                          <FormField
+                            control={form.control}
+                            name="groupSize"
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Select number of hunters" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
+                                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                        {i + 1} {i === 0 ? 'hunter' : 'hunters'}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="bg-gray-50 p-4 rounded-lg text-sm mt-4">
-                      <p className="text-gray-600">
-                        <span className="font-medium">Duration:</span> {selectedExperience?.duration} {selectedExperience?.duration === 1 ? 'day' : 'days'}
-                      </p>
-                      {(() => {
-                        const dateRange = form.getValues().dateRange;
-                        if (dateRange && dateRange.from && dateRange.to) {
-                          return (
-                            <p className="text-gray-600 mt-1">
-                              <span className="font-medium">Selected Period:</span> {format(dateRange.from, 'MMM d, yyyy')} to {format(dateRange.to, 'MMM d, yyyy')}
-                            </p>
-                          );
-                        }
-                        return null;
-                      })()}
+                          
+                          <div className="mt-4 flex justify-between text-sm">
+                            <span>Price per hunter:</span>
+                            <span className="font-medium">{formatPrice(selectedExperience.price)}</span>
+                          </div>
+                          <div className="mt-1 flex justify-between text-sm font-medium">
+                            <span>Total price:</span>
+                            <span>{formatPrice((parseFloat(selectedExperience.price) * (parseInt(form.getValues().groupSize) || 1)).toString())}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Right Side: Calendar UI */}
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="dateRange"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col space-y-3">
+                              <div className="bg-white p-4 rounded-lg border">
+                                <h5 className="text-sm font-medium mb-3">Select Dates</h5>
+                                <DateRangePicker
+                                  dateRange={field.value}
+                                  onSelect={field.onChange}
+                                  experience={{
+                                    duration: selectedExperience.duration,
+                                    capacity: selectedExperience.capacity,
+                                    availableDates: selectedExperience.availableDates || []
+                                  }}
+                                  bookings={bookingData}
+                                  className="w-full"
+                                />
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {/* Selected Date Summary */}
+                        {(() => {
+                          const dateRange = form.getValues().dateRange;
+                          if (dateRange && dateRange.from && dateRange.to) {
+                            return (
+                              <div className="bg-primary-50 p-4 rounded-lg text-sm">
+                                <h5 className="font-medium text-primary-900 mb-2">Your Selected Dates</h5>
+                                <div className="flex items-center gap-2 text-primary-800">
+                                  <Calendar className="h-4 w-4" />
+                                  <p>
+                                    {format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')}
+                                  </p>
+                                </div>
+                                <p className="mt-2 text-xs text-primary-700">
+                                  Your adventure will last for {selectedExperience.duration} {selectedExperience.duration === 1 ? 'day' : 'days'}.
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
                     
-                    <DialogFooter className="mt-6">
+                    <DialogFooter className="pt-4 mt-4 border-t">
                       <div className="flex justify-between w-full">
                         <Button 
                           type="button" 
@@ -748,6 +863,7 @@ function PublicBooking() {
                           type="button" 
                           onClick={nextStep}
                           className="gap-1"
+                          disabled={!form.getValues().dateRange?.from || !form.getValues().dateRange?.to}
                         >
                           Continue
                           <ChevronRight className="h-4 w-4" />
