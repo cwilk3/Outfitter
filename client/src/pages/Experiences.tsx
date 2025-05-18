@@ -71,6 +71,7 @@ import {
   Plus, 
   Edit, 
   Calendar, 
+  CalendarIcon,
   Users, 
   DollarSign, 
   Trash2, 
@@ -183,6 +184,11 @@ const optimizeImages = async (imageDataUrls: string[]): Promise<string[]> => {
   }
 };
 
+// Type for location-specific dates 
+interface LocationAvailableDates {
+  [locationId: number]: string[];
+}
+
 export default function Experiences() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
@@ -190,7 +196,6 @@ export default function Experiences() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [currentEditingLocationId, setCurrentEditingLocationId] = useState<number | null>(null);
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -205,6 +210,7 @@ export default function Experiences() {
   // State for new form fields
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [locationDates, setLocationDates] = useState<{[locationId: number]: Date[]}>({});
   const [rules, setRules] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
@@ -1244,8 +1250,7 @@ export default function Experiences() {
                                 </div>
                               </div>
 
-                              {/* Location-specific Available Dates */}
-                              <div className="ml-6 mt-4">
+                              <div className="mt-3 ml-6">
                                 <label className="text-xs font-medium mb-1 block">
                                   Available Dates at This Location
                                 </label>
