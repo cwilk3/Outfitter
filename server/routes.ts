@@ -291,6 +291,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/experiences', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
+      // Log incoming data for debugging
+      console.log("Incoming experience data:", req.body);
+      
+      // Add a fallback locationId if it's missing
+      if (req.body.locationId === undefined || req.body.locationId === null) {
+        req.body.locationId = 1; // Default to first location
+        console.log("Applied default locationId=1");
+      }
+      
       // Create a modified schema that coerces types correctly
       const modifiedExperienceSchema = insertExperienceSchema
         .transform((data) => ({
@@ -300,8 +309,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Price field needs to be a string in the database
           price: typeof data.price === 'number' ? data.price.toString() : data.price,
           capacity: typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
-          // Make sure locationId is properly set
-          locationId: typeof data.locationId === 'string' ? parseInt(data.locationId) : data.locationId,
+          // Make sure locationId is properly set and has a fallback
+          locationId: typeof data.locationId === 'string' ? parseInt(data.locationId) : 
+                     (data.locationId || 1), // Fallback to first location
         }));
         
       const validatedData = modifiedExperienceSchema.parse(req.body);
