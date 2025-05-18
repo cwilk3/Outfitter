@@ -216,6 +216,10 @@ export default function Experiences() {
   // State for new form fields
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [editingExperienceId, setEditingExperienceId] = useState<number | null>(null);
+  
+  // Define location date mapping type
+  type LocationDateMapping = {[locationId: number]: string[]};
   const [locationDates, setLocationDates] = useState<{[locationId: number]: Date[]}>({});
   const [rules, setRules] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
@@ -1929,7 +1933,7 @@ export default function Experiences() {
           </DialogHeader>
           
           <div className="my-6">
-            <Calendar
+            <DayPicker
               mode="multiple"
               selected={selectedDates}
               onSelect={(dates) => {
