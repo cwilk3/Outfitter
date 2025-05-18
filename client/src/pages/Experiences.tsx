@@ -243,14 +243,26 @@ export default function Experiences() {
   // Create experience
   const createMutation = useMutation({
     mutationFn: (data: ExperienceFormValues) => {
-      // Make sure locationId is a number and not null
-      return apiRequest<Experience>('POST', '/api/experiences', {
-        ...data,
-        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 0,
+      // Build payload with explicit locationId to ensure it's included
+      const payload = {
+        name: data.name,
+        description: data.description,
+        duration: data.duration,
+        price: data.price,
+        capacity: data.capacity,
+        category: data.category,
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1, // Use default location (1) if none selected
         rules: rules,
         amenities: amenities,
         tripIncludes: tripIncludes,
-      });
+        images: data.images,
+        availableDates: data.availableDates
+      };
+      
+      // Log the exact payload being sent
+      console.log("Creating experience with payload:", payload);
+      
+      return apiRequest<Experience>('POST', '/api/experiences', payload);
     },
     onSuccess: (response: Experience) => {
       toast({
