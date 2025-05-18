@@ -208,11 +208,11 @@ export function DateRangePicker({
               });
             }}
             disabled={isDateDisabled}
-            className="border-t pt-3 mx-auto scale-110 transform origin-top"
+            className="border-t pt-3 mx-auto" 
             numberOfMonths={1}
             modifiersStyles={{
               selected: {
-                backgroundColor: "#70502C",
+                backgroundColor: "#4CAF50",
                 color: "white"
               },
               today: {

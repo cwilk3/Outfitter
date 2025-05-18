@@ -33,20 +33,20 @@ function Calendar({
         head_cell:
           "text-muted-foreground rounded-md w-12 font-medium text-[0.9rem]", // Larger day headers
         row: "flex w-full mt-2",
-        cell: "h-12 w-12 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-[#8B5A2B]/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20", // Larger cells and brown highlight
+        cell: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-[#4CAF50]/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20", // Green highlight with proper size
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-12 w-12 p-0 font-normal text-base aria-selected:opacity-100" // Larger day cells and text
+          "h-11 w-11 p-0 font-normal text-base aria-selected:opacity-100" // Properly sized day cells
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-[#70502C] text-white hover:bg-[#70502C] hover:text-white focus:bg-[#70502C] focus:text-white", // Brown background
+          "bg-[#4CAF50] text-white hover:bg-[#4CAF50] hover:text-white focus:bg-[#4CAF50] focus:text-white", // Green background
         day_today: "bg-accent text-accent-foreground font-bold",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
-          "aria-selected:bg-[#8B5A2B]/20 aria-selected:text-foreground", // Lighter brown for range
+          "aria-selected:bg-[#4CAF50]/20 aria-selected:text-foreground", // Lighter green for range
         day_hidden: "invisible",
         ...classNames,
       }}
