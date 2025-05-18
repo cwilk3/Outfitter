@@ -1149,7 +1149,7 @@ export default function Experiences() {
                       name="price"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Base Price ($)</FormLabel>
+                          <FormLabel>Price Per Hunter ($)</FormLabel>
                           <FormControl>
                             <Input type="number" min="0" step="0.01" {...field} />
                           </FormControl>

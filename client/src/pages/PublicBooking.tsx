@@ -376,7 +376,7 @@ function PublicBooking() {
                   
                   {/* Price tag */}
                   <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-primary text-white rounded-lg shadow-lg text-sm font-semibold">
-                    {formatPrice(experience.price)}
+                    {formatPrice(experience.price)}/hunter
                   </div>
                 </div>
                 
@@ -971,7 +971,7 @@ function PublicBooking() {
                       <h4 className="text-base font-medium mb-2">Booking Summary</h4>
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span>Experience Fee:</span>
+                          <span>Experience Fee (${form.getValues().groupSize || 1} hunters):</span>
                           <span>${calculateSummary(form.getValues()).subtotal.toFixed(2)}</span>
                         </div>
                         {calculateSummary(form.getValues()).addonTotal > 0 && (
