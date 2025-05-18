@@ -117,86 +117,47 @@ export function DateRangePicker({
     });
   };
   
+  // For the booking flow, always show the calendar without requiring a click
   return (
     <div className={className}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !dateRange && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
-                <>
-                  {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(dateRange.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Select dates</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="p-3 border-b">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-sm">Select Your Dates</h4>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Click on an available start date. End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Experience duration: {duration} {duration === 1 ? 'day' : 'days'}
+      {/* Calendar is always visible */}
+      <div className="bg-white rounded-md border p-4">
+        <div className="mb-3">
+          <h4 className="font-medium text-sm mb-1">Select Your Start Date</h4>
+          <p className="text-xs text-gray-500">
+            End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
+          </p>
+        </div>
+        <Calendar
+          initialFocus
+          mode="single"
+          selected={dateRange?.from}
+          onSelect={(date) => {
+            if (!date) {
+              onSelect(undefined);
+              return;
+            }
+            
+            // Auto-calculate end date based on duration
+            const endDate = addDays(date, duration - 1);
+            
+            // Update the selection
+            onSelect({ 
+              from: date, 
+              to: endDate 
+            });
+          }}
+          disabled={isDateDisabled}
+          className="border-t pt-3"
+        />
+        {dateRange?.from && dateRange.to && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-sm font-medium">
+              Selected dates: {format(dateRange.from, "MMMM d")} - {format(dateRange.to, "MMMM d, yyyy")}
             </p>
           </div>
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
-            onSelect={handleSelect}
-            numberOfMonths={2}
-            disabled={isDateDisabled}
-            modifiers={{
-              range: { 
-                from: dateRange?.from || new Date(0), 
-                to: dateRange?.to || new Date(0) 
-              }
-            }}
-            className="p-3"
-            classNames={{
-              day_range_middle: "day-range-middle bg-primary/20 text-primary-foreground rounded-none",
-              day_range_start: "day-range-start bg-primary text-primary-foreground rounded-l-md",
-              day_range_end: "day-range-end bg-primary text-primary-foreground rounded-r-md",
-            }}
-            // The following forces a new selection to clear the previous one
-            pagedNavigation
-            fixedWeeks
-          />
-          {dateRange?.from && (
-            <div className="p-3 border-t bg-muted/20">
-              <p className="text-xs font-medium">
-                Selected dates: {format(dateRange.from, "MMMM d")} - {dateRange.to && format(dateRange.to, "MMMM d, yyyy")}
-              </p>
-            </div>
-          )}
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
     </div>
   );
 }

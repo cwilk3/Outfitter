@@ -1111,8 +1111,8 @@ function PublicBooking() {
                                     duration: selectedExperience.duration,
                                     capacity: selectedExperience.capacity
                                   }}
-                                  bookings={bookingData}
-                                </div>
+                                  bookings={bookingData}/>
+                              </div>
                               </div>
                               <FormMessage />
                             </FormItem>
