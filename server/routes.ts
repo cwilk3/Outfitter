@@ -300,6 +300,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Price field needs to be a string in the database
           price: typeof data.price === 'number' ? data.price.toString() : data.price,
           capacity: typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
+          // Make sure locationId is properly set
+          locationId: typeof data.locationId === 'string' ? parseInt(data.locationId) : data.locationId,
         }));
         
       const validatedData = modifiedExperienceSchema.parse(req.body);
