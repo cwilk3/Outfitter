@@ -1427,17 +1427,7 @@ export default function Experiences() {
                     />
                   </div>
                   
-                  <div className="pt-4 border-t">
-                    <h3 className="text-base font-medium mb-1">Available Dates</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Select the dates when this experience is available for booking.
-                    </p>
-                    
-                    <DateAvailability
-                      selectedDates={selectedDates}
-                      onChange={setSelectedDates}
-                    />
-                  </div>
+                  {/* Date selection removed - now handled in location-specific settings */}
                 </div>
               )}
               
