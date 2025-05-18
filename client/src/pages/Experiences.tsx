@@ -257,16 +257,15 @@ export default function Experiences() {
         description: "Experience created successfully",
       });
       
-      // If there are selected locations, associate them with the new experience
+      // If there is a selected location, associate it with the new experience
       if (selectedLocIds.length > 0) {
         const experienceId = response.id;
+        const locationId = selectedLocIds[0];
         
-        for (const locationId of selectedLocIds) {
-          addExperienceLocationMutation.mutate({
-            experienceId,
-            locationId,
-          });
-        }
+        addExperienceLocationMutation.mutate({
+          experienceId,
+          locationId,
+        });
       }
       
       // Invalidate both admin and public experience queries to ensure everything is updated
@@ -436,7 +435,7 @@ export default function Experiences() {
       price: 0,
       capacity: 1,
       category: "other_hunting",
-      selectedLocationIds: [],
+      locationId: 0,
       images: [],
       availableDates: [],
       rules: [],
@@ -661,13 +660,13 @@ export default function Experiences() {
         price: data.price || 0,
         capacity: data.capacity || 1,
         category: data.category || "other_hunting",
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
         images: optimizedImages,
         availableDates: selectedDates || [],
         rules: rules || [],
         amenities: amenities || [],
         tripIncludes: tripIncludes || [],
         addons: addons || [],
-        selectedLocationIds: selectedLocIds || [],
       };
       
       console.log("Form data prepared successfully:", formData);
@@ -679,7 +678,7 @@ export default function Experiences() {
         try {
           const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
             ...formData,
-            selectedLocationIds: selectedLocIds,
+            locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
           });
           
           console.log("Update successful", result);
