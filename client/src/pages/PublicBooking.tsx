@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { ChevronRight, Calendar, Users, Check, Clock, DollarSign } from "lucide-react";
+import { ChevronRight, Calendar, Users, Check, Clock, DollarSign, MapPin } from "lucide-react";
 import { z } from "zod";
 import { format, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -24,6 +24,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 
 // Types
+interface Location {
+  id: number;
+  name: string;
+  city: string;
+  state: string;
+  description?: string;
+  address?: string;
+  zip?: string;
+  isActive: boolean;
+}
+
 interface Experience {
   id: number;
   name: string;

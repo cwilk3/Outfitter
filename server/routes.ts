@@ -1081,11 +1081,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public routes - no authentication required
   
+  // GET public locations
+  app.get('/api/public/locations', async (req, res) => {
+    try {
+      // Get all active locations for public display
+      const locations = await storage.listLocations(true);
+      res.json(locations);
+    } catch (error) {
+      console.error('Error fetching public locations:', error);
+      res.status(500).json({ message: 'Failed to fetch locations' });
+    }
+  });
+  
   // GET public experiences
   app.get('/api/public/experiences', async (req, res) => {
     try {
-      // Get all active experiences
-      const experiences = await storage.listExperiences();
+      const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+      
+      // Get all active experiences, filtered by locationId if provided
+      let experiences = await storage.listExperiences();
+      
+      // Filter by locationId if provided
+      if (locationId) {
+        experiences = experiences.filter(exp => exp.locationId === locationId);
+      }
+      
       // Get all active locations
       const locations = await storage.listLocations(true); 
       
