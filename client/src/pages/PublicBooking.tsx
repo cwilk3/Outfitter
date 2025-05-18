@@ -1026,24 +1026,24 @@ function PublicBooking() {
                                 </div>
                                 
                                 {/* Direct Calendar Display */}
-                                <Calendar
-                                    mode="single"
-                                    selected={field.value?.from}
-                                    onSelect={(date) => {
-                                      if (!date) {
+                                <div className="rounded-md border">
+                                  <DateRangePicker
+                                    readOnly={true}
+                                    dateRange={field.value}
+                                    onUpdate={(newDateRange) => {
+                                      // Only allow selection of start date - end date is calculated
+                                      if (newDateRange?.from) {
+                                        const endDate = addDays(newDateRange.from, selectedExperience.duration - 1);
+                                        
+                                        field.onChange({
+                                          from: newDateRange.from,
+                                          to: endDate
+                                        });
+                                      } else {
                                         field.onChange(undefined);
-                                        return;
                                       }
-                                      
-                                      // Auto-calculate end date based on duration
-                                      const endDate = addDays(date, selectedExperience.duration - 1);
-                                      
-                                      // Update the selection
-                                      field.onChange({ 
-                                        from: date, 
-                                        to: endDate 
-                                      });
                                     }}
+                                    calendars={1}
                                     disabled={(date) => {
                                       // Get today's date at the start of the day
                                       const today = startOfDay(new Date());
@@ -1083,7 +1083,7 @@ function PublicBooking() {
                                       
                                       return false;
                                     }}
-                                />
+                                  />
                               </div>
                               <FormMessage />
                             </FormItem>
