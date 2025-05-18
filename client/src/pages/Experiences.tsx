@@ -1130,49 +1130,7 @@ export default function Experiences() {
               {/* Step 2: Details */}
               {currentStep === 2 && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration (days)</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="1" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="capacity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Max Capacity</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="1" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Hunter ($)</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="0" step="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  {/* Removed general duration, capacity, and price fields as they're now location-specific */}
                   
 
                   
@@ -1201,7 +1159,7 @@ export default function Experiences() {
                             </div>
                             
                             {selectedLocIds.includes(location.id) && (
-                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                   <label className="text-xs font-medium mb-1 block">
                                     Location-specific Capacity
@@ -1212,7 +1170,7 @@ export default function Experiences() {
                                     min="1" 
                                     placeholder="Max hunters at this location"
                                     className="h-8 text-sm"
-                                    defaultValue={location.capacity || form.getValues().capacity || 1}
+                                    defaultValue={location.capacity || 1}
                                     onChange={(e) => {
                                       // Store location-specific capacity
                                       const capacity = parseInt(e.target.value);
@@ -1232,12 +1190,33 @@ export default function Experiences() {
                                     min="1" 
                                     placeholder="Days at this location"
                                     className="h-8 text-sm"
-                                    defaultValue={location.duration || form.getValues().duration || 1}
+                                    defaultValue={location.duration || 1}
                                     onChange={(e) => {
                                       // Store location-specific duration
                                       const duration = parseInt(e.target.value);
                                       // Update the location duration in the form state
                                       location.duration = duration;
+                                    }}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-xs font-medium mb-1 block">
+                                    Price Per Hunter ($)
+                                  </label>
+                                  <Input 
+                                    id={`location-price-${location.id}`}
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01"
+                                    placeholder="Price per hunter"
+                                    className="h-8 text-sm"
+                                    defaultValue={location.price || 0}
+                                    onChange={(e) => {
+                                      // Store location-specific price
+                                      const price = parseFloat(e.target.value);
+                                      // Update the location price in the form state
+                                      location.price = price;
                                     }}
                                   />
                                 </div>
