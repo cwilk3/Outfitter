@@ -1344,24 +1344,31 @@ export default function Experiences() {
                                       }
                                       
                                       // Otherwise check backend data
-                                      const existingDates = experienceLocationData?.find(
+                                      const existingLocation = experienceLocationData?.find(
                                         el => el.locationId === location.id && 
                                              el.experienceId === editingExperienceId
-                                      )?.availableDates;
+                                      );
                                       
                                       let count = 0;
-                                      if (existingDates) {
-                                        if (Array.isArray(existingDates)) {
-                                          count = existingDates.length;
-                                        } else {
+                                      if (existingLocation?.availableDates) {
+                                        const availableDates = existingLocation.availableDates;
+                                        console.log('Available dates found:', availableDates);
+                                        
+                                        if (Array.isArray(availableDates)) {
+                                          count = availableDates.length;
+                                        } else if (typeof availableDates === 'string') {
                                           try {
-                                            const parsed = JSON.parse(existingDates as string);
+                                            // Try to parse JSON string
+                                            const parsed = JSON.parse(availableDates);
                                             if (Array.isArray(parsed)) {
                                               count = parsed.length;
                                             }
                                           } catch (e) {
-                                            // Silent error
+                                            console.error('Failed to parse availableDates:', e);
                                           }
+                                        } else if (availableDates && typeof availableDates === 'object') {
+                                          // Handle other object types
+                                          count = Object.keys(availableDates).length;
                                         }
                                       }
                                       
