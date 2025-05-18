@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
-import { addDays, format, isWithinInterval } from "date-fns";
+import { format, isWithinInterval } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -39,15 +33,8 @@ export function DatePickerModal({
   onSave,
   locationName
 }: DatePickerModalProps) {
-  const [activeTab, setActiveTab] = useState<string>("individual");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [rangeCount, setRangeCount] = useState<number>(0);
   const [ranges, setRanges] = useState<DateRange[]>([]);
-
-  // Convert the selected individual dates to an array
-  const formattedSelectedDates = selectedDates.map(date => 
-    format(date, 'MMM d, yyyy')
-  );
 
   // Add a date range
   const addRange = () => {
@@ -78,7 +65,6 @@ export function DatePickerModal({
       
       // Reset the range input
       setDateRange(undefined);
-      setRangeCount(rangeCount + 1);
     }
   };
 
@@ -101,140 +87,103 @@ export function DatePickerModal({
     }
   };
 
-  // Remove an individual date
-  const removeDate = (dateStr: string) => {
-    const dateToRemove = new Date(dateStr);
-    const filteredDates = selectedDates.filter(date => 
-      date.toISOString().split('T')[0] !== dateToRemove.toISOString().split('T')[0]
-    );
-    onSelectDates(filteredDates);
-  };
-
   // Helper to format a date range for display
   const formatDateRange = (range: DateRange) => {
     return range.from && range.to
-      ? `${format(range.from, 'MMM d')} - ${format(range.to, 'MMM d, yyyy')}`
+      ? `${format(range.from, 'MMM d, yyyy')} - ${format(range.to, 'MMM d, yyyy')}`
       : '';
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Set Available Dates</DialogTitle>
           <DialogDescription>
-            Choose dates when this experience is available {locationName ? `at ${locationName}` : ''}
+            Choose date ranges when this experience is available {locationName ? `at ${locationName}` : ''}
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="individual" value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="individual">Individual Dates</TabsTrigger>
-            <TabsTrigger value="range">Date Ranges</TabsTrigger>
-          </TabsList>
-          <TabsContent value="individual">
-            <div className="my-4">
-              <div className="p-3 rounded-md border">
-                <Calendar
-                  mode="multiple"
-                  selected={selectedDates}
-                  onSelect={(dates) => onSelectDates(dates || [])}
-                  className="w-full"
-                />
-              </div>
-              
-              {formattedSelectedDates.length > 0 && (
-                <div className="mt-4">
-                  <Label>Selected Individual Dates:</Label>
-                  <ScrollArea className="h-[100px] rounded-md border p-2 mt-1">
-                    <div className="flex flex-wrap gap-2">
-                      {formattedSelectedDates.map((date, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" />
-                          {date}
-                          <button 
-                            onClick={() => removeDate(date)} 
-                            className="ml-1 text-gray-500 hover:text-red-500"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
+        <div className="my-4 space-y-6">
+          {/* Calendar for selecting date ranges */}
+          <div className="p-4 rounded-md border">
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={setDateRange}
+              numberOfMonths={2}
+              className="mx-auto"
+              showOutsideDays={false}
+            />
+          </div>
+          
+          {/* Date range selection and add button */}
+          <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+            <div className="text-sm font-medium">
+              {dateRange?.from ? (
+                <>
+                  <span>Selected Range: </span>
+                  <span className="text-green-600">
+                    {format(dateRange.from, 'MMM d, yyyy')}
+                    {dateRange.to && ` - ${format(dateRange.to, 'MMM d, yyyy')}`}
+                  </span>
+                </>
+              ) : (
+                <span className="text-gray-500">Select a date range above</span>
               )}
             </div>
-          </TabsContent>
-          <TabsContent value="range">
-            <div className="my-4">
-              <div className="p-3 rounded-md border mb-4">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={2}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm">
-                  {dateRange?.from && (
-                    <>
-                      {`${format(dateRange.from, 'MMM d, yyyy')}`}
-                      {dateRange.to && ` - ${format(dateRange.to, 'MMM d, yyyy')}`}
-                    </>
-                  )}
-                </span>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  onClick={addRange}
-                  disabled={!dateRange?.from || !dateRange?.to}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Range
-                </Button>
-              </div>
-              
-              {ranges.length > 0 && (
-                <div className="mt-4">
-                  <Label>Added Date Ranges:</Label>
-                  <ScrollArea className="h-[100px] rounded-md border p-2 mt-1">
-                    <div className="flex flex-col gap-2">
-                      {ranges.map((range, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            <CalendarIcon className="h-3 w-3" />
-                            {formatDateRange(range)}
-                          </Badge>
-                          <button 
-                            onClick={() => removeRange(index)} 
-                            className="text-gray-500 hover:text-red-500"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+            <Button 
+              type="button"
+              onClick={addRange}
+              disabled={!dateRange?.from || !dateRange?.to}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Range
+            </Button>
+          </div>
+          
+          {/* Added date ranges list */}
+          {ranges.length > 0 && (
+            <div>
+              <Label className="text-base font-semibold">Added Date Ranges:</Label>
+              <ScrollArea className="h-[150px] rounded-md border mt-2">
+                <div className="p-3 space-y-2">
+                  {ranges.map((range, index) => (
+                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">{formatDateRange(range)}</span>
+                      </div>
+                      <button 
+                        onClick={() => removeRange(index)} 
+                        className="text-gray-500 hover:text-red-500 p-1 rounded-full hover:bg-gray-100"
+                        aria-label="Remove date range"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
                     </div>
-                  </ScrollArea>
+                  ))}
                 </div>
-              )}
+              </ScrollArea>
             </div>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="text-sm mt-2">
-          Total Selected Dates: <Badge variant="secondary">{selectedDates.length}</Badge>
+          )}
+          
+          <div className="flex items-center px-2 py-1 bg-gray-100 rounded-md">
+            <span className="font-medium mr-2">Total Selected Dates:</span>
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              {selectedDates.length}
+            </Badge>
+          </div>
         </div>
         
-        <DialogFooter className="mt-6">
+        <DialogFooter className="mt-6 space-x-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button 
             type="button"
             onClick={onSave}
+            className="bg-green-600 hover:bg-green-700"
           >
             Save Dates
           </Button>
