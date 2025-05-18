@@ -590,45 +590,41 @@ function PublicBooking() {
               </DialogDescription>
             </DialogHeader>
 
-            {/* Compact Progress Steps */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center px-1 py-1 bg-gray-50 rounded-lg">
-                <div 
-                  className={`flex items-center gap-1 px-2 py-1 rounded ${bookingStep === 'location' ? 'bg-primary text-white' : 'text-gray-600'} cursor-pointer`}
-                  onClick={() => bookingStep !== 'location' && setBookingStep('location')}
-                >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full ${bookingStep === 'location' ? 'bg-white text-primary' : 'bg-gray-200'} text-xs font-medium`}>1</span>
-                  <span className="text-xs">Location</span>
+            {/* Progress Steps */}
+            <div className="mb-6">
+              <div className="flex justify-between">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white font-medium' : (bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                    1
+                  </div>
+                  <span className="text-xs mt-1.5">Location</span>
                 </div>
-                
-                <div className="h-[1px] w-2 bg-gray-300"></div>
-                
-                <div 
-                  className={`flex items-center gap-1 px-2 py-1 rounded ${bookingStep === 'description' ? 'bg-primary text-white' : 'text-gray-600'} cursor-pointer`}
-                  onClick={() => form.getValues().locationId && setBookingStep('description')}
-                >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full ${bookingStep === 'description' ? 'bg-white text-primary' : 'bg-gray-200'} text-xs font-medium`}>2</span>
-                  <span className="text-xs">Info</span>
+                <div className="flex-1 flex items-center mx-2">
+                  <div className={`h-1.5 w-full ${bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
                 </div>
-                
-                <div className="h-[1px] w-2 bg-gray-300"></div>
-                
-                <div 
-                  className={`flex items-center gap-1 px-2 py-1 rounded ${bookingStep === 'dates' ? 'bg-primary text-white' : 'text-gray-600'} cursor-pointer`}
-                  onClick={() => form.getValues().locationId && setBookingStep('dates')}
-                >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full ${bookingStep === 'dates' ? 'bg-white text-primary' : 'bg-gray-200'} text-xs font-medium`}>3</span>
-                  <span className="text-xs">Dates</span>
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'description' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                    2
+                  </div>
+                  <span className="text-xs mt-1.5">Description</span>
                 </div>
-                
-                <div className="h-[1px] w-2 bg-gray-300"></div>
-                
-                <div 
-                  className={`flex items-center gap-1 px-2 py-1 rounded ${bookingStep === 'details' ? 'bg-primary text-white' : 'text-gray-600'} cursor-pointer`}
-                  onClick={() => form.getValues().dateRange?.from && form.getValues().dateRange?.to && setBookingStep('details')}
-                >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full ${bookingStep === 'details' ? 'bg-white text-primary' : 'bg-gray-200'} text-xs font-medium`}>4</span>
-                  <span className="text-xs">Details</span>
+                <div className="flex-1 flex items-center mx-2">
+                  <div className={`h-1.5 w-full ${bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'dates' ? 'bg-primary text-white font-medium' : bookingStep === 'details' ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                    3
+                  </div>
+                  <span className="text-xs mt-1.5">Dates</span>
+                </div>
+                <div className="flex-1 flex items-center mx-2">
+                  <div className={`h-1.5 w-full ${bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'details' ? 'bg-primary text-white font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                    4
+                  </div>
+                  <span className="text-xs mt-1.5">Details</span>
                 </div>
               </div>
             </div>
