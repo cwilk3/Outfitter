@@ -665,7 +665,8 @@ export default function Experiences() {
         price: data.price || 0,
         capacity: data.capacity || 1,
         category: data.category || "other_hunting",
-        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
+        // Make sure locationId is properly set from form data or state
+        locationId: data.locationId || (selectedLocIds.length > 0 ? selectedLocIds[0] : 0),
         images: optimizedImages,
         availableDates: selectedDates || [],
         rules: rules || [],
@@ -1151,9 +1152,10 @@ export default function Experiences() {
                             Select the location where this experience is offered
                           </FormDescription>
                           <Select
-                            value={selectedLocIds.length > 0 ? selectedLocIds[0].toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                             onValueChange={(value) => {
                               const locationId = parseInt(value);
+                              field.onChange(locationId); // Update the form field value
                               setSelectedLocIds(locationId ? [locationId] : []);
                             }}
                           >
