@@ -1180,6 +1180,33 @@ export class MemStorage implements IStorage {
     return newExperienceLocation;
   }
   
+  async updateExperienceLocation(experienceId: number, locationId: number, data: Partial<InsertExperienceLocation>): Promise<ExperienceLocation | undefined> {
+    // Find the experience-location entry
+    const toUpdate = Array.from(this.experienceLocations.entries()).find(
+      ([_, el]) => el.experienceId === experienceId && el.locationId === locationId
+    );
+    
+    if (!toUpdate) {
+      return undefined;
+    }
+    
+    // Update the entry
+    const [id, existingData] = toUpdate;
+    const updatedEntry: ExperienceLocation = {
+      ...existingData,
+      ...data,
+      // Make sure we don't overwrite these
+      id: existingData.id,
+      experienceId: existingData.experienceId,
+      locationId: existingData.locationId,
+      // Update the timestamp
+      updatedAt: new Date()
+    };
+    
+    this.experienceLocations.set(id, updatedEntry);
+    return updatedEntry;
+  }
+  
   async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
     const toRemove = Array.from(this.experienceLocations.entries()).find(
       ([_, el]) => el.experienceId === experienceId && el.locationId === locationId

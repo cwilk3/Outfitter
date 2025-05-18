@@ -443,6 +443,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update experience-location association (for location-specific settings)
+  app.patch('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      const locationId = parseInt(req.params.locationId);
+      
+      // Allow partial updates
+      const validatedData = insertExperienceLocationSchema.partial().parse(req.body);
+      
+      const updated = await storage.updateExperienceLocation(experienceId, locationId, validatedData);
+      
+      if (!updated) {
+        return res.status(404).json({ message: 'Experience-location association not found' });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating experience-location:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to update experience-location' });
+    }
+  });
+
   app.delete('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
