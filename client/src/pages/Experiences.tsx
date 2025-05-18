@@ -1253,7 +1253,7 @@ export default function Experiences() {
                                         size="sm"
                                         className="h-9"
                                       >
-                                        <CalendarDays className="w-4 h-4 mr-2" />
+                                        <CalendarIcon className="w-4 h-4 mr-2" />
                                         Manage Available Dates
                                       </Button>
                                     </DialogTrigger>
