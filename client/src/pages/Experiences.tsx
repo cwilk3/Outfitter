@@ -584,12 +584,12 @@ export default function Experiences() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  // Toggle a location selection
+  // Set a single location selection
   const toggleLocationSelection = (locationId: number) => {
     setSelectedLocIds(prev => 
       prev.includes(locationId)
-        ? prev.filter(id => id !== locationId)
-        : [...prev, locationId]
+        ? [] // Deselect if clicking the same location
+        : [locationId] // Replace with only this location
     );
   };
 
@@ -1161,35 +1161,45 @@ export default function Experiences() {
                   
 
                   
-                  {/* Associated Physical Locations */}
+                  {/* Associated Physical Location */}
                   <div className="pt-2">
-                    <FormLabel>Available Business Locations</FormLabel>
-                    <FormDescription>
-                      Select the physical business locations where this experience is offered
-                    </FormDescription>
-                    <div className="pt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-3 mt-1">
-                      {locations && locations.length > 0 ? (
-                        locations.map((location: Location) => (
-                          <div className="flex items-center space-x-2" key={location.id}>
-                            <Checkbox
-                              id={`location-${location.id}`}
-                              checked={selectedLocIds.includes(location.id)}
-                              onCheckedChange={() => toggleLocationSelection(location.id)}
-                            />
-                            <label
-                              htmlFor={`location-${location.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {location.name} ({location.city}, {location.state})
-                            </label>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No locations available. Add some in the Locations tab first.
-                        </p>
+                    <FormField
+                      control={form.control}
+                      name="locationId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lodge/Business Location</FormLabel>
+                          <FormDescription>
+                            Select the location where this experience is offered
+                          </FormDescription>
+                          <Select
+                            value={selectedLocIds.length > 0 ? selectedLocIds[0].toString() : ""}
+                            onValueChange={(value) => {
+                              const locationId = parseInt(value);
+                              setSelectedLocIds(locationId ? [locationId] : []);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {locations && locations.length > 0 ? (
+                                locations.map((location: Location) => (
+                                  <SelectItem key={location.id} value={location.id.toString()}>
+                                    {location.name} ({location.city}, {location.state})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="" disabled>
+                                  No locations available
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </div>
+                    />
                   </div>
                 </div>
               )}
