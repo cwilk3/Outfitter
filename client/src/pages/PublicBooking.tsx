@@ -1113,7 +1113,6 @@ function PublicBooking() {
                                   }}
                                   bookings={bookingData}/>
                               </div>
-                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
