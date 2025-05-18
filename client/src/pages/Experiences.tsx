@@ -695,8 +695,8 @@ export default function Experiences() {
         
         try {
           const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
-            ...formData,
-            locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
+            ...basicData,
+            locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
           });
           
           console.log("Update successful", result);
@@ -735,15 +735,15 @@ export default function Experiences() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              name: basicData.name,
-              description: basicData.description,
-              // CRITICAL FIX: Always include a valid locationId number
+              name: data.name || "New Experience",
+              description: data.description || "Experience description",
+              // CRITICAL FIX: Always send the locationId as a VALID NUMBER
               locationId: 1, 
               duration: 1,
               price: "0",
               capacity: 1,
-              category: "other_hunting",
-              // Minimize payload for clarity
+              category: data.category || "other_hunting",
+              // Keep simple to isolate the issue
               images: [], 
             }),
           });
