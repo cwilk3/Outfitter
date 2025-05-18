@@ -1267,20 +1267,29 @@ export default function Experiences() {
                                     onClick={() => {
                                       // Store which location we're editing
                                       setCurrentEditingLocationId(location.id);
-                                      // Set the dates to edit
-                                      const elData = experienceLocationsData?.find(
-                                        el => el.locationId === location.id && el.experienceId === editingExperienceId
-                                      );
                                       
-                                      let dates = [];
-                                      if (elData?.availableDates) {
-                                        if (Array.isArray(elData.availableDates)) {
-                                          dates = elData.availableDates;
+                                      // Get dates from our local tracking state or from the data
+                                      const savedDates = locationAvailableDates[location.id] || [];
+                                      const existingDates = experienceLocationData?.find(
+                                        el => el.locationId === location.id && 
+                                             el.experienceId === editingExperienceId
+                                      )?.availableDates;
+                                      
+                                      // Parse the dates from the backend if needed
+                                      let dateArray: string[] = [];
+                                      if (savedDates.length > 0) {
+                                        // Use tracking state if we have it
+                                        dateArray = savedDates;
+                                      } else if (existingDates) {
+                                        // Otherwise try to parse from backend data
+                                        if (Array.isArray(existingDates)) {
+                                          dateArray = existingDates;
                                         } else {
                                           try {
-                                            const parsed = JSON.parse(elData.availableDates as string);
+                                            // Parse JSON string if needed
+                                            const parsed = JSON.parse(existingDates as string);
                                             if (Array.isArray(parsed)) {
-                                              dates = parsed;
+                                              dateArray = parsed;
                                             }
                                           } catch (e) {
                                             console.error("Failed to parse dates", e);
@@ -1288,8 +1297,9 @@ export default function Experiences() {
                                         }
                                       }
                                       
+                                      // Convert to Date objects for the calendar
                                       setSelectedDates(
-                                        dates.map(d => new Date(d))
+                                        dateArray.map(d => new Date(d))
                                       );
                                       
                                       // Show the modal
@@ -1301,17 +1311,25 @@ export default function Experiences() {
                                   </Button>
                                   <div className="text-xs text-gray-500 mt-1">
                                     {(() => {
-                                      const elData = experienceLocationsData?.find(
-                                        el => el.locationId === location.id && el.experienceId === editingExperienceId
-                                      );
+                                      // Check our local tracking state first
+                                      const savedDates = locationAvailableDates[location.id] || [];
+                                      if (savedDates.length > 0) {
+                                        return `${savedDates.length} dates selected`;
+                                      }
+                                      
+                                      // Otherwise check backend data
+                                      const existingDates = experienceLocationData?.find(
+                                        el => el.locationId === location.id && 
+                                             el.experienceId === editingExperienceId
+                                      )?.availableDates;
                                       
                                       let count = 0;
-                                      if (elData?.availableDates) {
-                                        if (Array.isArray(elData.availableDates)) {
-                                          count = elData.availableDates.length;
+                                      if (existingDates) {
+                                        if (Array.isArray(existingDates)) {
+                                          count = existingDates.length;
                                         } else {
                                           try {
-                                            const parsed = JSON.parse(elData.availableDates as string);
+                                            const parsed = JSON.parse(existingDates as string);
                                             if (Array.isArray(parsed)) {
                                               count = parsed.length;
                                             }
@@ -1914,7 +1932,13 @@ export default function Experiences() {
             <Calendar
               mode="multiple"
               selected={selectedDates}
-              onSelect={(dates) => setSelectedDates(dates || [])}
+              onSelect={(dates) => {
+                if (dates) {
+                  setSelectedDates(dates);
+                } else {
+                  setSelectedDates([]);
+                }
+              }}
               className="rounded-md border"
             />
           </div>
