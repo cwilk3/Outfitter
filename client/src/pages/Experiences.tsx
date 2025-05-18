@@ -107,7 +107,7 @@ const experienceSchema = z.object({
   duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
   price: z.coerce.number().positive({ message: "Price must be a positive number." }),
   capacity: z.coerce.number().positive({ message: "Capacity must be a positive number." }),
-  selectedLocationIds: z.array(z.number()).min(1, { message: "Select at least one location." }),
+  locationId: z.number({ required_error: "Location is required" }),
   
   // Media & extras
   images: z.array(z.string()).optional(),
@@ -230,7 +230,7 @@ export default function Experiences() {
       price: 0,
       capacity: 1,
       category: "other_hunting",
-      selectedLocationIds: [],
+      locationId: 0, // Will be replaced when location is selected
       images: [],
       availableDates: [],
       rules: [],
@@ -245,7 +245,7 @@ export default function Experiences() {
     mutationFn: (data: ExperienceFormValues) => {
       return apiRequest<Experience>('POST', '/api/experiences', {
         ...data,
-        selectedLocationIds: selectedLocIds,
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
         rules: rules,
         amenities: amenities,
         tripIncludes: tripIncludes,
@@ -292,7 +292,7 @@ export default function Experiences() {
     mutationFn: ({ id, data }: { id: number; data: ExperienceFormValues }) => {
       return apiRequest('PATCH', `/api/experiences/${id}`, {
         ...data,
-        selectedLocationIds: selectedLocIds,
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
       });
     },
     onSuccess: (response) => {
@@ -501,7 +501,7 @@ export default function Experiences() {
       price: experience.price,
       capacity: experience.capacity,
       category: experience.category as any,
-      selectedLocationIds: selectedLocIds,
+      locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 0,
       images: experience.images || [],
       availableDates: availableDates,
       rules: experience.rules || [],
@@ -554,11 +554,11 @@ export default function Experiences() {
       // Validate details step
       form.trigger(['duration', 'price', 'capacity']);
       
-      // Manual validation for locations since it's a controlled state
+      // Manual validation for location since it's a controlled state
       if (selectedLocIds.length === 0) {
         toast({
           title: "Location Required",
-          description: "Please select at least one location for this experience",
+          description: "Please select a location for this experience",
           variant: "destructive",
         });
         return;
