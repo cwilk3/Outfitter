@@ -452,7 +452,7 @@ function PublicBooking() {
         }
         setBookingDialogOpen(open);
       }}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
+        <DialogContent className="sm:max-w-[900px] md:max-w-[1000px] lg:max-w-[1100px] max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {/* Experience Header in Dialog */}
           {selectedExperience && (
             <>
