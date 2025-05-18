@@ -96,17 +96,17 @@ export function DatePickerModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="mb-3">
           <DialogTitle>Set Available Dates</DialogTitle>
           <DialogDescription>
             Choose date ranges when this experience is available {locationName ? `at ${locationName}` : ''}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="my-4 space-y-6">
+        <div className="space-y-4">
           {/* Calendar for selecting date ranges */}
-          <div className="p-4 rounded-md border">
+          <div className="p-3 rounded-md border">
             <Calendar
               mode="range"
               selected={dateRange}
@@ -146,8 +146,8 @@ export function DatePickerModal({
           {ranges.length > 0 && (
             <div>
               <Label className="text-base font-semibold">Added Date Ranges:</Label>
-              <ScrollArea className="h-[150px] rounded-md border mt-2">
-                <div className="p-3 space-y-2">
+              <ScrollArea className="h-[120px] rounded-md border mt-2">
+                <div className="p-2 space-y-2">
                   {ranges.map((range, index) => (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                       <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export function DatePickerModal({
           </div>
         </div>
         
-        <DialogFooter className="mt-6 space-x-2">
+        <DialogFooter className="mt-4 pt-2 border-t">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
