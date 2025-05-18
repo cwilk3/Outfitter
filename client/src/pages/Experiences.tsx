@@ -1935,7 +1935,7 @@ export default function Experiences() {
           
           <div className="my-6">
             <div className="p-3 rounded-md border">
-              <DayPicker
+              <Calendar
                 mode="multiple"
                 selected={selectedDates}
                 onSelect={(dates) => {
