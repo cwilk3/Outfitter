@@ -34,7 +34,59 @@ export function DatePickerModal({
   locationName
 }: DatePickerModalProps) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [ranges, setRanges] = useState<DateRange[]>([]);
+  
+  // Group consecutive dates into ranges for display
+  const [ranges, setRanges] = useState<DateRange[]>(() => {
+    if (!selectedDates || selectedDates.length === 0) return [];
+    
+    // Sort dates
+    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+    
+    // Group consecutive dates into ranges
+    const dateRanges: DateRange[] = [];
+    let rangeStart: Date | null = null;
+    let rangeEnd: Date | null = null;
+    
+    sortedDates.forEach((date, index) => {
+      const currentDate = new Date(date);
+      
+      // Start a new range if none exists
+      if (rangeStart === null) {
+        rangeStart = currentDate;
+        rangeEnd = currentDate;
+        return;
+      }
+      
+      // Check if this date is consecutive with the current range
+      const prevDate = new Date(rangeEnd!);
+      prevDate.setDate(prevDate.getDate() + 1);
+      
+      if (currentDate.getTime() === prevDate.getTime()) {
+        // Extend the current range
+        rangeEnd = currentDate;
+      } else {
+        // Complete the current range and start a new one
+        if (rangeStart && rangeEnd) {
+          dateRanges.push({
+            from: new Date(rangeStart),
+            to: new Date(rangeEnd)
+          });
+        }
+        rangeStart = currentDate;
+        rangeEnd = currentDate;
+      }
+      
+      // Add the final range if this is the last date
+      if (index === sortedDates.length - 1 && rangeStart && rangeEnd) {
+        dateRanges.push({
+          from: new Date(rangeStart),
+          to: new Date(rangeEnd)
+        });
+      }
+    });
+    
+    return dateRanges;
+  });
 
   // Add a date range
   const addRange = () => {
@@ -114,6 +166,15 @@ export function DatePickerModal({
               numberOfMonths={2}
               className="mx-auto"
               showOutsideDays={false}
+              modifiers={{
+                selected: selectedDates
+              }}
+              modifiersStyles={{
+                selected: { 
+                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                  color: '#166534' 
+                }
+              }}
             />
           </div>
           

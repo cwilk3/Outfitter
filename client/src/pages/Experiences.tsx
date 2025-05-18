@@ -1334,7 +1334,13 @@ export default function Experiences() {
                                       // Check our local tracking state first
                                       const savedDates = locationAvailableDates[location.id] || [];
                                       if (savedDates.length > 0) {
-                                        return `${savedDates.length} dates selected`;
+                                        return (
+                                          <span className="text-green-600 font-medium">
+                                            {savedDates.length === 1 
+                                              ? "1 date selected" 
+                                              : `${savedDates.length} dates selected`}
+                                          </span>
+                                        );
                                       }
                                       
                                       // Otherwise check backend data
@@ -1360,8 +1366,10 @@ export default function Experiences() {
                                       }
                                       
                                       return count > 0 
-                                        ? `${count} dates selected` 
-                                        : "No dates selected yet";
+                                        ? <span className="text-green-600 font-medium">
+                                            {count === 1 ? "1 date selected" : `${count} dates selected`}
+                                          </span>
+                                        : <span className="text-gray-500">No dates selected yet</span>;
                                     })()}
                                   </div>
                                 </div>
