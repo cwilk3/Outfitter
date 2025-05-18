@@ -267,6 +267,12 @@ export class DatabaseStorage implements IStorage {
         )
       );
   }
+  
+  async removeAllExperienceLocations(experienceId: number): Promise<void> {
+    await db
+      .delete(experienceLocations)
+      .where(eq(experienceLocations.experienceId, experienceId));
+  }
 
   // Customer operations
   async getCustomer(id: number): Promise<Customer | undefined> {

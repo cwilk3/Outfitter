@@ -304,27 +304,41 @@ export default function Experiences() {
       // Handle location associations
       if (selectedExperience) {
         const experienceId = selectedExperience.id;
-        const existingLocations = experienceLocations[experienceId] || [];
         
-        // Remove locations that were unselected
-        for (const locationId of existingLocations) {
-          if (!selectedLocIds.includes(locationId)) {
-            removeExperienceLocationMutation.mutate({
-              experienceId,
-              locationId,
-            });
+        // Delete all existing location associations first
+        apiRequest('DELETE', `/api/experience-locations/experience/${experienceId}`).then(() => {
+          // Re-create all selected location associations with updated settings
+          for (const locationId of selectedLocIds) {
+            try {
+              // Get location-specific settings from DOM elements
+              const locationCapacityInput = document.getElementById(`location-capacity-${locationId}`) as HTMLInputElement;
+              const locationDurationInput = document.getElementById(`location-duration-${locationId}`) as HTMLInputElement;
+              const locationPriceInput = document.getElementById(`location-price-${locationId}`) as HTMLInputElement;
+              
+              // Use location-specific values with defaults
+              const capacity = locationCapacityInput && locationCapacityInput.value ? 
+                parseInt(locationCapacityInput.value) : 1;
+              
+              const duration = locationDurationInput && locationDurationInput.value ? 
+                parseInt(locationDurationInput.value) : 1;
+              
+              const price = locationPriceInput && locationPriceInput.value ?
+                parseFloat(locationPriceInput.value) : 0;
+              
+              apiRequest('POST', '/api/experience-locations', { 
+                experienceId, 
+                locationId,
+                capacity,
+                duration,
+                price: price.toString() // Convert to string for decimal storage
+              });
+            } catch (err) {
+              console.error("Error re-associating location:", err);
+            }
           }
-        }
-        
-        // Add newly selected locations
-        for (const locationId of selectedLocIds) {
-          if (!existingLocations.includes(locationId)) {
-            addExperienceLocationMutation.mutate({
-              experienceId,
-              locationId,
-            });
-          }
-        }
+        }).catch(err => {
+          console.error("Error removing existing experience-location associations:", err);
+        });
       }
       
       // Invalidate both admin and public experience queries
@@ -755,24 +769,27 @@ export default function Experiences() {
             
             for (const locationId of selectedLocIds) {
               try {
-                // Get location-specific capacity and duration from the DOM elements
+                // Get location-specific settings from the DOM elements
                 const locationCapacityInput = document.getElementById(`location-capacity-${locationId}`) as HTMLInputElement;
                 const locationDurationInput = document.getElementById(`location-duration-${locationId}`) as HTMLInputElement;
+                const locationPriceInput = document.getElementById(`location-price-${locationId}`) as HTMLInputElement;
                 
-                // Use location-specific values or fallback to the general values
+                // Use location-specific values with appropriate defaults
                 const capacity = locationCapacityInput && locationCapacityInput.value ? 
-                  parseInt(locationCapacityInput.value) : 
-                  Number(formData.capacity);
+                  parseInt(locationCapacityInput.value) : 1;
                 
                 const duration = locationDurationInput && locationDurationInput.value ? 
-                  parseInt(locationDurationInput.value) : 
-                  Number(formData.duration);
+                  parseInt(locationDurationInput.value) : 1;
+                
+                const price = locationPriceInput && locationPriceInput.value ?
+                  parseFloat(locationPriceInput.value) : 0;
                 
                 await apiRequest('POST', '/api/experience-locations', { 
                   experienceId, 
                   locationId,
                   capacity,
-                  duration
+                  duration,
+                  price: price.toString() // Convert to string for decimal storage
                 });
               } catch (err) {
                 console.error("Error associating location:", err);
