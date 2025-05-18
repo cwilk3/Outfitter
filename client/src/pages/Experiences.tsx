@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { DayPicker } from "react-day-picker";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -1933,18 +1934,16 @@ export default function Experiences() {
           </DialogHeader>
           
           <div className="my-6">
-            <DayPicker
-              mode="multiple"
-              selected={selectedDates}
-              onSelect={(dates) => {
-                if (dates) {
-                  setSelectedDates(dates);
-                } else {
-                  setSelectedDates([]);
-                }
-              }}
-              className="rounded-md border"
-            />
+            <div className="p-3 rounded-md border">
+              <DayPicker
+                mode="multiple"
+                selected={selectedDates}
+                onSelect={(dates) => {
+                  setSelectedDates(dates || []);
+                }}
+                className="w-full"
+              />
+            </div>
           </div>
           
           <DialogFooter>
