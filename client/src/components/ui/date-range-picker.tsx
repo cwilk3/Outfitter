@@ -221,13 +221,6 @@ export function DateRangePicker({
               }
             }}
           />
-          {dateRange?.from && dateRange.to && (
-            <div className="mt-3 pt-3 border-t">
-              <p className="text-sm font-medium">
-                Selected dates: {format(dateRange.from, "MMMM d")} - {format(dateRange.to, "MMMM d, yyyy")}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
