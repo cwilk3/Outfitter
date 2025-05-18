@@ -735,16 +735,22 @@ export default function Experiences() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              // Basic information
               name: data.name || "New Experience",
               description: data.description || "Experience description",
-              // CRITICAL FIX: Always send the locationId as a VALID NUMBER
-              locationId: 1, 
-              duration: 1,
-              price: "0",
-              capacity: 1,
+              locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
+              duration: parseInt(String(data.duration || 1)),
+              price: typeof data.price === 'number' ? data.price.toString() : (data.price || "0"),
+              capacity: parseInt(String(data.capacity || 1)),
               category: data.category || "other_hunting",
-              // Keep simple to isolate the issue
-              images: [], 
+              
+              // Additional details
+              images: selectedImages || [],
+              availableDates: selectedDates || [],
+              rules: rules || [],
+              amenities: amenities || [],
+              tripIncludes: tripIncludes || [],
+              addons: addons || []
             }),
           });
           
