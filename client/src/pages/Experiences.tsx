@@ -1329,7 +1329,7 @@ export default function Experiences() {
                                     <Calendar className="w-4 h-4 mr-2" />
                                     Set available dates
                                   </Button>
-                                  <div className="text-xs text-gray-500 mt-1">
+                                  <div className="text-xs mt-1">
                                     {(() => {
                                       // Check our local tracking state first
                                       const savedDates = locationAvailableDates[location.id] || [];
@@ -1366,10 +1366,14 @@ export default function Experiences() {
                                       }
                                       
                                       return count > 0 
-                                        ? <span className="text-green-600 font-medium">
+                                        ? (
+                                          <span className="text-green-600 font-medium">
                                             {count === 1 ? "1 date selected" : `${count} dates selected`}
                                           </span>
-                                        : <span className="text-gray-500">No dates selected yet</span>;
+                                        )
+                                        : (
+                                          <span className="text-gray-500">No dates selected yet</span>
+                                        );
                                     })()}
                                   </div>
                                 </div>
