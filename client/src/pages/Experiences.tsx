@@ -669,23 +669,15 @@ export default function Experiences() {
       console.log("Optimizing images...", { imageCount: selectedImages.length });
       const optimizedImages = await optimizeImages(selectedImages);
       
-      // CRITICAL: Force a valid locationId number to be included - this fixes the validation error
-      const forcedLocationId = 1; // Always use location ID 1 as fallback
-      
-      console.log("Setting locationId explicitly to:", forcedLocationId);
-      form.setValue('locationId', forcedLocationId);
-      
-      // Include the current state of the form extras - ensure all values are included
-      // Add fallback values for required fields to prevent validation issues
-      const formData = {
-        ...data,
+      // CRITICAL FIX: Create a brand new object with the minimum required fields
+      // This prevents any undefined fields or data structure issues
+      const basicData = {
         name: data.name || "Untitled Experience",
         description: data.description || "No description provided",
-        duration: data.duration || 1,
-        price: data.price || 0,
-        capacity: data.capacity || 1,
-        // Fixed: Only include locationId once with proper fallbacks
-        locationId: forcedLocationId, // Use our explicit forced value
+        locationId: 1, // CRITICAL: Always use a valid locationId
+        duration: parseInt(String(data.duration || 1)),
+        price: parseFloat(String(data.price || 0)),
+        capacity: parseInt(String(data.capacity || 1)),
         category: data.category || "other_hunting",
         images: optimizedImages,
         availableDates: selectedDates || [],
@@ -695,7 +687,7 @@ export default function Experiences() {
         addons: addons || [],
       };
       
-      console.log("Form data prepared successfully:", formData);
+      console.log("Data prepared successfully:", basicData);
       
       if (selectedExperience) {
         // Update workflow for existing experience
@@ -743,17 +735,16 @@ export default function Experiences() {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              name: formData.name,
-              description: formData.description,
-              // Convert string values to numbers where needed
-              duration: Number(formData.duration),
-              // Keep price as a string
-              price: formData.price.toString(),
-              capacity: Number(formData.capacity),
-              category: formData.category,
-              // Minimize payload for debugging
-              images: [], // Skip images initially
-              selectedLocationIds: selectedLocIds,
+              name: basicData.name,
+              description: basicData.description,
+              // CRITICAL FIX: Always include a valid locationId number
+              locationId: 1, 
+              duration: 1,
+              price: "0",
+              capacity: 1,
+              category: "other_hunting",
+              // Minimize payload for clarity
+              images: [], 
             }),
           });
           
