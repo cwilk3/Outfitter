@@ -453,17 +453,22 @@ export default function Experiences() {
     
     // Load all necessary data before showing the dialog to ensure a smooth editing experience
     
-    // Get associated locations for this experience
-    const associatedLocations = experienceLocationData?.filter(
-      (el: ExperienceLocation) => el.experienceId === experience.id
-    );
-    
-    // Set selected location IDs
-    if (associatedLocations && associatedLocations.length > 0) {
-      const locationIds = associatedLocations?.map((loc: ExperienceLocation) => loc.locationId) || [];
-      setSelectedLocIds(locationIds);
+    // Set locationId based on the experience's locationId or use experience-locations table for backward compatibility
+    if (experience.locationId) {
+      // Direct locationId is available (new model)
+      setSelectedLocIds([experience.locationId]);
     } else {
-      setSelectedLocIds([]);
+      // Fall back to experience-locations for backward compatibility
+      const associatedLocations = experienceLocationData?.filter(
+        (el: ExperienceLocation) => el.experienceId === experience.id
+      );
+      
+      if (associatedLocations && associatedLocations.length > 0) {
+        const locationIds = associatedLocations?.map((loc: ExperienceLocation) => loc.locationId) || [];
+        setSelectedLocIds(locationIds.length > 0 ? [locationIds[0]] : []); // Just take the first one for our new model
+      } else {
+        setSelectedLocIds([]);
+      }
     }
     
     // Set images if available
@@ -869,18 +874,12 @@ export default function Experiences() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div className="flex items-start">
                         <MapPin className="h-4 w-4 mr-1 mt-0.5 text-gray-500 flex-shrink-0" />
-                        {experienceLocations[experience.id] && experienceLocations[experience.id].length > 0 ? (
+                        {experience.locationId ? (
                           <span className="text-xs text-gray-700 line-clamp-2">
-                            {experienceLocations[experience.id]
-                              .map(locId => {
-                                const location = locations.find(l => l.id === locId);
-                                return location?.name;
-                              })
-                              .filter(Boolean)
-                              .join(', ')}
+                            {locations.find(l => l.id === experience.locationId)?.name || 'Unknown location'}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">No lodges assigned</span>
+                          <span className="text-xs text-gray-400 italic">No lodge assigned</span>
                         )}
                       </div>
                       <div className="flex items-center">
@@ -902,27 +901,7 @@ export default function Experiences() {
                       </div>
                     </div>
                     
-                    {/* We've integrated the lodge information directly into the info grid above */}
-                    {experienceLocations[experience.id] && experienceLocations[experience.id].length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-100">
-                        <h4 className="text-xs font-medium text-gray-500 mb-1.5">Available Lodges:</h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {experienceLocations[experience.id].map(locId => {
-                            // Find the location object that matches this ID
-                            const location = locations.find((l: Location) => l.id === locId);
-                            return location ? (
-                              <Badge 
-                                key={locId} 
-                                variant="outline"
-                                className="px-2 py-1 text-xs bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                              >
-                                <MapPin className="h-3 w-3 mr-1" /> {location.name}
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {/* Lodge information is now in the info grid above */}
                   </CardContent>
                   {isAdmin && (
                     <CardFooter className="flex justify-end space-x-2 px-4 pt-1 pb-3 border-t border-gray-100">
