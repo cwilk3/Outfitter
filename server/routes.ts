@@ -1053,29 +1053,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all active experiences
       const experiences = await storage.listExperiences();
-      const experienceLocations = await storage.getAllExperienceLocations();
-      const locations = await storage.listLocations(true); // Only active locations
+      // Get all active locations
+      const locations = await storage.listLocations(true); 
       
-      // Enrich experiences with location info
+      // Enrich experiences with their location info
       const enrichedExperiences = experiences.map(experience => {
-        // Find location associations for this experience
-        const associatedLocationIds = experienceLocations
-          .filter(el => el.experienceId === experience.id)
-          .map(el => el.locationId);
+        // Find the associated location for this experience
+        const associatedLocation = locations.find(location => 
+          location.id === experience.locationId
+        );
         
-        // Get location details
-        const associatedLocations = locations
-          .filter(location => associatedLocationIds.includes(location.id))
-          .map(location => ({
-            id: location.id,
-            name: location.name,
-            city: location.city,
-            state: location.state
-          }));
+        // Create location info in the same format as before for backward compatibility
+        const locationInfo = associatedLocation ? [{
+          id: associatedLocation.id,
+          name: associatedLocation.name,
+          city: associatedLocation.city,
+          state: associatedLocation.state
+        }] : [];
         
         return {
           ...experience,
-          locations: associatedLocations
+          locations: locationInfo
         };
       });
       

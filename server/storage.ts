@@ -34,8 +34,8 @@ export interface IStorage {
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
-  getAllExperienceLocations(): Promise<ExperienceLocation[]>;
-  addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
+  getAllExperienceLocations(): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }[]>;
+  addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
   
   // Customer operations
@@ -198,62 +198,82 @@ export class DatabaseStorage implements IStorage {
   
   // Experience Locations operations
   async getExperienceLocations(experienceId: number): Promise<Location[]> {
-    const locationIds = await db
-      .select({ id: experienceLocations.locationId })
-      .from(experienceLocations)
-      .where(eq(experienceLocations.experienceId, experienceId));
+    // Get the experience to find its locationId
+    const [experience] = await db
+      .select()
+      .from(experiences)
+      .where(eq(experiences.id, experienceId));
     
-    if (locationIds.length === 0) {
+    if (!experience || !experience.locationId) {
       return [];
     }
     
-    return await db
+    // Return the single location associated with this experience
+    const [location] = await db
       .select()
       .from(locations)
-      .where(inArray(locations.id, locationIds.map(r => r.id)))
-      .orderBy(locations.name);
+      .where(eq(locations.id, experience.locationId));
+    
+    return location ? [location] : [];
   }
   
-  async getAllExperienceLocations(): Promise<ExperienceLocation[]> {
-    return await db
-      .select()
-      .from(experienceLocations);
-  }
-  
-  async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation> {
-    // Check if relationship already exists
-    const existing = await db
-      .select()
-      .from(experienceLocations)
+  async getAllExperienceLocations(): Promise<{ experienceId: number, locationId: number, id: number, createdAt?: Date | null }[]> {
+    // Since we're transitioning away from the junction table, use the direct relationship
+    // and format the result in the same shape as the old junction table
+    const experienceData = await db
+      .select({
+        id: experiences.id,
+        locationId: experiences.locationId,
+        createdAt: experiences.createdAt
+      })
+      .from(experiences)
       .where(
-        and(
-          eq(experienceLocations.experienceId, experienceLocation.experienceId),
-          eq(experienceLocations.locationId, experienceLocation.locationId)
-        )
-      )
-      .then(rows => rows[0]);
-    
-    if (existing) {
-      return existing;
-    }
-    
-    const [result] = await db
-      .insert(experienceLocations)
-      .values(experienceLocation)
+        // Only include experiences that have a locationId
+        sql`${experiences.locationId} IS NOT NULL`
+      );
+      
+    // Transform the results to match the expected format
+    return experienceData.map(exp => ({
+      id: exp.id, // Using experience ID as the junction ID 
+      experienceId: exp.id,
+      locationId: exp.locationId as number,
+      createdAt: exp.createdAt
+    }));
+  }
+  
+  async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }> {
+    // Instead of creating a junction table entry, update the experience with the locationId
+    const [updatedExperience] = await db
+      .update(experiences)
+      .set({ 
+        locationId: experienceLocation.locationId,
+        updatedAt: new Date()
+      })
+      .where(eq(experiences.id, experienceLocation.experienceId))
       .returning();
     
-    return result;
+    if (!updatedExperience) {
+      throw new Error('Experience not found');
+    }
+    
+    // Return in the format expected by the existing code
+    return {
+      id: updatedExperience.id,
+      experienceId: updatedExperience.id,
+      locationId: updatedExperience.locationId as number,
+      createdAt: updatedExperience.createdAt
+    };
   }
   
-  async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
+  async removeExperienceLocation(experienceId: number, _locationId: number): Promise<void> {
+    // Instead of deleting a junction entry, set the locationId to null
     await db
-      .delete(experienceLocations)
-      .where(
-        and(
-          eq(experienceLocations.experienceId, experienceId),
-          eq(experienceLocations.locationId, locationId)
-        )
-      );
+      .update(experiences)
+      .set({
+        locationId: null,
+        updatedAt: new Date()
+      })
+      .where(eq(experiences.id, experienceId));
   }
 
   // Customer operations
