@@ -39,8 +39,11 @@ export interface Location extends BaseLocation {
   price?: number | string;
 }
 
-// ExperienceLocation with availableDates
+// ExperienceLocation with availableDates, capacity, duration, and price
 export interface ExperienceLocation extends Omit<BaseExperienceLocation, 'availableDates'> {
+  capacity: number;
+  duration: number;
+  price: string | number;
   availableDates?: string[] | string;
 }
 

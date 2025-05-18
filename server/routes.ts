@@ -449,8 +449,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const experienceId = parseInt(req.params.experienceId);
       const locationId = parseInt(req.params.locationId);
       
-      // Allow partial updates
-      const validatedData = insertExperienceLocationSchema.partial().parse(req.body);
+      // Allow partial updates - handle both direct params and nested data field
+      const updateData = req.body.data || req.body;
+      const validatedData = insertExperienceLocationSchema.partial().parse(updateData);
       
       const updated = await storage.updateExperienceLocation(experienceId, locationId, validatedData);
       
