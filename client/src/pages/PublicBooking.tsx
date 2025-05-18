@@ -1010,7 +1010,8 @@ function PublicBooking() {
                                         );
                                         
                                         // If adding new hunter count exceeds capacity, reset date selection
-                                        if (totalBooked + newHunterCount > selectedExperience.capacity) {
+                                        const locationCapacity = selectedLocation?.capacity || selectedExperience.capacity;
+                                        if (totalBooked + newHunterCount > locationCapacity) {
                                           form.setValue('dateRange', undefined);
                                           toast({
                                             title: "Date no longer available",
@@ -1109,7 +1110,7 @@ function PublicBooking() {
                                   onSelect={field.onChange}
                                   experience={{
                                     duration: selectedExperience.duration,
-                                    capacity: selectedExperience.capacity
+                                    capacity: selectedLocation?.capacity || selectedExperience.capacity // Use location-specific capacity if available
                                   }}
                                   bookings={bookingData}/>
                               </div>
