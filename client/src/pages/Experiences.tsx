@@ -1248,38 +1248,77 @@ export default function Experiences() {
                                     }}
                                   />
                                 </div>
-                              </div>
-
-                              <div className="mt-3 ml-6">
-                                <label className="text-xs font-medium mb-1 block">
-                                  Available Dates at This Location
-                                </label>
-                                <div className="flex items-center gap-2 mt-1">
+                                
+                                <div className="mt-3">
+                                  <label className="text-xs font-medium mb-1 block">
+                                    Available Dates
+                                  </label>
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    className="h-9"
+                                    className="h-8 text-sm"
                                     onClick={() => {
-                                      // Open the date picker modal
+                                      // Store which location we're editing
                                       setCurrentEditingLocationId(location.id);
-                                      const locationDates = Array.isArray(location.availableDates) 
-                                        ? location.availableDates 
-                                        : [];
-                                      setSelectedDates(locationDates.map(date => 
-                                        typeof date === 'string' ? new Date(date) : new Date()
-                                      ));
+                                      // Set the dates to edit
+                                      const elData = experienceLocationsData?.find(
+                                        el => el.locationId === location.id && el.experienceId === editingExperienceId
+                                      );
+                                      
+                                      let dates = [];
+                                      if (elData?.availableDates) {
+                                        if (Array.isArray(elData.availableDates)) {
+                                          dates = elData.availableDates;
+                                        } else {
+                                          try {
+                                            const parsed = JSON.parse(elData.availableDates as string);
+                                            if (Array.isArray(parsed)) {
+                                              dates = parsed;
+                                            }
+                                          } catch (e) {
+                                            console.error("Failed to parse dates", e);
+                                          }
+                                        }
+                                      }
+                                      
+                                      setSelectedDates(
+                                        dates.map(d => new Date(d))
+                                      );
+                                      
+                                      // Show the modal
                                       setShowDatePickerModal(true);
                                     }}
                                   >
-                                    <CalendarIcon className="w-4 h-4 mr-2" />
-                                    Manage Available Dates
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Set available dates
                                   </Button>
-                                  
-                                  <div className="text-xs text-gray-600">
-                                    {location.availableDates && Array.isArray(location.availableDates) && location.availableDates.length > 0 ? 
-                                      `${location.availableDates.length} dates selected` : 
-                                      "No dates selected yet"}
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {(() => {
+                                      const elData = experienceLocationsData?.find(
+                                        el => el.locationId === location.id && el.experienceId === editingExperienceId
+                                      );
+                                      
+                                      let count = 0;
+                                      if (elData?.availableDates) {
+                                        if (Array.isArray(elData.availableDates)) {
+                                          count = elData.availableDates.length;
+                                        } else {
+                                          try {
+                                            const parsed = JSON.parse(elData.availableDates as string);
+                                            if (Array.isArray(parsed)) {
+                                              count = parsed.length;
+                                            }
+                                          } catch (e) {
+                                            // Silent error
+                                          }
+                                        }
+                                      }
+                                      
+                                      return count > 0 
+                                        ? `${count} dates selected` 
+                                        : "No dates selected yet";
+                                    })()}
                                   </div>
                                 </div>
                               </div>
