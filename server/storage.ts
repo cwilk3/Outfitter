@@ -189,20 +189,8 @@ export class DatabaseStorage implements IStorage {
     let query = db.select().from(experiences);
     
     if (locationId) {
-      // If locationId is provided, filter by experiences connected to that location
-      // using the junction table
-      const experienceIds = await db
-        .select({ id: experienceLocations.experienceId })
-        .from(experienceLocations)
-        .where(eq(experienceLocations.locationId, locationId))
-        .then(results => results.map(r => r.id));
-
-      if (experienceIds.length > 0) {
-        query = query.where(inArray(experiences.id, experienceIds));
-      } else {
-        // Fallback to legacy locationId if no matches in junction table
-        query = query.where(eq(experiences.locationId, locationId));
-      }
+      // Filter by the direct locationId field on experiences
+      query = query.where(eq(experiences.locationId, locationId));
     }
     
     return await query.orderBy(experiences.name);

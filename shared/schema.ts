@@ -212,18 +212,16 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const locationsRelations = relations(locations, ({ many }) => ({
-  experienceLocations: many(experienceLocations),
-  experiences: many(experiences), // Legacy relation, keeping for backward compatibility
+  experiences: many(experiences), // One location can have many experiences
 }));
 
 export const experiencesRelations = relations(experiences, ({ many, one }) => ({
   bookings: many(bookings),
-  experienceLocations: many(experienceLocations),
   experienceAddons: many(experienceAddons),
   location: one(locations, {
     fields: [experiences.locationId],
     references: [locations.id],
-  }), // Legacy relation, keeping for backward compatibility
+  }), // Direct relationship to a single location
 }));
 
 export const experienceLocationsRelations = relations(experienceLocations, ({ one }) => ({
