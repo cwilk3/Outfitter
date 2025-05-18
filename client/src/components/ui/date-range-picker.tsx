@@ -213,30 +213,30 @@ export function DateRangePicker({
             defaultMonth={dateRange?.from}
             modifiersStyles={{
               selected: {
-                backgroundColor: "var(--primary)",
+                backgroundColor: "#854d0e", // amber-800
                 color: "white",
                 fontWeight: "bold",
               },
               range_middle: {
-                backgroundColor: "rgba(var(--primary-rgb), 0.2)",
-                color: "var(--primary)",
+                backgroundColor: "#166534", // green-800
+                color: "white",
               },
               range_start: {
-                backgroundColor: "var(--primary)",
+                backgroundColor: "#854d0e", // amber-800
                 color: "white",
                 borderRadius: "50%",
               },
               range_end: {
-                backgroundColor: "var(--primary)",
+                backgroundColor: "#854d0e", // amber-800
                 color: "white",
                 borderRadius: "50%",
               }
             }}
             classNames={{
-              day_selected: "!bg-primary !text-primary-foreground hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground font-bold",
-              day_range_middle: "!bg-primary/20 !text-primary-foreground font-medium",
-              day_range_end: "!bg-primary !text-primary-foreground hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground font-bold",
-              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+              day_selected: "!bg-amber-800 !text-white hover:!bg-amber-800 hover:!text-white focus:!bg-amber-800 focus:!text-white font-bold",
+              day_range_middle: "!bg-green-800 !text-white font-medium",
+              day_range_end: "!bg-amber-800 !text-white hover:!bg-amber-800 hover:!text-white focus:!bg-amber-800 focus:!text-white font-bold",
+              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-green-800/80 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
               day: "h-12 w-12 p-0 font-normal aria-selected:opacity-100",
               months: "space-y-4 md:space-y-0 md:space-x-4 md:flex md:flex-row",
               month: "space-y-4",
