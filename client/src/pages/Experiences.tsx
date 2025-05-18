@@ -755,9 +755,24 @@ export default function Experiences() {
             
             for (const locationId of selectedLocIds) {
               try {
+                // Get location-specific capacity and duration from the DOM elements
+                const locationCapacityInput = document.getElementById(`location-capacity-${locationId}`) as HTMLInputElement;
+                const locationDurationInput = document.getElementById(`location-duration-${locationId}`) as HTMLInputElement;
+                
+                // Use location-specific values or fallback to the general values
+                const capacity = locationCapacityInput && locationCapacityInput.value ? 
+                  parseInt(locationCapacityInput.value) : 
+                  Number(formData.capacity);
+                
+                const duration = locationDurationInput && locationDurationInput.value ? 
+                  parseInt(locationDurationInput.value) : 
+                  Number(formData.duration);
+                
                 await apiRequest('POST', '/api/experience-locations', { 
                   experienceId, 
-                  locationId 
+                  locationId,
+                  capacity,
+                  duration
                 });
               } catch (err) {
                 console.error("Error associating location:", err);
@@ -1192,6 +1207,7 @@ export default function Experiences() {
                                     Location-specific Capacity
                                   </label>
                                   <Input 
+                                    id={`location-capacity-${location.id}`}
                                     type="number" 
                                     min="1" 
                                     placeholder="Max hunters at this location"
@@ -1199,10 +1215,8 @@ export default function Experiences() {
                                     defaultValue={location.capacity || form.getValues().capacity || 1}
                                     onChange={(e) => {
                                       // Store location-specific capacity
-                                      const updatedLocations = [...selectedLocIds];
                                       const capacity = parseInt(e.target.value);
-                                      // Update the location capacity in the database or form state
-                                      // This would be handled by the form submission
+                                      // Update the location capacity in the form state
                                       location.capacity = capacity;
                                     }}
                                   />
@@ -1213,6 +1227,7 @@ export default function Experiences() {
                                     Location-specific Duration (days)
                                   </label>
                                   <Input 
+                                    id={`location-duration-${location.id}`}
                                     type="number" 
                                     min="1" 
                                     placeholder="Days at this location"
@@ -1221,7 +1236,7 @@ export default function Experiences() {
                                     onChange={(e) => {
                                       // Store location-specific duration
                                       const duration = parseInt(e.target.value);
-                                      // Update the location duration in the database or form state
+                                      // Update the location duration in the form state
                                       location.duration = duration;
                                     }}
                                   />
