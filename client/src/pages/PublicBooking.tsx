@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateRangePicker, Booking } from "@/components/ui/date-range-picker";
-import { VisibleDatePicker } from "@/components/ui/visible-date-picker";
+import { InlineDatePicker } from "@/components/ui/inline-date-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -1104,10 +1104,9 @@ function PublicBooking() {
                                 </div>
                                 
                                 {/* Direct Calendar Display - Always Visible */}
-                                <div className="rounded-md border">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value?.from}
+                                <div>
+                                  <InlineDatePicker
+                                    date={field.value?.from}
                                     onSelect={(date) => {
                                       if (!date) {
                                         field.onChange(undefined);
