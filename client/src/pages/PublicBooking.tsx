@@ -1103,66 +1103,64 @@ function PublicBooking() {
                                 </div>
                                 
                                 {/* Direct Calendar Display - Always Visible */}
-                                <DateRangePicker
-                                  dateRange={field.value}
-                                  onUpdate={(newRange) => {
-                                    if (!newRange?.from) {
-                                      field.onChange(undefined);
-                                      return;
-                                    }
-                                    
-                                    // Auto-calculate end date based on duration
-                                    const endDate = addDays(newRange.from, selectedExperience.duration - 1);
-                                    
-                                    // Update the selection
-                                    field.onChange({ 
-                                      from: newRange.from, 
-                                      to: endDate 
-                                    });
-                                  }}
-                                  disabled={(date) => {
-                                    // Get today's date at the start of the day
-                                    const today = startOfDay(new Date());
-                                    
-                                    // Disable past dates
-                                    if (isBefore(date, today)) {
-                                      return true;
-                                    }
-                                    
-                                    // Check if the date range would overlap with any fully booked dates
-                                    for (let i = 0; i < selectedExperience.duration; i++) {
-                                      const checkDate = addDays(date, i);
+                                <div className="rounded-md border">
+                                  <VisibleDatePicker
+                                    date={field.value?.from}
+                                    onSelect={(date) => {
+                                      if (!date) {
+                                        field.onChange(undefined);
+                                        return;
+                                      }
                                       
-                                      // Check if this date is at capacity in any existing booking
-                                      const bookingsOnDate = bookingData.filter(booking => {
-                                        const bookingStart = new Date(booking.startDate);
-                                        const bookingEnd = new Date(booking.endDate);
-                                        return (
-                                          (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
-                                          (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
-                                        );
+                                      // Auto-calculate end date based on duration
+                                      const endDate = addDays(date, selectedExperience.duration - 1);
+                                      
+                                      // Update the selection
+                                      field.onChange({ 
+                                        from: date, 
+                                        to: endDate 
                                       });
+                                    }}
+                                    disabledDates={(date) => {
+                                      // Get today's date at the start of the day
+                                      const today = startOfDay(new Date());
                                       
-                                      // Sum the bookings for this date
-                                      const totalBooked = bookingsOnDate.reduce((total, booking) => 
-                                        total + booking.bookedCount, 0
-                                      );
-                                      
-                                      // Get current group size selection (default to 1 if not set)
-                                      const currentGroupSize = parseInt(form.getValues().groupSize) || 1;
-                                      
-                                      // If adding the current group would exceed capacity, disable the date
-                                      if (totalBooked + currentGroupSize > selectedExperience.capacity) {
+                                      // Disable past dates
+                                      if (isBefore(date, today)) {
                                         return true;
                                       }
-                                    }
-                                    
-                                    return false;
-                                  }}
-                                  // Force the calendar to always be open
-                                  open={true} 
-                                  calendars={1}
-                                  alwaysVisible={true}
+                                      
+                                      // Check if the date range would overlap with any fully booked dates
+                                      for (let i = 0; i < selectedExperience.duration; i++) {
+                                        const checkDate = addDays(date, i);
+                                        
+                                        // Check if this date is at capacity in any existing booking
+                                        const bookingsOnDate = bookingData.filter(booking => {
+                                          const bookingStart = new Date(booking.startDate);
+                                          const bookingEnd = new Date(booking.endDate);
+                                          return (
+                                            (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
+                                            (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
+                                          );
+                                        });
+                                        
+                                        // Sum the bookings for this date
+                                        const totalBooked = bookingsOnDate.reduce((total, booking) => 
+                                          total + booking.bookedCount, 0
+                                        );
+                                        
+                                        // Get current group size selection (default to 1 if not set)
+                                        const currentGroupSize = parseInt(form.getValues().groupSize) || 1;
+                                        
+                                        // If adding the current group would exceed capacity, disable the date
+                                        if (totalBooked + currentGroupSize > selectedExperience.capacity) {
+                                          return true;
+                                        }
+                                      }
+                                      
+                                      return false;
+                                    }}
+                                  />
                                 </div>
                               </div>
                               <FormMessage />
