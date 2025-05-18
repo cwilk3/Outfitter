@@ -127,7 +127,7 @@ function PublicBooking() {
     queryKey: ['/api/public/experiences'],
   });
 
-  // State for tracking booking steps
+  // State for tracking booking steps (removed 'location' step since experiences now have a direct relationship with locations)
   const [bookingStep, setBookingStep] = useState<'description' | 'dates' | 'details'>('description');
   
   // State for tracking booking availability data
