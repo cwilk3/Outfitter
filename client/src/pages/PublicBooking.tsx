@@ -134,6 +134,9 @@ function PublicBooking() {
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
   
+  // State for selected location (with capacity information)
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  
   // Set up the booking form
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
@@ -657,7 +660,15 @@ function PublicBooking() {
                               className="flex flex-col space-y-3"
                             >
                               {selectedExperience.locations.map(location => (
-                                <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
+                                <div 
+                                  key={location.id} 
+                                  className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} 
+                                  onClick={() => {
+                                    field.onChange(location.id.toString());
+                                    // When a location is selected, store the full location object including capacity
+                                    setSelectedLocation(location);
+                                  }}
+                                >
                                   <FormItem className="flex items-start space-x-3 space-y-0">
                                     <FormControl>
                                       <RadioGroupItem value={location.id.toString()} />
@@ -668,6 +679,9 @@ function PublicBooking() {
                                       </FormLabel>
                                       <p className="text-sm text-gray-500">
                                         {location.city}, {location.state}
+                                      </p>
+                                      <p className="text-xs text-gray-400">
+                                        Max Capacity: {location.capacity || selectedExperience.capacity} hunters
                                       </p>
                                     </div>
                                   </FormItem>
