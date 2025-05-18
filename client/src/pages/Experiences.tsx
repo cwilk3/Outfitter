@@ -189,6 +189,11 @@ interface LocationAvailableDates {
   [locationId: number]: string[];
 }
 
+// Helper type for managing location-specific available dates
+type LocationDateMapping = {
+  [locationId: number]: string[];
+};
+
 export default function Experiences() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
@@ -196,6 +201,7 @@ export default function Experiences() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [currentEditingLocationId, setCurrentEditingLocationId] = useState<number | null>(null);
+  const [locationAvailableDates, setLocationAvailableDates] = useState<LocationDateMapping>({});
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -1187,7 +1193,7 @@ export default function Experiences() {
                             </div>
                             
                             {selectedLocIds.includes(location.id) && (
-                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                 <div>
                                   <label className="text-xs font-medium mb-1 block">
                                     Location-specific Capacity
@@ -1891,6 +1897,71 @@ export default function Experiences() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Date Picker Modal for Location-specific Availability */}
+      <Dialog open={showDatePickerModal} onOpenChange={setShowDatePickerModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Select Available Dates</DialogTitle>
+            <DialogDescription>
+              Choose dates when this experience is available at this location
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="my-6">
+            <Calendar
+              mode="multiple"
+              selected={selectedDates}
+              onSelect={(dates) => setSelectedDates(dates || [])}
+              className="rounded-md border"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowDatePickerModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                // Save the selected dates for this location
+                if (currentEditingLocationId) {
+                  // Convert dates to ISO strings for storage
+                  const dateStrings = selectedDates.map(date => 
+                    date.toISOString().split('T')[0]
+                  );
+                  
+                  // Update our tracking state
+                  setLocationAvailableDates(prev => ({
+                    ...prev,
+                    [currentEditingLocationId]: dateStrings
+                  }));
+                  
+                  // Find the experience location data for this location
+                  const experienceLocation = experienceLocationData?.find(
+                    el => el.locationId === currentEditingLocationId && 
+                         el.experienceId === editingExperienceId
+                  );
+                  
+                  if (experienceLocation) {
+                    // The junction already exists, update it
+                    experienceLocation.availableDates = dateStrings;
+                  }
+                  
+                  toast({
+                    title: "Available dates updated",
+                    description: `${dateStrings.length} dates have been set for this location`,
+                  });
+                }
+                
+                setShowDatePickerModal(false);
+              }}
+            >
+              Save Dates
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
