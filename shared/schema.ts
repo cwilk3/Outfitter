@@ -99,6 +99,7 @@ export const experienceLocations = pgTable("experience_locations", {
   experienceId: integer("experience_id").notNull().references(() => experiences.id),
   locationId: integer("location_id").notNull().references(() => locations.id),
   capacity: integer("capacity").notNull().default(0), // Location-specific capacity for this experience
+  duration: integer("duration").notNull().default(0), // Location-specific duration for this experience
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

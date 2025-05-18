@@ -1167,21 +1167,67 @@ export default function Experiences() {
                     <FormDescription>
                       Select the physical business locations where this experience is offered
                     </FormDescription>
-                    <div className="pt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-3 mt-1">
+                    <div className="pt-2 space-y-4 border rounded-md p-3 mt-1">
                       {locations && locations.length > 0 ? (
                         locations.map((location: Location) => (
-                          <div className="flex items-center space-x-2" key={location.id}>
-                            <Checkbox
-                              id={`location-${location.id}`}
-                              checked={selectedLocIds.includes(location.id)}
-                              onCheckedChange={() => toggleLocationSelection(location.id)}
-                            />
-                            <label
-                              htmlFor={`location-${location.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {location.name} ({location.city}, {location.state})
-                            </label>
+                          <div key={location.id} className="border-b pb-4 last:border-0 last:pb-0">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Checkbox
+                                id={`location-${location.id}`}
+                                checked={selectedLocIds.includes(location.id)}
+                                onCheckedChange={() => toggleLocationSelection(location.id)}
+                              />
+                              <label
+                                htmlFor={`location-${location.id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {location.name} ({location.city}, {location.state})
+                              </label>
+                            </div>
+                            
+                            {selectedLocIds.includes(location.id) && (
+                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs font-medium mb-1 block">
+                                    Location-specific Capacity
+                                  </label>
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    placeholder="Max hunters at this location"
+                                    className="h-8 text-sm"
+                                    defaultValue={location.capacity || form.getValues().capacity || 1}
+                                    onChange={(e) => {
+                                      // Store location-specific capacity
+                                      const updatedLocations = [...selectedLocIds];
+                                      const capacity = parseInt(e.target.value);
+                                      // Update the location capacity in the database or form state
+                                      // This would be handled by the form submission
+                                      location.capacity = capacity;
+                                    }}
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="text-xs font-medium mb-1 block">
+                                    Location-specific Duration (days)
+                                  </label>
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    placeholder="Days at this location"
+                                    className="h-8 text-sm"
+                                    defaultValue={location.duration || form.getValues().duration || 1}
+                                    onChange={(e) => {
+                                      // Store location-specific duration
+                                      const duration = parseInt(e.target.value);
+                                      // Update the location duration in the database or form state
+                                      location.duration = duration;
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))
                       ) : (
