@@ -117,46 +117,107 @@ export function DateRangePicker({
     });
   };
   
-  // For the booking flow, always show the calendar without requiring a click
+  // For the booking flow, we need to support two modes:
+  // 1. Always visible calendar (for desktop/tablet)
+  // 2. Popover calendar (for mobile)
+  
+  // Let's create a responsive approach that shows the calendar directly on larger screens
+  // and uses the popover on smaller screens
+
   return (
     <div className={className}>
-      {/* Calendar is always visible */}
-      <div className="bg-white rounded-md border p-4">
-        <div className="mb-3">
-          <h4 className="font-medium text-sm mb-1">Select Your Start Date</h4>
-          <p className="text-xs text-gray-500">
-            End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
-          </p>
-        </div>
-        <Calendar
-          initialFocus
-          mode="single"
-          selected={dateRange?.from}
-          onSelect={(date) => {
-            if (!date) {
-              onSelect(undefined);
-              return;
-            }
-            
-            // Auto-calculate end date based on duration
-            const endDate = addDays(date, duration - 1);
-            
-            // Update the selection
-            onSelect({ 
-              from: date, 
-              to: endDate 
-            });
-          }}
-          disabled={isDateDisabled}
-          className="border-t pt-3"
-        />
-        {dateRange?.from && dateRange.to && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-sm font-medium">
-              Selected dates: {format(dateRange.from, "MMMM d")} - {format(dateRange.to, "MMMM d, yyyy")}
+      {/* Mobile view (Popover) - This will only show on small screens */}
+      <div className="block md:hidden">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="date"
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !dateRange && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "LLL dd, y")} -{" "}
+                    {format(dateRange.to, "LLL dd, y")}
+                  </>
+                ) : (
+                  format(dateRange.from, "LLL dd, y")
+                )
+              ) : (
+                <span>Select dates</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              initialFocus
+              mode="single"
+              selected={dateRange?.from}
+              onSelect={(date) => {
+                if (!date) {
+                  onSelect(undefined);
+                  return;
+                }
+                
+                // Auto-calculate end date based on duration
+                const endDate = addDays(date, duration - 1);
+                
+                // Update the selection
+                onSelect({ 
+                  from: date, 
+                  to: endDate 
+                });
+              }}
+              disabled={isDateDisabled}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Desktop view (Always Visible Calendar) - This will show on medium screens and up */}
+      <div className="hidden md:block">
+        <div className="bg-white rounded-md border p-4">
+          <div className="mb-3">
+            <h4 className="font-medium text-sm mb-1">Select Your Start Date</h4>
+            <p className="text-xs text-gray-500">
+              End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
             </p>
           </div>
-        )}
+          <Calendar
+            initialFocus
+            mode="single"
+            selected={dateRange?.from}
+            onSelect={(date) => {
+              if (!date) {
+                onSelect(undefined);
+                return;
+              }
+              
+              // Auto-calculate end date based on duration
+              const endDate = addDays(date, duration - 1);
+              
+              // Update the selection
+              onSelect({ 
+                from: date, 
+                to: endDate 
+              });
+            }}
+            disabled={isDateDisabled}
+            className="border-t pt-3"
+          />
+          {dateRange?.from && dateRange.to && (
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-sm font-medium">
+                Selected dates: {format(dateRange.from, "MMMM d")} - {format(dateRange.to, "MMMM d, yyyy")}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
