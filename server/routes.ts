@@ -443,34 +443,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update experience-location association (for location-specific settings)
-  app.patch('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
-    try {
-      const experienceId = parseInt(req.params.experienceId);
-      const locationId = parseInt(req.params.locationId);
-      
-      // Allow partial updates - handle both direct params and nested data field
-      const updateData = req.body.data || req.body;
-      const validatedData = insertExperienceLocationSchema.partial().parse(updateData);
-      
-      const updated = await storage.updateExperienceLocation(experienceId, locationId, validatedData);
-      
-      if (!updated) {
-        return res.status(404).json({ message: 'Experience-location association not found' });
-      }
-      
-      res.json(updated);
-    } catch (error) {
-      console.error('Error updating experience-location:', error);
-      
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
-      }
-      
-      res.status(500).json({ message: 'Failed to update experience-location' });
-    }
-  });
-
   app.delete('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
@@ -489,27 +461,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error removing location from experience:', error);
       res.status(500).json({ message: 'Failed to remove location from experience' });
-    }
-  });
-  
-  // Remove all locations for an experience
-  app.delete('/api/experience-locations/experience/:experienceId', isAuthenticated, hasRole('admin'), async (req, res) => {
-    try {
-      const experienceId = parseInt(req.params.experienceId);
-      
-      await storage.removeAllExperienceLocations(experienceId);
-      
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.claims?.sub || '0',
-        action: 'Removed all locations from experience',
-        details: { experienceId }
-      });
-      
-      res.status(200).json({ message: 'All locations removed from experience successfully' });
-    } catch (error) {
-      console.error('Error removing all locations from experience:', error);
-      res.status(500).json({ message: 'Failed to remove all locations from experience' });
     }
   });
 

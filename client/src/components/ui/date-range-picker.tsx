@@ -117,112 +117,86 @@ export function DateRangePicker({
     });
   };
   
-  // For the booking flow, we need to support two modes:
-  // 1. Always visible calendar (for desktop/tablet)
-  // 2. Popover calendar (for mobile)
-  
-  // Let's create a responsive approach that shows the calendar directly on larger screens
-  // and uses the popover on smaller screens
-
   return (
     <div className={className}>
-      {/* Mobile view (Popover) - This will only show on small screens */}
-      <div className="block md:hidden">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dateRange && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            id="date"
+            variant={"outline"}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !dateRange && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dateRange?.from ? (
+              dateRange.to ? (
+                <>
+                  {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                </>
               ) : (
-                <span>Select dates</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="single"
-              selected={dateRange?.from}
-              onSelect={(date) => {
-                if (!date) {
-                  onSelect(undefined);
-                  return;
-                }
-                
-                // Auto-calculate end date based on duration
-                const endDate = addDays(date, duration - 1);
-                
-                // Update the selection
-                onSelect({ 
-                  from: date, 
-                  to: endDate 
-                });
-              }}
-              disabled={isDateDisabled}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Desktop view (Always Visible Calendar) - This will show on medium screens and up */}
-      <div className="hidden md:block">
-        <div className="bg-white rounded-md border p-4">
-          <div className="mb-3">
-            <h4 className="font-medium text-base mb-1">Select Your Start Date</h4>
-            <p className="text-sm text-gray-500">
-              End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
+                format(dateRange.from, "LLL dd, y")
+              )
+            ) : (
+              <span>Select dates</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="p-3 border-b">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm">Select Your Dates</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs max-w-xs">
+                      Click on an available start date. End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Experience duration: {duration} {duration === 1 ? 'day' : 'days'}
             </p>
           </div>
           <Calendar
             initialFocus
             mode="range"
+            defaultMonth={dateRange?.from}
             selected={dateRange}
-            onSelect={(range) => {
-              if (!range?.from) {
-                onSelect(undefined);
-                return;
-              }
-              
-              // Auto-calculate end date based on duration
-              const endDate = addDays(range.from, duration - 1);
-              
-              // Update the selection - keep the range selection mode for visual highlighting
-              onSelect({ 
-                from: range.from, 
-                to: endDate 
-              });
-            }}
+            onSelect={handleSelect}
+            numberOfMonths={2}
             disabled={isDateDisabled}
-            className="border-t pt-3 mx-auto" 
-            numberOfMonths={1}
-            modifiersStyles={{
-              selected: {
-                backgroundColor: "#4CAF50",
-                color: "white"
-              },
-              today: {
-                fontWeight: "bold",
-                textDecoration: "underline"
+            modifiers={{
+              range: { 
+                from: dateRange?.from || new Date(0), 
+                to: dateRange?.to || new Date(0) 
               }
             }}
+            className="p-3"
+            classNames={{
+              day_range_middle: "day-range-middle bg-primary/20 text-primary-foreground rounded-none",
+              day_range_start: "day-range-start bg-primary text-primary-foreground rounded-l-md",
+              day_range_end: "day-range-end bg-primary text-primary-foreground rounded-r-md",
+            }}
+            // The following forces a new selection to clear the previous one
+            pagedNavigation
+            fixedWeeks
           />
-        </div>
-      </div>
+          {dateRange?.from && (
+            <div className="p-3 border-t bg-muted/20">
+              <p className="text-xs font-medium">
+                Selected dates: {format(dateRange.from, "MMMM d")} - {dateRange.to && format(dateRange.to, "MMMM d, yyyy")}
+              </p>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

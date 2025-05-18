@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { DayPicker } from "react-day-picker";
-import { DatePickerModal } from "@/components/ui/date-picker-modal";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,8 +26,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -73,7 +69,6 @@ import {
   Plus, 
   Edit, 
   Calendar, 
-  CalendarIcon,
   Users, 
   DollarSign, 
   Trash2, 
@@ -186,24 +181,11 @@ const optimizeImages = async (imageDataUrls: string[]): Promise<string[]> => {
   }
 };
 
-// Type for location-specific dates 
-interface LocationAvailableDates {
-  [locationId: number]: string[];
-}
-
-// Helper type for managing location-specific available dates
-type LocationDateMapping = {
-  [locationId: number]: string[];
-};
-
 export default function Experiences() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
   const [isCreating, setIsCreating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
-  const [currentEditingLocationId, setCurrentEditingLocationId] = useState<number | null>(null);
-  const [locationAvailableDates, setLocationAvailableDates] = useState<LocationDateMapping>({});
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -218,11 +200,6 @@ export default function Experiences() {
   // State for new form fields
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [editingExperienceId, setEditingExperienceId] = useState<number | null>(null);
-  
-  // Define location date mapping type
-  type LocationDateMapping = {[locationId: number]: string[]};
-  const [locationDates, setLocationDates] = useState<{[locationId: number]: Date[]}>({});
   const [rules, setRules] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
@@ -327,41 +304,27 @@ export default function Experiences() {
       // Handle location associations
       if (selectedExperience) {
         const experienceId = selectedExperience.id;
+        const existingLocations = experienceLocations[experienceId] || [];
         
-        // Delete all existing location associations first
-        apiRequest('DELETE', `/api/experience-locations/experience/${experienceId}`).then(() => {
-          // Re-create all selected location associations with updated settings
-          for (const locationId of selectedLocIds) {
-            try {
-              // Get location-specific settings from DOM elements
-              const locationCapacityInput = document.getElementById(`location-capacity-${locationId}`) as HTMLInputElement;
-              const locationDurationInput = document.getElementById(`location-duration-${locationId}`) as HTMLInputElement;
-              const locationPriceInput = document.getElementById(`location-price-${locationId}`) as HTMLInputElement;
-              
-              // Use location-specific values with defaults
-              const capacity = locationCapacityInput && locationCapacityInput.value ? 
-                parseInt(locationCapacityInput.value) : 1;
-              
-              const duration = locationDurationInput && locationDurationInput.value ? 
-                parseInt(locationDurationInput.value) : 1;
-              
-              const price = locationPriceInput && locationPriceInput.value ?
-                parseFloat(locationPriceInput.value) : 0;
-              
-              apiRequest('POST', '/api/experience-locations', { 
-                experienceId, 
-                locationId,
-                capacity,
-                duration,
-                price: price.toString() // Convert to string for decimal storage
-              });
-            } catch (err) {
-              console.error("Error re-associating location:", err);
-            }
+        // Remove locations that were unselected
+        for (const locationId of existingLocations) {
+          if (!selectedLocIds.includes(locationId)) {
+            removeExperienceLocationMutation.mutate({
+              experienceId,
+              locationId,
+            });
           }
-        }).catch(err => {
-          console.error("Error removing existing experience-location associations:", err);
-        });
+        }
+        
+        // Add newly selected locations
+        for (const locationId of selectedLocIds) {
+          if (!existingLocations.includes(locationId)) {
+            addExperienceLocationMutation.mutate({
+              experienceId,
+              locationId,
+            });
+          }
+        }
       }
       
       // Invalidate both admin and public experience queries
@@ -408,20 +371,6 @@ export default function Experiences() {
   const addExperienceLocationMutation = useMutation({
     mutationFn: ({ experienceId, locationId }: { experienceId: number; locationId: number }) => {
       return apiRequest('POST', '/api/experience-locations', { experienceId, locationId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-    },
-  });
-
-  // Update experience-location association
-  const updateExperienceLocationMutation = useMutation({
-    mutationFn: ({ experienceId, locationId, data }: { 
-      experienceId: number; 
-      locationId: number;
-      data: Partial<ExperienceLocation>;
-    }) => {
-      return apiRequest('PATCH', `/api/experience-locations/${experienceId}/${locationId}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
@@ -806,27 +755,9 @@ export default function Experiences() {
             
             for (const locationId of selectedLocIds) {
               try {
-                // Get location-specific settings from the DOM elements
-                const locationCapacityInput = document.getElementById(`location-capacity-${locationId}`) as HTMLInputElement;
-                const locationDurationInput = document.getElementById(`location-duration-${locationId}`) as HTMLInputElement;
-                const locationPriceInput = document.getElementById(`location-price-${locationId}`) as HTMLInputElement;
-                
-                // Use location-specific values with appropriate defaults
-                const capacity = locationCapacityInput && locationCapacityInput.value ? 
-                  parseInt(locationCapacityInput.value) : 1;
-                
-                const duration = locationDurationInput && locationDurationInput.value ? 
-                  parseInt(locationDurationInput.value) : 1;
-                
-                const price = locationPriceInput && locationPriceInput.value ?
-                  parseFloat(locationPriceInput.value) : 0;
-                
                 await apiRequest('POST', '/api/experience-locations', { 
                   experienceId, 
-                  locationId,
-                  capacity,
-                  duration,
-                  price: price.toString() // Convert to string for decimal storage
+                  locationId 
                 });
               } catch (err) {
                 console.error("Error associating location:", err);
@@ -1184,7 +1115,49 @@ export default function Experiences() {
               {/* Step 2: Details */}
               {currentStep === 2 && (
                 <div className="space-y-4">
-                  {/* Removed general duration, capacity, and price fields as they're now location-specific */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="duration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration (days)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Max Capacity</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price Per Hunter ($)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" step="0.01" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
 
                   
@@ -1194,211 +1167,21 @@ export default function Experiences() {
                     <FormDescription>
                       Select the physical business locations where this experience is offered
                     </FormDescription>
-                    <div className="pt-2 space-y-4 border rounded-md p-3 mt-1">
+                    <div className="pt-2 space-y-2 max-h-40 overflow-y-auto border rounded-md p-3 mt-1">
                       {locations && locations.length > 0 ? (
                         locations.map((location: Location) => (
-                          <div key={location.id} className="border-b pb-4 last:border-0 last:pb-0">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Checkbox
-                                id={`location-${location.id}`}
-                                checked={selectedLocIds.includes(location.id)}
-                                onCheckedChange={() => toggleLocationSelection(location.id)}
-                              />
-                              <label
-                                htmlFor={`location-${location.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {location.name} ({location.city}, {location.state})
-                              </label>
-                            </div>
-                            
-                            {selectedLocIds.includes(location.id) && (
-                              <div className="ml-6 mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                                <div>
-                                  <label className="text-xs font-medium mb-1 block">
-                                    Location-specific Capacity
-                                  </label>
-                                  <Input 
-                                    id={`location-capacity-${location.id}`}
-                                    type="number" 
-                                    min="1" 
-                                    placeholder="Max hunters at this location"
-                                    className="h-8 text-sm"
-                                    defaultValue={location.capacity || 1}
-                                    onChange={(e) => {
-                                      // Store location-specific capacity
-                                      const capacity = parseInt(e.target.value);
-                                      // Update the location capacity in the form state
-                                      location.capacity = capacity;
-                                    }}
-                                  />
-                                </div>
-                                
-                                <div>
-                                  <label className="text-xs font-medium mb-1 block">
-                                    Location-specific Duration (days)
-                                  </label>
-                                  <Input 
-                                    id={`location-duration-${location.id}`}
-                                    type="number" 
-                                    min="1" 
-                                    placeholder="Days at this location"
-                                    className="h-8 text-sm"
-                                    defaultValue={location.duration || 1}
-                                    onChange={(e) => {
-                                      // Store location-specific duration
-                                      const duration = parseInt(e.target.value);
-                                      // Update the location duration in the form state
-                                      location.duration = duration;
-                                    }}
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-xs font-medium mb-1 block">
-                                    Price Per Hunter ($)
-                                  </label>
-                                  <Input 
-                                    id={`location-price-${location.id}`}
-                                    type="number" 
-                                    min="0" 
-                                    step="0.01"
-                                    placeholder="Price per hunter"
-                                    className="h-8 text-sm"
-                                    defaultValue={location.price || 0}
-                                    onChange={(e) => {
-                                      // Store location-specific price
-                                      const price = parseFloat(e.target.value);
-                                      // Update the location price in the form state
-                                      location.price = price;
-                                    }}
-                                  />
-                                </div>
-                                
-                                <div className="mt-3">
-                                  <label className="text-xs font-medium mb-1 block">
-                                    Available Dates
-                                  </label>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 text-sm"
-                                    onClick={() => {
-                                      // Store which location we're editing
-                                      setCurrentEditingLocationId(location.id);
-                                      
-                                      // Get dates from our local tracking state or from the data
-                                      const savedDates = locationAvailableDates[location.id] || [];
-                                      const existingDates = experienceLocationData?.find(
-                                        el => el.locationId === location.id && 
-                                             el.experienceId === editingExperienceId
-                                      )?.availableDates;
-                                      
-                                      // Parse the dates from the backend if needed
-                                      let dateArray: string[] = [];
-                                      if (savedDates.length > 0) {
-                                        // Use tracking state if we have it
-                                        dateArray = savedDates;
-                                      } else if (existingDates) {
-                                        // Otherwise try to parse from backend data
-                                        if (Array.isArray(existingDates)) {
-                                          dateArray = existingDates;
-                                        } else {
-                                          try {
-                                            // Parse JSON string if needed
-                                            const parsed = JSON.parse(existingDates as string);
-                                            if (Array.isArray(parsed)) {
-                                              dateArray = parsed;
-                                            }
-                                          } catch (e) {
-                                            console.error("Failed to parse dates", e);
-                                          }
-                                        }
-                                      }
-                                      
-                                      // Convert to Date objects for the calendar
-                                      setSelectedDates(
-                                        dateArray.map(d => new Date(d))
-                                      );
-                                      
-                                      // Show the modal
-                                      setShowDatePickerModal(true);
-                                    }}
-                                  >
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    Set available dates
-                                  </Button>
-                                  <div className="text-xs mt-1">
-                                    {(() => {
-                                      // Check our local tracking state first
-                                      const savedDates = locationAvailableDates[location.id] || [];
-                                      if (savedDates.length > 0) {
-                                        return (
-                                          <span className="text-green-600 font-medium">
-                                            {savedDates.length === 1 
-                                              ? "1 date selected" 
-                                              : `${savedDates.length} dates selected`}
-                                          </span>
-                                        );
-                                      }
-                                      
-                                      // Otherwise check backend data
-                                      const existingLocation = experienceLocationData?.find(
-                                        el => el.locationId === location.id && 
-                                             el.experienceId === editingExperienceId
-                                      );
-                                      
-                                      let count = 0;
-                                      if (existingLocation?.availableDates) {
-                                        const availableDates = existingLocation.availableDates;
-                                        
-                                        // For debugging
-                                        console.log('Available dates found:', availableDates, 'Type:', typeof availableDates);
-                                        
-                                        // First check if it's already an array
-                                        if (Array.isArray(availableDates)) {
-                                          count = availableDates.length;
-                                        } else if (typeof availableDates === 'string') {
-                                          // Try to parse JSON string if it's a string
-                                          try {
-                                            const parsed = JSON.parse(availableDates);
-                                            if (Array.isArray(parsed)) {
-                                              count = parsed.length;
-                                            }
-                                          } catch (e) {
-                                            // If not valid JSON but still a string, count it as 1 date
-                                            if (availableDates.trim()) {
-                                              count = 1;
-                                            }
-                                          }
-                                        } else if (availableDates && typeof availableDates === 'object') {
-                                          // Handle other object types
-                                          count = Object.keys(availableDates).length;
-                                        }
-                                      }
-                                      
-                                      // If we still have zero count but know there's something, set to at least 1
-                                      if (count === 0 && existingLocation?.availableDates && 
-                                          JSON.stringify(existingLocation.availableDates) !== '[]' &&
-                                          JSON.stringify(existingLocation.availableDates) !== '{}') {
-                                        count = 1;
-                                      }
-                                      
-                                      return count > 0 
-                                        ? (
-                                          <span className="text-green-600 font-medium">
-                                            {count === 1 ? "1 date selected" : `${count} dates selected`}
-                                          </span>
-                                        )
-                                        : (
-                                          <span className="text-gray-500">No dates selected yet</span>
-                                        );
-                                    })()}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                          <div className="flex items-center space-x-2" key={location.id}>
+                            <Checkbox
+                              id={`location-${location.id}`}
+                              checked={selectedLocIds.includes(location.id)}
+                              onCheckedChange={() => toggleLocationSelection(location.id)}
+                            />
+                            <label
+                              htmlFor={`location-${location.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {location.name} ({location.city}, {location.state})
+                            </label>
                           </div>
                         ))
                       ) : (
@@ -1427,7 +1210,17 @@ export default function Experiences() {
                     />
                   </div>
                   
-                  {/* Date selection removed - now handled in location-specific settings */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-base font-medium mb-1">Available Dates</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Select the dates when this experience is available for booking.
+                    </p>
+                    
+                    <DateAvailability
+                      selectedDates={selectedDates}
+                      onChange={setSelectedDates}
+                    />
+                  </div>
                 </div>
               )}
               
@@ -1959,57 +1752,6 @@ export default function Experiences() {
           </Form>
         </DialogContent>
       </Dialog>
-
-      {/* Date Picker Modal for Location-specific Availability */}
-      <DatePickerModal
-        open={showDatePickerModal}
-        onOpenChange={setShowDatePickerModal}
-        selectedDates={selectedDates}
-        onSelectDates={setSelectedDates}
-        locationName={locations.find(l => l.id === currentEditingLocationId)?.name}
-        onSave={() => {
-          // Save the selected dates for this location
-          if (currentEditingLocationId && selectedExperience) {
-            // Convert dates to ISO strings for storage
-            const dateStrings = selectedDates.map(date => 
-              date.toISOString().split('T')[0]
-            );
-            
-            // Update our tracking state
-            setLocationAvailableDates(prev => ({
-              ...prev,
-              [currentEditingLocationId]: dateStrings
-            }));
-            
-            // Find the experience location data for this location
-            const experienceLocation = experienceLocationData?.find(
-              el => el.locationId === currentEditingLocationId && 
-                   el.experienceId === selectedExperience.id
-            );
-            
-            if (experienceLocation) {
-              // The junction already exists, update it
-              experienceLocation.availableDates = dateStrings;
-            }
-            
-            // Update the experience-location junction
-            updateExperienceLocationMutation.mutate({
-              experienceId: selectedExperience.id,
-              locationId: currentEditingLocationId,
-              data: {
-                availableDates: dateStrings
-              }
-            });
-            
-            toast({
-              title: "Available dates updated",
-              description: `${dateStrings.length} dates have been set for this location`,
-            });
-          }
-          
-          setShowDatePickerModal(false);
-        }}
-      />
 
       {/* Delete Experience Alert Dialog */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>

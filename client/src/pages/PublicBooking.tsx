@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { ChevronRight, Calendar, Users, Check, Clock, DollarSign } from "lucide-react";
 import { z } from "zod";
-import { format, addDays, isBefore, isAfter, isSameDay, startOfDay } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
@@ -16,7 +16,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateRangePicker, Booking } from "@/components/ui/date-range-picker";
-import { DatePickerCalendar } from "@/components/DatePickerCalendar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -133,9 +132,6 @@ function PublicBooking() {
   
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
-  
-  // State for selected location (with capacity information)
-  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   
   // Set up the booking form
   const form = useForm<BookingFormValues>({
@@ -660,15 +656,7 @@ function PublicBooking() {
                               className="flex flex-col space-y-3"
                             >
                               {selectedExperience.locations.map(location => (
-                                <div 
-                                  key={location.id} 
-                                  className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} 
-                                  onClick={() => {
-                                    field.onChange(location.id.toString());
-                                    // When a location is selected, store the full location object including capacity
-                                    setSelectedLocation(location);
-                                  }}
-                                >
+                                <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
                                   <FormItem className="flex items-start space-x-3 space-y-0">
                                     <FormControl>
                                       <RadioGroupItem value={location.id.toString()} />
@@ -679,9 +667,6 @@ function PublicBooking() {
                                       </FormLabel>
                                       <p className="text-sm text-gray-500">
                                         {location.city}, {location.state}
-                                      </p>
-                                      <p className="text-xs text-gray-400">
-                                        Max Capacity: {location.capacity || selectedExperience.capacity} hunters
                                       </p>
                                     </div>
                                   </FormItem>
@@ -993,50 +978,7 @@ function PublicBooking() {
                             render={({ field }) => (
                               <FormItem>
                                 <Select
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    
-                                    // When hunter count changes, we need to re-check date availability
-                                    // If there's a date already selected, verify it's still valid with new count
-                                    const currentDateRange = form.getValues().dateRange;
-                                    if (currentDateRange?.from) {
-                                      // Get bookings for the selected date range
-                                      const selectedDate = currentDateRange.from;
-                                      const newHunterCount = parseInt(value);
-                                      
-                                      // Check if date is still available with new hunter count
-                                      for (let i = 0; i < selectedExperience.duration; i++) {
-                                        const checkDate = addDays(selectedDate, i);
-                                        
-                                        // Get bookings for this date
-                                        const bookingsOnDate = bookingData.filter(booking => {
-                                          const bookingStart = new Date(booking.startDate);
-                                          const bookingEnd = new Date(booking.endDate);
-                                          return (
-                                            (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
-                                            (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
-                                          );
-                                        });
-                                        
-                                        // Calculate total hunters booked
-                                        const totalBooked = bookingsOnDate.reduce((total, booking) => 
-                                          total + booking.bookedCount, 0
-                                        );
-                                        
-                                        // If adding new hunter count exceeds capacity, reset date selection
-                                        const locationCapacity = selectedLocation?.capacity || selectedExperience.capacity;
-                                        if (totalBooked + newHunterCount > locationCapacity) {
-                                          form.setValue('dateRange', undefined);
-                                          toast({
-                                            title: "Date no longer available",
-                                            description: `With ${newHunterCount} hunters, the previously selected date is no longer available due to capacity restrictions.`,
-                                            variant: "destructive"
-                                          });
-                                          break;
-                                        }
-                                      }
-                                    }
-                                  }}
+                                  onValueChange={field.onChange}
                                   defaultValue={field.value}
                                 >
                                   <FormControl>
@@ -1045,46 +987,11 @@ function PublicBooking() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => {
-                                      const hunterCount = i + 1;
-                                      // Calculate remaining capacity for the selected date range
-                                      let remainingCapacity = selectedExperience.capacity;
-                                      const currentDateRange = form.getValues().dateRange;
-                                      
-                                      if (currentDateRange?.from) {
-                                        // Find most constrained date in the range
-                                        for (let j = 0; j < selectedExperience.duration; j++) {
-                                          const checkDate = addDays(currentDateRange.from, j);
-                                          const bookingsOnDate = bookingData.filter(booking => {
-                                            const bookingStart = new Date(booking.startDate);
-                                            const bookingEnd = new Date(booking.endDate);
-                                            return (
-                                              (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
-                                              (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
-                                            );
-                                          });
-                                          
-                                          const totalBooked = bookingsOnDate.reduce((total, booking) => 
-                                            total + booking.bookedCount, 0
-                                          );
-                                          
-                                          const dateRemainingCapacity = selectedExperience.capacity - totalBooked;
-                                          remainingCapacity = Math.min(remainingCapacity, dateRemainingCapacity);
-                                        }
-                                      }
-                                      
-                                      // Only show options that fit in the remaining capacity
-                                      return (
-                                        <SelectItem 
-                                          key={hunterCount} 
-                                          value={hunterCount.toString()}
-                                          disabled={hunterCount > remainingCapacity}
-                                        >
-                                          {hunterCount} {hunterCount === 1 ? 'hunter' : 'hunters'}
-                                          {hunterCount > remainingCapacity && " (exceeds capacity)"}
-                                        </SelectItem>
-                                      );
-                                    })}
+                                    {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
+                                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                        {i + 1} {i === 0 ? 'hunter' : 'hunters'}
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -1112,21 +1019,17 @@ function PublicBooking() {
                             <FormItem className="flex flex-col space-y-3">
                               <div className="bg-white p-4 rounded-lg border">
                                 <h5 className="text-sm font-medium mb-3">Select Dates</h5>
-                                <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                                  <p className="text-xs text-gray-600">
-                                    Select your start date. End date will be automatically calculated based on the experience duration ({selectedExperience.duration} {selectedExperience.duration === 1 ? 'day' : 'days'}).
-                                  </p>
-                                </div>
-                                
-                                {/* Direct Calendar Display - Always Visible */}
                                 <DateRangePicker
                                   dateRange={field.value}
                                   onSelect={field.onChange}
                                   experience={{
                                     duration: selectedExperience.duration,
-                                    capacity: selectedLocation?.capacity || selectedExperience.capacity // Use location-specific capacity if available
+                                    capacity: selectedExperience.capacity,
+                                    availableDates: selectedExperience.availableDates || []
                                   }}
-                                  bookings={bookingData}/>
+                                  bookings={bookingData}
+                                  className="w-full"
+                                />
                               </div>
                               <FormMessage />
                             </FormItem>

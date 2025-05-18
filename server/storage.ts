@@ -36,7 +36,6 @@ export interface IStorage {
   getExperienceLocations(experienceId: number): Promise<Location[]>;
   getAllExperienceLocations(): Promise<ExperienceLocation[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<ExperienceLocation>;
-  updateExperienceLocation(experienceId: number, locationId: number, data: Partial<InsertExperienceLocation>): Promise<ExperienceLocation | undefined>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
   
   // Customer operations
@@ -258,40 +257,6 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
   
-  async updateExperienceLocation(experienceId: number, locationId: number, data: Partial<InsertExperienceLocation>): Promise<ExperienceLocation | undefined> {
-    // Find the experience-location entry
-    const [existing] = await db
-      .select()
-      .from(experienceLocations)
-      .where(
-        and(
-          eq(experienceLocations.experienceId, experienceId),
-          eq(experienceLocations.locationId, locationId)
-        )
-      );
-    
-    if (!existing) {
-      return undefined;
-    }
-    
-    // Update the entry
-    const [updated] = await db
-      .update(experienceLocations)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(experienceLocations.experienceId, experienceId),
-          eq(experienceLocations.locationId, locationId)
-        )
-      )
-      .returning();
-    
-    return updated;
-  }
-  
   async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
     await db
       .delete(experienceLocations)
@@ -301,12 +266,6 @@ export class DatabaseStorage implements IStorage {
           eq(experienceLocations.locationId, locationId)
         )
       );
-  }
-  
-  async removeAllExperienceLocations(experienceId: number): Promise<void> {
-    await db
-      .delete(experienceLocations)
-      .where(eq(experienceLocations.experienceId, experienceId));
   }
 
   // Customer operations
@@ -1178,33 +1137,6 @@ export class MemStorage implements IStorage {
     this.experienceLocations.set(id, newExperienceLocation);
     
     return newExperienceLocation;
-  }
-  
-  async updateExperienceLocation(experienceId: number, locationId: number, data: Partial<InsertExperienceLocation>): Promise<ExperienceLocation | undefined> {
-    // Find the experience-location entry
-    const toUpdate = Array.from(this.experienceLocations.entries()).find(
-      ([_, el]) => el.experienceId === experienceId && el.locationId === locationId
-    );
-    
-    if (!toUpdate) {
-      return undefined;
-    }
-    
-    // Update the entry
-    const [id, existingData] = toUpdate;
-    const updatedEntry: ExperienceLocation = {
-      ...existingData,
-      ...data,
-      // Make sure we don't overwrite these
-      id: existingData.id,
-      experienceId: existingData.experienceId,
-      locationId: existingData.locationId,
-      // Update the timestamp
-      updatedAt: new Date()
-    };
-    
-    this.experienceLocations.set(id, updatedEntry);
-    return updatedEntry;
   }
   
   async removeExperienceLocation(experienceId: number, locationId: number): Promise<void> {
