@@ -243,9 +243,10 @@ export default function Experiences() {
   // Create experience
   const createMutation = useMutation({
     mutationFn: (data: ExperienceFormValues) => {
+      // Make sure locationId is a number and not null
       return apiRequest<Experience>('POST', '/api/experiences', {
         ...data,
-        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 0,
         rules: rules,
         amenities: amenities,
         tripIncludes: tripIncludes,
@@ -1155,8 +1156,11 @@ export default function Experiences() {
                             value={field.value ? field.value.toString() : ""}
                             onValueChange={(value) => {
                               const locationId = parseInt(value);
-                              field.onChange(locationId); // Update the form field value
+                              // Directly update form field with the numeric locationId
+                              form.setValue("locationId", locationId);
+                              field.onChange(locationId);
                               setSelectedLocIds(locationId ? [locationId] : []);
+                              console.log("Location selected:", locationId);
                             }}
                           >
                             <SelectTrigger>
