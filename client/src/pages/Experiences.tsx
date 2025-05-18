@@ -1238,6 +1238,59 @@ export default function Experiences() {
                                   />
                                 </div>
                               </div>
+
+                              {/* Location-specific Available Dates */}
+                              <div className="ml-6 mt-4">
+                                <label className="text-xs font-medium mb-1 block">
+                                  Available Dates at This Location
+                                </label>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9"
+                                      >
+                                        <CalendarDays className="w-4 h-4 mr-2" />
+                                        Manage Available Dates
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[600px]">
+                                      <DialogHeader>
+                                        <DialogTitle>Available Dates for {location.name}</DialogTitle>
+                                        <DialogDescription>
+                                          Select dates when this experience is available at this location
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      
+                                      <div className="py-4">
+                                        <Calendar
+                                          mode="multiple"
+                                          className="rounded border p-3 mx-auto"
+                                          defaultValue={location.availableDates?.map(date => new Date(date)) || []}
+                                          onSelect={(dates) => {
+                                            // Store the selected dates for this location
+                                            location.availableDates = dates?.map(date => date.toISOString().split('T')[0]) || [];
+                                          }}
+                                        />
+                                      </div>
+                                      <DialogFooter>
+                                        <DialogClose asChild>
+                                          <Button type="button">Done</Button>
+                                        </DialogClose>
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
+                                  <div className="text-xs text-gray-600">
+                                    {location.availableDates?.length ? 
+                                      `${location.availableDates.length} dates selected` : 
+                                      "No dates selected yet"}
+                                  </div>
+                                </div>
+                              </div>
                             )}
                           </div>
                         ))
