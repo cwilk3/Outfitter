@@ -183,32 +183,43 @@ export function DateRangePicker({
       <div className="hidden md:block">
         <div className="bg-white rounded-md border p-4">
           <div className="mb-3">
-            <h4 className="font-medium text-sm mb-1">Select Your Start Date</h4>
-            <p className="text-xs text-gray-500">
+            <h4 className="font-medium text-base mb-1">Select Your Start Date</h4>
+            <p className="text-sm text-gray-500">
               End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
             </p>
           </div>
           <Calendar
             initialFocus
-            mode="single"
-            selected={dateRange?.from}
-            onSelect={(date) => {
-              if (!date) {
+            mode="range"
+            selected={dateRange}
+            onSelect={(range) => {
+              if (!range?.from) {
                 onSelect(undefined);
                 return;
               }
               
               // Auto-calculate end date based on duration
-              const endDate = addDays(date, duration - 1);
+              const endDate = addDays(range.from, duration - 1);
               
-              // Update the selection
+              // Update the selection - keep the range selection mode for visual highlighting
               onSelect({ 
-                from: date, 
+                from: range.from, 
                 to: endDate 
               });
             }}
             disabled={isDateDisabled}
-            className="border-t pt-3"
+            className="border-t pt-3 mx-auto scale-110 transform origin-top"
+            numberOfMonths={1}
+            modifiersStyles={{
+              selected: {
+                backgroundColor: "#70502C",
+                color: "white"
+              },
+              today: {
+                fontWeight: "bold",
+                textDecoration: "underline"
+              }
+            }}
           />
           {dateRange?.from && dateRange.to && (
             <div className="mt-3 pt-3 border-t">
