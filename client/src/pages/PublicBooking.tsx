@@ -128,7 +128,7 @@ function PublicBooking() {
   });
 
   // State for tracking booking steps
-  const [bookingStep, setBookingStep] = useState<'location' | 'description' | 'dates' | 'details'>('location');
+  const [bookingStep, setBookingStep] = useState<'description' | 'dates' | 'details'>('description');
   
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
@@ -175,11 +175,13 @@ function PublicBooking() {
     if (selectedExperience) {
       form.setValue("experienceId", selectedExperience.id.toString());
       
-      // Reset the booking steps to location selection
-      setBookingStep('location');
+      // Reset the booking steps to description view
+      setBookingStep('description');
       
-      // Reset location selection
-      form.setValue("locationId", "");
+      // Auto-set location ID since each experience has only one location
+      if (selectedExperience.locations && selectedExperience.locations.length > 0) {
+        form.setValue("locationId", selectedExperience.locations[0].id.toString());
+      }
       
       // Reset date range
       form.setValue("dateRange", undefined);
@@ -188,17 +190,7 @@ function PublicBooking() {
 
   // Navigation functions for booking steps
   const nextStep = () => {
-    if (bookingStep === 'location') {
-      // Validate location selection
-      if (!form.getValues().locationId) {
-        form.setError('locationId', { 
-          type: 'manual', 
-          message: 'Please select a location' 
-        });
-        return;
-      }
-      setBookingStep('description');
-    } else if (bookingStep === 'description') {
+    if (bookingStep === 'description') {
       setBookingStep('dates');
     } else if (bookingStep === 'dates') {
       // Validate date selection
@@ -215,9 +207,7 @@ function PublicBooking() {
   };
   
   const prevStep = () => {
-    if (bookingStep === 'description') {
-      setBookingStep('location');
-    } else if (bookingStep === 'dates') {
+    if (bookingStep === 'dates') {
       setBookingStep('description');
     } else if (bookingStep === 'details') {
       setBookingStep('dates');
@@ -576,7 +566,6 @@ function PublicBooking() {
           <div className="p-6">
             <DialogHeader className="mb-4">
               <DialogTitle>
-                {bookingStep === 'location' && 'Select Location'}
                 {bookingStep === 'description' && 'Experience Details'}
                 {bookingStep === 'dates' && 'Choose Dates'}
                 {bookingStep === 'details' && 'Complete Your Booking'}
