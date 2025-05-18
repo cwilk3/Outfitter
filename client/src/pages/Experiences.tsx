@@ -26,6 +26,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -186,6 +188,9 @@ export default function Experiences() {
   const { isAdmin } = useRole();
   const [isCreating, setIsCreating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [currentEditingLocationId, setCurrentEditingLocationId] = useState<number | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -1245,47 +1250,29 @@ export default function Experiences() {
                                   Available Dates at This Location
                                 </label>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-9"
-                                      >
-                                        <CalendarIcon className="w-4 h-4 mr-2" />
-                                        Manage Available Dates
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[600px]">
-                                      <DialogHeader>
-                                        <DialogTitle>Available Dates for {location.name}</DialogTitle>
-                                        <DialogDescription>
-                                          Select dates when this experience is available at this location
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      
-                                      <div className="py-4">
-                                        <Calendar
-                                          mode="multiple"
-                                          className="rounded border p-3 mx-auto"
-                                          defaultValue={location.availableDates?.map(date => new Date(date)) || []}
-                                          onSelect={(dates) => {
-                                            // Store the selected dates for this location
-                                            location.availableDates = dates?.map(date => date.toISOString().split('T')[0]) || [];
-                                          }}
-                                        />
-                                      </div>
-                                      <DialogFooter>
-                                        <DialogClose asChild>
-                                          <Button type="button">Done</Button>
-                                        </DialogClose>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9"
+                                    onClick={() => {
+                                      // Open the date picker modal
+                                      setCurrentEditingLocationId(location.id);
+                                      const locationDates = Array.isArray(location.availableDates) 
+                                        ? location.availableDates 
+                                        : [];
+                                      setSelectedDates(locationDates.map(date => 
+                                        typeof date === 'string' ? new Date(date) : new Date()
+                                      ));
+                                      setShowDatePickerModal(true);
+                                    }}
+                                  >
+                                    <CalendarIcon className="w-4 h-4 mr-2" />
+                                    Manage Available Dates
+                                  </Button>
                                   
                                   <div className="text-xs text-gray-600">
-                                    {location.availableDates?.length ? 
+                                    {location.availableDates && Array.isArray(location.availableDates) && location.availableDates.length > 0 ? 
                                       `${location.availableDates.length} dates selected` : 
                                       "No dates selected yet"}
                                   </div>
