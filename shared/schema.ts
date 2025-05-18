@@ -101,7 +101,7 @@ export const experienceLocations = pgTable("experience_locations", {
   capacity: integer("capacity").notNull().default(0), // Location-specific capacity for this experience
   duration: integer("duration").notNull().default(0), // Location-specific duration for this experience
   price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"), // Location-specific price for this experience
-  availableDates: json("available_dates").default([]), // Location-specific available dates for this experience
+  availableDates: json("available_dates").default('[]'), // Location-specific available dates for this experience
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -374,6 +374,8 @@ export const insertLocationSchema = createInsertSchema(locations).omit({
 export const insertExperienceLocationSchema = createInsertSchema(experienceLocations).omit({
   id: true,
   createdAt: true
+}).extend({
+  availableDates: z.array(z.string()).or(z.string()).optional(),
 });
 
 // Insert experience addons schema
