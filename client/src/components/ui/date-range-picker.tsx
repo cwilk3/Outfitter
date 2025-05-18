@@ -190,68 +190,25 @@ export function DateRangePicker({
           </div>
           <Calendar
             initialFocus
-            mode="range"
-            selected={dateRange}
-            onSelect={(range) => {
-              if (!range?.from) {
+            mode="single"
+            selected={dateRange?.from}
+            onSelect={(date) => {
+              if (!date) {
                 onSelect(undefined);
                 return;
               }
               
               // Auto-calculate end date based on duration
-              const endDate = addDays(range.from, duration - 1);
+              const endDate = addDays(date, duration - 1);
               
-              // Update the selection with both from and to dates
+              // Update the selection
               onSelect({ 
-                from: range.from, 
+                from: date, 
                 to: endDate 
               });
             }}
             disabled={isDateDisabled}
-            className="border-t pt-3 w-full mx-auto scale-125 transform origin-top"
-            numberOfMonths={1}
-            defaultMonth={dateRange?.from}
-            modifiersStyles={{
-              selected: {
-                backgroundColor: "#854d0e", // amber-800
-                color: "white",
-                fontWeight: "bold",
-              },
-              range_middle: {
-                backgroundColor: "#166534", // green-800
-                color: "white",
-              },
-              range_start: {
-                backgroundColor: "#854d0e", // amber-800
-                color: "white",
-                borderRadius: "50%",
-              },
-              range_end: {
-                backgroundColor: "#854d0e", // amber-800
-                color: "white",
-                borderRadius: "50%",
-              }
-            }}
-            classNames={{
-              day_selected: "!bg-amber-800 !text-white hover:!bg-amber-800 hover:!text-white focus:!bg-amber-800 focus:!text-white font-bold",
-              day_range_middle: "!bg-green-800 !text-white font-medium",
-              day_range_end: "!bg-amber-800 !text-white hover:!bg-amber-800 hover:!text-white focus:!bg-amber-800 focus:!text-white font-bold",
-              cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-green-800/80 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-              day: "h-12 w-12 p-0 font-normal aria-selected:opacity-100",
-              months: "space-y-4 md:space-y-0 md:space-x-4 md:flex md:flex-row",
-              month: "space-y-4",
-              caption: "flex justify-center pt-1 relative items-center text-lg font-semibold",
-              caption_label: "text-lg font-bold",
-              nav: "space-x-1 flex items-center",
-              nav_button: "h-8 w-8 bg-transparent p-0 opacity-75 hover:opacity-100",
-              nav_button_previous: "absolute left-1",
-              nav_button_next: "absolute right-1",
-              table: "w-full border-collapse space-y-1",
-              head_row: "flex justify-between",
-              head_cell: "text-primary-500 font-medium text-sm w-12 h-10 flex items-center justify-center",
-              row: "flex w-full mt-2",
-              head: "font-medium text-md",
-            }}
+            className="border-t pt-3"
           />
           {dateRange?.from && dateRange.to && (
             <div className="mt-3 pt-3 border-t">
