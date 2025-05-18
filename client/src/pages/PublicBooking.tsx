@@ -978,7 +978,49 @@ function PublicBooking() {
                             render={({ field }) => (
                               <FormItem>
                                 <Select
-                                  onValueChange={field.onChange}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    
+                                    // When hunter count changes, we need to re-check date availability
+                                    // If there's a date already selected, verify it's still valid with new count
+                                    const currentDateRange = form.getValues().dateRange;
+                                    if (currentDateRange?.from) {
+                                      // Get bookings for the selected date range
+                                      const selectedDate = currentDateRange.from;
+                                      const newHunterCount = parseInt(value);
+                                      
+                                      // Check if date is still available with new hunter count
+                                      for (let i = 0; i < selectedExperience.duration; i++) {
+                                        const checkDate = addDays(selectedDate, i);
+                                        
+                                        // Get bookings for this date
+                                        const bookingsOnDate = bookingData.filter(booking => {
+                                          const bookingStart = new Date(booking.startDate);
+                                          const bookingEnd = new Date(booking.endDate);
+                                          return (
+                                            (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
+                                            (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
+                                          );
+                                        });
+                                        
+                                        // Calculate total hunters booked
+                                        const totalBooked = bookingsOnDate.reduce((total, booking) => 
+                                          total + booking.bookedCount, 0
+                                        );
+                                        
+                                        // If adding new hunter count exceeds capacity, reset date selection
+                                        if (totalBooked + newHunterCount > selectedExperience.capacity) {
+                                          form.setValue('dateRange', undefined);
+                                          toast({
+                                            title: "Date no longer available",
+                                            description: `With ${newHunterCount} hunters, the previously selected date is no longer available due to capacity restrictions.`,
+                                            variant: "destructive"
+                                          });
+                                          break;
+                                        }
+                                      }
+                                    }
+                                  }}
                                   defaultValue={field.value}
                                 >
                                   <FormControl>
@@ -987,11 +1029,46 @@ function PublicBooking() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => (
-                                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                        {i + 1} {i === 0 ? 'hunter' : 'hunters'}
-                                      </SelectItem>
-                                    ))}
+                                    {Array.from({ length: selectedExperience?.capacity || 5 }, (_, i) => {
+                                      const hunterCount = i + 1;
+                                      // Calculate remaining capacity for the selected date range
+                                      let remainingCapacity = selectedExperience.capacity;
+                                      const currentDateRange = form.getValues().dateRange;
+                                      
+                                      if (currentDateRange?.from) {
+                                        // Find most constrained date in the range
+                                        for (let j = 0; j < selectedExperience.duration; j++) {
+                                          const checkDate = addDays(currentDateRange.from, j);
+                                          const bookingsOnDate = bookingData.filter(booking => {
+                                            const bookingStart = new Date(booking.startDate);
+                                            const bookingEnd = new Date(booking.endDate);
+                                            return (
+                                              (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
+                                              (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
+                                            );
+                                          });
+                                          
+                                          const totalBooked = bookingsOnDate.reduce((total, booking) => 
+                                            total + booking.bookedCount, 0
+                                          );
+                                          
+                                          const dateRemainingCapacity = selectedExperience.capacity - totalBooked;
+                                          remainingCapacity = Math.min(remainingCapacity, dateRemainingCapacity);
+                                        }
+                                      }
+                                      
+                                      // Only show options that fit in the remaining capacity
+                                      return (
+                                        <SelectItem 
+                                          key={hunterCount} 
+                                          value={hunterCount.toString()}
+                                          disabled={hunterCount > remainingCapacity}
+                                        >
+                                          {hunterCount} {hunterCount === 1 ? 'hunter' : 'hunters'}
+                                          {hunterCount > remainingCapacity && " (exceeds capacity)"}
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
