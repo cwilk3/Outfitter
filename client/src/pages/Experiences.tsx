@@ -1352,24 +1352,37 @@ export default function Experiences() {
                                       let count = 0;
                                       if (existingLocation?.availableDates) {
                                         const availableDates = existingLocation.availableDates;
-                                        console.log('Available dates found:', availableDates);
                                         
+                                        // For debugging
+                                        console.log('Available dates found:', availableDates, 'Type:', typeof availableDates);
+                                        
+                                        // First check if it's already an array
                                         if (Array.isArray(availableDates)) {
                                           count = availableDates.length;
                                         } else if (typeof availableDates === 'string') {
+                                          // Try to parse JSON string if it's a string
                                           try {
-                                            // Try to parse JSON string
                                             const parsed = JSON.parse(availableDates);
                                             if (Array.isArray(parsed)) {
                                               count = parsed.length;
                                             }
                                           } catch (e) {
-                                            console.error('Failed to parse availableDates:', e);
+                                            // If not valid JSON but still a string, count it as 1 date
+                                            if (availableDates.trim()) {
+                                              count = 1;
+                                            }
                                           }
                                         } else if (availableDates && typeof availableDates === 'object') {
                                           // Handle other object types
                                           count = Object.keys(availableDates).length;
                                         }
+                                      }
+                                      
+                                      // If we still have zero count but know there's something, set to at least 1
+                                      if (count === 0 && existingLocation?.availableDates && 
+                                          JSON.stringify(existingLocation.availableDates) !== '[]' &&
+                                          JSON.stringify(existingLocation.availableDates) !== '{}') {
+                                        count = 1;
                                       }
                                       
                                       return count > 0 
