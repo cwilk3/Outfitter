@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { DayPicker } from "react-day-picker";
+import { DatePickerModal } from "@/components/ui/date-picker-modal";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -407,6 +408,20 @@ export default function Experiences() {
   const addExperienceLocationMutation = useMutation({
     mutationFn: ({ experienceId, locationId }: { experienceId: number; locationId: number }) => {
       return apiRequest('POST', '/api/experience-locations', { experienceId, locationId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+    },
+  });
+
+  // Update experience-location association
+  const updateExperienceLocationMutation = useMutation({
+    mutationFn: ({ experienceId, locationId, data }: { 
+      experienceId: number; 
+      locationId: number;
+      data: Partial<ExperienceLocation>;
+    }) => {
+      return apiRequest('PATCH', `/api/experience-locations/${experienceId}/${locationId}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
@@ -1924,73 +1939,55 @@ export default function Experiences() {
       </Dialog>
 
       {/* Date Picker Modal for Location-specific Availability */}
-      <Dialog open={showDatePickerModal} onOpenChange={setShowDatePickerModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Select Available Dates</DialogTitle>
-            <DialogDescription>
-              Choose dates when this experience is available at this location
-            </DialogDescription>
-          </DialogHeader>
+      <DatePickerModal
+        open={showDatePickerModal}
+        onOpenChange={setShowDatePickerModal}
+        selectedDates={selectedDates}
+        onSelectDates={setSelectedDates}
+        locationName={locations.find(l => l.id === currentEditingLocationId)?.name}
+        onSave={() => {
+          // Save the selected dates for this location
+          if (currentEditingLocationId && selectedExperience) {
+            // Convert dates to ISO strings for storage
+            const dateStrings = selectedDates.map(date => 
+              date.toISOString().split('T')[0]
+            );
+            
+            // Update our tracking state
+            setLocationAvailableDates(prev => ({
+              ...prev,
+              [currentEditingLocationId]: dateStrings
+            }));
+            
+            // Find the experience location data for this location
+            const experienceLocation = experienceLocationData?.find(
+              el => el.locationId === currentEditingLocationId && 
+                   el.experienceId === selectedExperience.id
+            );
+            
+            if (experienceLocation) {
+              // The junction already exists, update it
+              experienceLocation.availableDates = dateStrings;
+            }
+            
+            // Update the experience-location junction
+            updateExperienceLocationMutation.mutate({
+              experienceId: selectedExperience.id,
+              locationId: currentEditingLocationId,
+              data: {
+                availableDates: dateStrings
+              }
+            });
+            
+            toast({
+              title: "Available dates updated",
+              description: `${dateStrings.length} dates have been set for this location`,
+            });
+          }
           
-          <div className="my-6">
-            <div className="p-3 rounded-md border">
-              <Calendar
-                mode="multiple"
-                selected={selectedDates}
-                onSelect={(dates) => {
-                  setSelectedDates(dates || []);
-                }}
-                className="w-full"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowDatePickerModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              type="button"
-              onClick={() => {
-                // Save the selected dates for this location
-                if (currentEditingLocationId) {
-                  // Convert dates to ISO strings for storage
-                  const dateStrings = selectedDates.map(date => 
-                    date.toISOString().split('T')[0]
-                  );
-                  
-                  // Update our tracking state
-                  setLocationAvailableDates(prev => ({
-                    ...prev,
-                    [currentEditingLocationId]: dateStrings
-                  }));
-                  
-                  // Find the experience location data for this location
-                  const experienceLocation = experienceLocationData?.find(
-                    el => el.locationId === currentEditingLocationId && 
-                         el.experienceId === editingExperienceId
-                  );
-                  
-                  if (experienceLocation) {
-                    // The junction already exists, update it
-                    experienceLocation.availableDates = dateStrings;
-                  }
-                  
-                  toast({
-                    title: "Available dates updated",
-                    description: `${dateStrings.length} dates have been set for this location`,
-                  });
-                }
-                
-                setShowDatePickerModal(false);
-              }}
-            >
-              Save Dates
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          setShowDatePickerModal(false);
+        }}
+      />
 
       {/* Delete Experience Alert Dialog */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
