@@ -587,28 +587,28 @@ function PublicBooking() {
             <div className="mb-6">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
                     1
                   </div>
-                  <span className="text-xs mt-1">Location</span>
+                  <span className="text-xs mt-1.5">Location</span>
                 </div>
                 <div className="flex-1 flex items-center mx-2">
-                  <div className={`h-1 w-full ${bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
+                  <div className={`h-1.5 w-full ${bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bookingStep === 'dates' ? 'bg-primary text-white' : bookingStep === 'details' ? 'bg-primary/20 text-primary' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'dates' ? 'bg-primary text-white font-medium' : bookingStep === 'details' ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
                     2
                   </div>
-                  <span className="text-xs mt-1">Dates</span>
+                  <span className="text-xs mt-1.5">Dates</span>
                 </div>
                 <div className="flex-1 flex items-center mx-2">
-                  <div className={`h-1 w-full ${bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
+                  <div className={`h-1.5 w-full ${bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bookingStep === 'details' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'details' ? 'bg-primary text-white font-medium' : 'bg-gray-200 text-gray-500'}`}>
                     3
                   </div>
-                  <span className="text-xs mt-1">Details</span>
+                  <span className="text-xs mt-1.5">Details</span>
                 </div>
               </div>
             </div>
@@ -620,8 +620,14 @@ function PublicBooking() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Select a Location</h3>
                     <p className="text-sm text-gray-500">
-                      This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
+                      Choose where you would like to experience this adventure.
                     </p>
+                    
+                    <div>
+                      <p className="text-sm text-gray-700 mb-2">
+                        This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
+                      </p>
+                    </div>
                     
                     <FormField
                       control={form.control}
@@ -658,22 +664,25 @@ function PublicBooking() {
                       )}
                     />
                     
-                    <DialogFooter className="mt-6">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setBookingDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={nextStep}
-                        className="gap-1"
-                      >
-                        Continue
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+                    <DialogFooter className="pt-4">
+                      <div className="flex w-full justify-between">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setBookingDialogOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={nextStep}
+                          className="gap-1"
+                          disabled={!form.getValues().locationId}
+                        >
+                          Continue
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </DialogFooter>
                   </div>
                 )}
