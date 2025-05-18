@@ -571,7 +571,6 @@ function PublicBooking() {
                 {bookingStep === 'details' && 'Complete Your Booking'}
               </DialogTitle>
               <DialogDescription>
-                {bookingStep === 'location' && 'Choose where you would like to experience this adventure.'}
                 {bookingStep === 'description' && 'View details about this experience before selecting your dates.'}
                 {bookingStep === 'dates' && 'Select your preferred dates for this adventure.'}
                 {bookingStep === 'details' && 'Fill out the form below to secure your adventure.'}
@@ -582,26 +581,17 @@ function PublicBooking() {
             <div className="mb-6">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white font-medium' : (bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'description' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
                     1
                   </div>
-                  <span className="text-xs mt-1.5">Location</span>
-                </div>
-                <div className="flex-1 flex items-center mx-2">
-                  <div className={`h-1.5 w-full ${bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'description' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
-                    2
-                  </div>
-                  <span className="text-xs mt-1.5">Description</span>
+                  <span className="text-xs mt-1.5">Details</span>
                 </div>
                 <div className="flex-1 flex items-center mx-2">
                   <div className={`h-1.5 w-full ${bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'dates' ? 'bg-primary text-white font-medium' : bookingStep === 'details' ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
-                    3
+                    2
                   </div>
                   <span className="text-xs mt-1.5">Dates</span>
                 </div>
@@ -610,9 +600,9 @@ function PublicBooking() {
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'details' ? 'bg-primary text-white font-medium' : 'bg-gray-200 text-gray-500'}`}>
-                    4
+                    3
                   </div>
-                  <span className="text-xs mt-1.5">Details</span>
+                  <span className="text-xs mt-1.5">Book</span>
                 </div>
               </div>
             </div>
