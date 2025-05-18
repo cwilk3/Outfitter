@@ -609,77 +609,7 @@ function PublicBooking() {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Location Selection Step */}
-                {bookingStep === 'location' && selectedExperience && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Select a Location</h3>
-                    <p className="text-sm text-gray-500">
-                      Choose where you would like to experience this adventure.
-                    </p>
-                    
-                    <div>
-                      <p className="text-sm text-gray-700 mb-2">
-                        This experience is available at {selectedExperience.locations.length} {selectedExperience.locations.length === 1 ? 'location' : 'locations'}.
-                      </p>
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="locationId"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-3"
-                            >
-                              {selectedExperience.locations.map(location => (
-                                <div key={location.id} className={`border rounded-xl p-4 transition-all cursor-pointer ${field.value === location.id.toString() ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`} onClick={() => field.onChange(location.id.toString())}>
-                                  <FormItem className="flex items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                      <RadioGroupItem value={location.id.toString()} />
-                                    </FormControl>
-                                    <div className="grid gap-1.5 leading-none">
-                                      <FormLabel className="text-base font-medium mb-0.5">
-                                        {location.name}
-                                      </FormLabel>
-                                      <p className="text-sm text-gray-500">
-                                        {location.city}, {location.state}
-                                      </p>
-                                    </div>
-                                  </FormItem>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <DialogFooter className="pt-4">
-                      <div className="flex w-full justify-between">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => setBookingDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          type="button" 
-                          onClick={nextStep}
-                          className="gap-1"
-                          disabled={!form.getValues().locationId}
-                        >
-                          Continue
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </DialogFooter>
-                  </div>
-                )}
+                {/* Location Selection Step removed - experiences now have direct relationship with locations */}
                 
                 {/* Experience Description Step */}
                 {bookingStep === 'description' && selectedExperience && (
