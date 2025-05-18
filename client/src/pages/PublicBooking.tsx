@@ -128,7 +128,7 @@ function PublicBooking() {
   });
 
   // State for tracking booking steps
-  const [bookingStep, setBookingStep] = useState<'location' | 'dates' | 'details'>('location');
+  const [bookingStep, setBookingStep] = useState<'location' | 'description' | 'dates' | 'details'>('location');
   
   // State for tracking booking availability data
   const [bookingData, setBookingData] = useState<Booking[]>([]);
@@ -197,6 +197,8 @@ function PublicBooking() {
         });
         return;
       }
+      setBookingStep('description');
+    } else if (bookingStep === 'description') {
       setBookingStep('dates');
     } else if (bookingStep === 'dates') {
       // Validate date selection
@@ -213,8 +215,10 @@ function PublicBooking() {
   };
   
   const prevStep = () => {
-    if (bookingStep === 'dates') {
+    if (bookingStep === 'description') {
       setBookingStep('location');
+    } else if (bookingStep === 'dates') {
+      setBookingStep('description');
     } else if (bookingStep === 'details') {
       setBookingStep('dates');
     }
@@ -573,11 +577,13 @@ function PublicBooking() {
             <DialogHeader className="mb-4">
               <DialogTitle>
                 {bookingStep === 'location' && 'Select Location'}
+                {bookingStep === 'description' && 'Experience Details'}
                 {bookingStep === 'dates' && 'Choose Dates'}
                 {bookingStep === 'details' && 'Complete Your Booking'}
               </DialogTitle>
               <DialogDescription>
                 {bookingStep === 'location' && 'Choose where you would like to experience this adventure.'}
+                {bookingStep === 'description' && 'View details about this experience before selecting your dates.'}
                 {bookingStep === 'dates' && 'Select your preferred dates for this adventure.'}
                 {bookingStep === 'details' && 'Fill out the form below to secure your adventure.'}
               </DialogDescription>
@@ -587,17 +593,26 @@ function PublicBooking() {
             <div className="mb-6">
               <div className="flex justify-between">
                 <div className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'location' ? 'bg-primary text-white font-medium' : (bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
                     1
                   </div>
                   <span className="text-xs mt-1.5">Location</span>
+                </div>
+                <div className="flex-1 flex items-center mx-2">
+                  <div className={`h-1.5 w-full ${bookingStep === 'description' || bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'description' ? 'bg-primary text-white font-medium' : (bookingStep === 'dates' || bookingStep === 'details') ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
+                    2
+                  </div>
+                  <span className="text-xs mt-1.5">Description</span>
                 </div>
                 <div className="flex-1 flex items-center mx-2">
                   <div className={`h-1.5 w-full ${bookingStep === 'dates' || bookingStep === 'details' ? 'bg-primary/20' : 'bg-gray-200'}`}></div>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'dates' ? 'bg-primary text-white font-medium' : bookingStep === 'details' ? 'bg-primary/20 text-primary font-medium' : 'bg-gray-200 text-gray-500'}`}>
-                    2
+                    3
                   </div>
                   <span className="text-xs mt-1.5">Dates</span>
                 </div>
@@ -606,7 +621,7 @@ function PublicBooking() {
                 </div>
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bookingStep === 'details' ? 'bg-primary text-white font-medium' : 'bg-gray-200 text-gray-500'}`}>
-                    3
+                    4
                   </div>
                   <span className="text-xs mt-1.5">Details</span>
                 </div>
@@ -678,6 +693,203 @@ function PublicBooking() {
                           onClick={nextStep}
                           className="gap-1"
                           disabled={!form.getValues().locationId}
+                        >
+                          Continue
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </DialogFooter>
+                  </div>
+                )}
+                
+                {/* Experience Description Step */}
+                {bookingStep === 'description' && selectedExperience && (
+                  <div className="space-y-5">
+                    {/* Experience Title and Location */}
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedExperience.name}</h2>
+                      
+                      {/* Location badge */}
+                      {selectedExperience.locations.length > 0 && form.getValues().locationId && (
+                        (() => {
+                          const selectedLocationId = parseInt(form.getValues().locationId);
+                          const location = selectedExperience.locations.find(loc => loc.id === selectedLocationId);
+                          if (location) {
+                            return (
+                              <div className="flex items-center text-sm mt-1 text-gray-600">
+                                <span>{location.city}, {location.state}</span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
+                      
+                      {/* Experience type and details badges */}
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {selectedExperience.category === 'hunting' ? '🏹 Hunting' : 
+                           selectedExperience.category === 'fishing' ? '🎣 Fishing' : 
+                           selectedExperience.category}
+                        </span>
+                        
+                        {selectedExperience.amenities && selectedExperience.amenities.includes('guided') && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            🧭 Guided
+                          </span>
+                        )}
+                        
+                        {selectedExperience.duration && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {selectedExperience.duration} {selectedExperience.duration === 1 ? 'day' : 'days'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Image Gallery */}
+                    <div className="grid grid-cols-3 gap-2 rounded-lg overflow-hidden">
+                      {selectedExperience.images && selectedExperience.images.length > 0 ? (
+                        <>
+                          {/* Main large image */}
+                          <div className="col-span-2 row-span-2 h-64">
+                            <img 
+                              src={Array.isArray(selectedExperience.images) ? selectedExperience.images[0] : ""}
+                              alt={selectedExperience.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          
+                          {/* Smaller images */}
+                          {Array.isArray(selectedExperience.images) && selectedExperience.images.slice(1, 3).map((image, index) => (
+                            <div key={index} className="h-32">
+                              <img 
+                                src={image}
+                                alt={`${selectedExperience.name} ${index + 2}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="col-span-3 h-64 bg-gray-100 flex items-center justify-center">
+                          <span className="text-gray-400">No images available</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Package Details */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium text-lg mb-2">Package Details</h4>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600">Maximum {selectedExperience.capacity} {selectedExperience.capacity === 1 ? 'hunter' : 'hunters'}</span>
+                          <span className="text-sm text-gray-600">•</span>
+                          <span className="text-sm text-gray-600">{selectedExperience.duration} {selectedExperience.duration === 1 ? 'day trip' : 'day trip'}</span>
+                        </div>
+                        <div className="text-xl font-bold">
+                          {formatPrice(selectedExperience.price)} <span className="text-sm font-normal text-gray-600">/hunter</span>
+                        </div>
+                      </div>
+                      
+                      {/* Trip Includes Tags */}
+                      {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {selectedExperience.tripIncludes.includes('lodging') && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-md text-xs">
+                              <span>🏠</span>
+                              <span>Lodging</span>
+                            </div>
+                          )}
+                          {selectedExperience.tripIncludes.includes('meals') && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-md text-xs">
+                              <span>🍽️</span>
+                              <span>Meals</span>
+                            </div>
+                          )}
+                          {selectedExperience.tripIncludes.includes('animal_cleaning') && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-md text-xs">
+                              <span>🧹</span>
+                              <span>Animal cleaning</span>
+                            </div>
+                          )}
+                          {selectedExperience.tripIncludes.includes('ice') && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-md text-xs">
+                              <span>🧊</span>
+                              <span>Ice</span>
+                            </div>
+                          )}
+                          {selectedExperience.tripIncludes.includes('byob') && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-md text-xs">
+                              <span>🍺</span>
+                              <span>BYOB</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* About Section */}
+                    <div>
+                      <h4 className="font-medium text-lg mb-2">About</h4>
+                      <p className="text-gray-700 whitespace-pre-line">{selectedExperience.description}</p>
+                    </div>
+                    
+                    {/* Amenities Section */}
+                    {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-lg mb-3">Amenities</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                          {selectedExperience.amenities.map((amenity, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className="text-gray-700">
+                                {amenity === 'guided' && '🧭 Guided'}
+                                {amenity === 'equipment' && '🎣 Equipment'}
+                                {amenity === 'wifi' && '📶 WiFi'}
+                                {amenity === 'transportation' && '🚐 Transportation'}
+                                {amenity === 'bird_dogs' && '🐕 Bird dogs'}
+                                {amenity === 'air_conditioning' && '❄️ Air conditioning'}
+                                {amenity === 'mud_room' && '🥾 Mud room'}
+                                {amenity === 'cable_tv' && '📺 Cable TV'}
+                                {amenity === 'kid_friendly' && '👶 Kid friendly'}
+                                {amenity === 'corporate_trips' && '💼 Corporate trips'}
+                                {amenity === 'trophy_hunts' && '🏆 Trophy hunts'}
+                                {amenity === 'meat_processing' && '🔪 Meat processing'}
+                                {!['guided', 'equipment', 'wifi', 'transportation', 'bird_dogs', 'air_conditioning', 'mud_room', 'cable_tv', 'kid_friendly', 'corporate_trips', 'trophy_hunts', 'meat_processing'].includes(amenity) && amenity}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Rules Section */}
+                    {selectedExperience.rules && selectedExperience.rules.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-lg mb-3">Rules</h4>
+                        <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                          {selectedExperience.rules.map((rule, index) => (
+                            <li key={index}>{rule}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <DialogFooter className="pt-4 mt-4 border-t">
+                      <div className="flex w-full justify-between">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={prevStep}
+                          className="gap-1"
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" />
+                          Back
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={nextStep}
+                          className="gap-1"
                         >
                           Continue
                           <ChevronRight className="h-4 w-4" />
