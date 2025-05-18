@@ -40,11 +40,16 @@ export interface Location extends BaseLocation {
 }
 
 // ExperienceLocation with availableDates, capacity, duration, and price
-export interface ExperienceLocation extends Omit<BaseExperienceLocation, 'availableDates'> {
+export interface ExperienceLocation {
+  id: number;
+  experienceId: number;
+  locationId: number;
   capacity: number;
   duration: number;
   price: string | number;
   availableDates?: string[] | string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 // Types for date ranges in booking flow
