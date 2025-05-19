@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { ExperienceImageGallery } from "../components/ExperienceImageGallery";
 
 // Types
 interface Location {
@@ -554,62 +555,72 @@ function PublicBooking() {
                         {bookingStep === 'description' && (
                           <div className="space-y-4">
                             <h3 className="text-xl font-bold">About this experience</h3>
-                            <div className="text-gray-700 space-y-4">
-                              <p>{selectedExperience.description}</p>
+                            
+                            {/* Two-column layout for description and gallery */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left column: Description and details */}
+                              <div className="text-gray-700 space-y-4">
+                                <p>{selectedExperience.description}</p>
+                                
+                                {/* What's included */}
+                                {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
+                                  <div className="mt-4">
+                                    <h4 className="font-medium text-lg">What's included:</h4>
+                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {selectedExperience.tripIncludes.map((item, index) => (
+                                        <li key={index} className="flex items-start">
+                                          <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                          </svg>
+                                          <span className="capitalize">{item.replaceAll('_', ' ')}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {/* Amenities */}
+                                {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
+                                  <div className="mt-4">
+                                    <h4 className="font-medium text-lg">Amenities:</h4>
+                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {selectedExperience.amenities.map((item, index) => (
+                                        <li key={index} className="flex items-start">
+                                          <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                          </svg>
+                                          <span className="capitalize">{item.replaceAll('_', ' ')}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {/* Rules */}
+                                {selectedExperience.rules && selectedExperience.rules.length > 0 && (
+                                  <div className="mt-4">
+                                    <h4 className="font-medium text-lg">Rules:</h4>
+                                    <ul className="mt-2 space-y-2">
+                                      {selectedExperience.rules.map((rule, index) => (
+                                        <li key={index} className="flex items-start">
+                                          <span className="text-primary font-bold mr-2">•</span>
+                                          <span>{rule}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
                               
-                              {/* What's included */}
-                              {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
-                                <div className="mt-4">
-                                  <h4 className="font-medium text-lg">What's included:</h4>
-                                  <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {selectedExperience.tripIncludes.map((item, index) => (
-                                      <li key={index} className="flex items-start">
-                                        <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                                        </svg>
-                                        <span className="capitalize">{item.replaceAll('_', ' ')}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              
-                              {/* Amenities */}
-                              {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
-                                <div className="mt-4">
-                                  <h4 className="font-medium text-lg">Amenities:</h4>
-                                  <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {selectedExperience.amenities.map((item, index) => (
-                                      <li key={index} className="flex items-start">
-                                        <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                                        </svg>
-                                        <span className="capitalize">{item.replaceAll('_', ' ')}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              
-                              {/* Rules */}
-                              {selectedExperience.rules && selectedExperience.rules.length > 0 && (
-                                <div className="mt-4">
-                                  <h4 className="font-medium text-lg">Rules:</h4>
-                                  <ul className="mt-2 space-y-2">
-                                    {selectedExperience.rules.map((rule, index) => (
-                                      <li key={index} className="flex items-start">
-                                        <span className="text-primary font-bold mr-2">•</span>
-                                        <span>{rule}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+                              {/* Right column: Image gallery */}
+                              <div className="hidden md:block">
+                                <ExperienceImageGallery images={selectedExperience.images} />
+                              </div>
                             </div>
                             
                             <Button 
                               type="button" 
-                              className="w-full mt-4" 
+                              className="w-full mt-6" 
                               onClick={() => setBookingStep('guests')}
                             >
                               Continue to Guest Selection
