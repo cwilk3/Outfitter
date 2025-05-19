@@ -632,19 +632,24 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range: DateRange | undefined) => {
+                                          console.log("Original selection:", range);
+                                          
+                                          // Create a new range object to avoid mutation issues
+                                          let newRange = range ? { ...range } : undefined;
+                                          
                                           // If start date is selected, auto-calculate end date based on experience duration
-                                          if (range?.from && selectedExperience && !range.to) {
+                                          if (newRange?.from && selectedExperience && !newRange.to) {
                                             const duration = selectedExperience.duration || 1;
                                             // Set end date based on experience duration
-                                            const calculatedEndDate = addDays(range.from, duration - 1);
-                                            range.to = calculatedEndDate;
+                                            const calculatedEndDate = addDays(new Date(newRange.from), duration - 1);
+                                            newRange.to = calculatedEndDate;
                                           }
                                           
                                           // Update form field value
-                                          field.onChange(range);
+                                          field.onChange(newRange);
                                           
                                           // Log selection to verify it's working
-                                          console.log("Date range selected:", range);
+                                          console.log("Date range with calculated end date:", newRange);
                                         }}
                                         experience={selectedExperience || {
                                           duration: 1,
