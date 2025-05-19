@@ -719,36 +719,44 @@ export default function Experiences() {
     try {
       console.log(`Processing ${images.length} images for optimization`);
       
-      // Limit to max 3 images for now to reduce payload size
-      if (images.length > 3) {
-        console.log(`Limiting from ${images.length} to 3 images to reduce payload size`);
-        images = images.slice(0, 3);
+      // Limit to max 5 images to reduce payload size
+      if (images.length > 5) {
+        console.log(`Limiting from ${images.length} to 5 images to reduce payload size`);
+        images = images.slice(0, 5);
       }
       
-      // Simple optimization - only keeping the first part of each image if it's too large
-      // In a production app, you'd use a proper image compression library
+      // Safely process each image without truncating or corrupting the data
       return images.map((img, index) => {
-        if (!img) return '';
-        
-        const sizeKB = Math.round(img.length / 1000);
-        console.log(`Image ${index + 1} size: ~${sizeKB}KB`);
-        
-        // Size thresholds - keep images below a certain size
-        if (sizeKB > 200) {
-          console.log(`Optimizing image ${index + 1} from ${sizeKB}KB to ~200KB`);
-          
-          // For data URLs, we need to keep the prefix intact
-          const prefix = img.substring(0, 40); // Keep metadata prefix
-          const compressedSize = 200 * 1000; // ~200KB
-          
-          return prefix + img.substring(40, compressedSize);
+        // Skip processing if the image is empty or not a string
+        if (!img || typeof img !== 'string') {
+          console.log(`Skipping invalid image at index ${index}`);
+          return '';
         }
+        
+        // Check if the image is a URL (not a data URL)
+        if (img.startsWith('http')) {
+          console.log(`Image ${index + 1} is a URL, keeping as is`);
+          return img;
+        }
+        
+        // For data URLs, perform basic validation but don't manipulate them
+        if (img.startsWith('data:image/')) {
+          const sizeKB = Math.round(img.length / 1000);
+          console.log(`Image ${index + 1} size: ~${sizeKB}KB (keeping intact)`);
+          
+          // Don't truncate the data - just return it as is
+          // This prevents corruption of the image data
+          return img;
+        }
+        
+        console.log(`Image ${index + 1} has unknown format, using with caution`);
         return img;
       });
     } catch (error) {
       console.error("Error optimizing images:", error);
-      // Return no images if optimization fails
-      return [];
+      // Return original images instead of empty array if optimization fails
+      console.log("Returning original images due to optimization error");
+      return images;
     }
   };
   
