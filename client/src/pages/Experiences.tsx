@@ -505,9 +505,35 @@ export default function Experiences() {
         locationId: selectedDuplicateLocationId
       };
       
-      // Create the new experience
-      createMutation.mutate(newExperience);
-      closeDuplicateDialog();
+      // Use a custom function to create the experience without adding junction table entries
+      apiRequest('POST', '/api/experiences', newExperience)
+        .then((response) => {
+          // Parse the response to get the experience data
+          return response.json();
+        })
+        .then((createdExperience) => {
+          // Success toast
+          toast({
+            title: "Success",
+            description: "Experience duplicated successfully",
+          });
+          
+          // Invalidate queries to update the UI
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+          
+          // Close the dialog
+          closeDuplicateDialog();
+        })
+        .catch((error) => {
+          // Error toast
+          toast({
+            title: "Error",
+            description: error.message || "Failed to duplicate experience",
+            variant: "destructive",
+          });
+        });
     } else {
       toast({
         title: "Error",

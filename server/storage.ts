@@ -310,6 +310,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }> {
+    // Add detailed logging to track what's happening
+    console.log(`📍 addExperienceLocation called: Setting experience ${experienceLocation.experienceId} to location ${experienceLocation.locationId}`);
+    
     // Instead of creating a junction table entry, update the experience with the locationId
     const [updatedExperience] = await db
       .update(experiences)
@@ -321,8 +324,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (!updatedExperience) {
+      console.error(`📍 ERROR: Experience ${experienceLocation.experienceId} not found when updating location`);
       throw new Error('Experience not found');
     }
+    
+    console.log(`📍 Successfully updated experience ${experienceLocation.experienceId} with locationId ${experienceLocation.locationId}`);
     
     // Return in the format expected by the existing code
     return {
