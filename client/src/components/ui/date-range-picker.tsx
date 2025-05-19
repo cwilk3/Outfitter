@@ -174,7 +174,13 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent 
+          className="w-auto p-0 z-50" 
+          align="center" 
+          side="bottom"
+          sideOffset={8}
+          avoidCollisions={true}
+        >
           <div className="p-3 border-b">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-sm">Select Your Dates</h4>
@@ -197,13 +203,16 @@ export function DateRangePicker({
           </div>
           <Calendar
             initialFocus
-            mode="single" // Change to single mode for better control
+            mode="range" // Changed back to range to show the full selected period
             defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
-            selected={dateRange?.from ? new Date(dateRange.from) : undefined}
-            onSelect={(date) => {
-              // Create a simple range with a single date, then let handleSelect expand it
-              if (date) {
-                handleSelect({ from: date });
+            selected={dateRange ? {
+              from: new Date(dateRange.from),
+              to: dateRange.to ? new Date(dateRange.to) : undefined
+            } : undefined}
+            onSelect={(range) => {
+              // Only need the start date, as we auto-calculate the end date
+              if (range?.from) {
+                handleSelect({ from: range.from });
               } else {
                 onSelect(undefined);
               }
@@ -212,12 +221,19 @@ export function DateRangePicker({
             disabled={isDateDisabled}
             className="p-3"
             classNames={{
-              day_selected: "bg-primary text-primary-foreground rounded-md",
+              day_range_start: "bg-primary text-primary-foreground rounded-l-md",
+              day_range_middle: "bg-primary/20 text-primary-foreground",
+              day_range_end: "bg-primary text-primary-foreground rounded-r-md",
               day_today: "bg-accent text-accent-foreground",
+            }}
+            modifiers={{
+              range: dateRange && dateRange.from && dateRange.to ? {
+                from: new Date(dateRange.from),
+                to: new Date(dateRange.to)
+              } : undefined
             }}
             // Improve navigation
             fromDate={new Date()}
-            fixedWeeks
           />
           {dateRange?.from && dateRange?.to && (
             <div className="p-3 border-t bg-muted/20">
