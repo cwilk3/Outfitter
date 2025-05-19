@@ -123,14 +123,13 @@ export function DateRangePicker({
     // Log the complete selected range for verification
     console.log("DateRangePicker - Selected date range:", newRange);
     
-    // Close the popup immediately to improve user experience
-    setOpen(false);
+    // First send the callback to update the form value
+  onSelect(newRange);
     
-    // Update the selection with the callback
-    // We add a slight delay to ensure the UI updates properly
-    setTimeout(() => {
-      onSelect(newRange);
-    }, 50);
+  // Then close the popup after a brief delay to ensure the value is updated
+  setTimeout(() => {
+    setOpen(false);
+  }, 10);
   };
   
   return (

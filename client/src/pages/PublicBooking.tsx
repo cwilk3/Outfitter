@@ -958,6 +958,17 @@ function PublicBooking() {
                               </span>
                             </div>
                             
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">Stay length:</span>
+                              <span className="font-medium">
+                                {Math.ceil(
+                                  (new Date(form.watch('dateRange')?.to as Date).getTime() - 
+                                   new Date(form.watch('dateRange')?.from as Date).getTime()) / 
+                                   (1000 * 60 * 60 * 24)
+                                ) + 1} days
+                              </span>
+                            </div>
+                            
                             <Separator />
                           </>
                         )}
@@ -979,7 +990,18 @@ function PublicBooking() {
                         <div className="flex justify-between items-center pt-2 text-lg">
                           <span className="text-gray-900 font-bold">Total:</span>
                           <span className="font-bold text-primary">
-                            {formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())}
+                            {form.watch('dateRange') && form.watch('dateRange')?.from && form.watch('dateRange')?.to ? (
+                              formatPrice(
+                                (parseFloat(selectedExperience.price) * form.watch('guests') * 
+                                (Math.ceil(
+                                  (new Date(form.watch('dateRange')?.to as Date).getTime() - 
+                                   new Date(form.watch('dateRange')?.from as Date).getTime()) / 
+                                   (1000 * 60 * 60 * 24)
+                                ) + 1)).toString()
+                              )
+                            ) : (
+                              formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())
+                            )}
                           </span>
                         </div>
                       </div>
