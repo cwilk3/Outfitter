@@ -192,9 +192,11 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 z-50 shadow-lg" 
+          className="w-auto p-0 z-50 shadow-lg mt-10" 
           align="start" 
-          sideOffset={40} 
+          side="bottom"
+          sideOffset={5}
+          avoidCollisions={true}
         >
           <div className="p-3 border-b bg-background">
             <div className="flex items-center justify-between mb-2">
