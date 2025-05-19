@@ -87,6 +87,28 @@ export function DateRangePicker({
       if (isDateAtCapacity(rangeDate)) return true;
     }
     
+    // Check if date is in the available dates list (if available dates are specified)
+    if (experience.availableDates && experience.availableDates.length > 0) {
+      // Convert the current date to a comparable string format
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Convert all available dates to the same format for comparison
+      const availableDateStrings = experience.availableDates.map(d => {
+        // Handle both string and Date objects
+        if (d instanceof Date) {
+          return d.toISOString().split('T')[0];
+        } else {
+          // For string dates, standardize the format
+          return new Date(d).toISOString().split('T')[0];
+        }
+      });
+      
+      // If the date is not in the available dates list, disable it
+      if (!availableDateStrings.includes(dateStr)) {
+        return true;
+      }
+    }
+    
     return false;
   };
   
