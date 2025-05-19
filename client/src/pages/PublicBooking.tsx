@@ -632,31 +632,22 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range: DateRange | undefined) => {
-                                          console.log("Original selection:", range);
+                                          // Simply update the form field with the selected date range
+                                          field.onChange(range);
                                           
-                                          // Create a new range object to avoid mutation issues
-                                          let newRange = range ? { ...range } : undefined;
-                                          
-                                          // If start date is selected, auto-calculate end date based on experience duration
-                                          if (newRange?.from && selectedExperience && !newRange.to) {
-                                            const duration = selectedExperience.duration || 1;
-                                            // Set end date based on experience duration
-                                            const calculatedEndDate = addDays(new Date(newRange.from), duration - 1);
-                                            newRange.to = calculatedEndDate;
+                                          // If dates are selected, log for verification
+                                          if (range?.from && range?.to) {
+                                            console.log("Selected date range:", {
+                                              from: range.from.toISOString(),
+                                              to: range.to.toISOString()
+                                            });
                                           }
-                                          
-                                          // Update form field value
-                                          field.onChange(newRange);
-                                          
-                                          // Log selection to verify it's working
-                                          console.log("Date range with calculated end date:", newRange);
                                         }}
                                         experience={selectedExperience || {
                                           duration: 1,
-                                          capacity: 1,
-                                          availableDates: []
+                                          capacity: 1
                                         }}
-                                        bookings={formattedBookings || []} // Pass actual bookings data
+                                        bookings={formattedBookings || []}
                                         className="w-full"
                                       />
                                     </CardContent>
