@@ -140,6 +140,12 @@ function PublicBooking() {
     if (!selectedExperience) return null;
     
     const { dateRange, guests } = formValues;
+    
+    // Add null checks for dateRange
+    if (!dateRange || !dateRange.from || !dateRange.to) {
+      return null;
+    }
+    
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     
@@ -818,12 +824,12 @@ function PublicBooking() {
                         
                         <Separator />
                         
-                        {form.watch('dateRange').from && form.watch('dateRange').to && (
+                        {form.watch('dateRange') && form.watch('dateRange')?.from && form.watch('dateRange')?.to && (
                           <>
                             <div className="flex justify-between items-center">
                               <span className="text-gray-700">Dates:</span>
                               <span className="font-medium">
-                                {format(form.watch('dateRange').from, 'MMM d, yyyy')} - {format(form.watch('dateRange').to, 'MMM d, yyyy')}
+                                {format(form.watch('dateRange')?.from as Date, 'MMM d, yyyy')} - {format(form.watch('dateRange')?.to as Date, 'MMM d, yyyy')}
                               </span>
                             </div>
                             
