@@ -639,12 +639,14 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range) => {
+                                          console.log("PublicBooking: date selection received", range);
+                                          
                                           if (!range || !range.from) {
-                                            field.onChange(undefined);
+                                            form.setValue("dateRange", undefined);
                                             return;
                                           }
                                           
-                                          // Create a completely new object to avoid any reference issues
+                                          // Create completely new date objects to avoid reference issues
                                           const startDate = new Date(range.from);
                                           
                                           // Calculate end date based on experience duration
@@ -658,14 +660,20 @@ function PublicBooking() {
                                             endDate = addDays(startDate, 0);
                                           }
                                           
-                                          // Create a fresh new range object
+                                          // Create a fresh range object with new date instances
                                           const newRange = {
                                             from: startDate,
                                             to: endDate
                                           };
                                           
-                                          // Update the form state to trigger re-renders
-                                          field.onChange(newRange);
+                                          console.log("PublicBooking: setting form value", newRange);
+                                          
+                                          // Use form.setValue for more reliable form updates
+                                          form.setValue("dateRange", newRange, {
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                            shouldValidate: true
+                                          });
                                         }}
                                         experience={selectedExperience || {
                                           duration: 1,
