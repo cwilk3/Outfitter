@@ -16,39 +16,9 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
   // Default placeholder if no images are provided
   const defaultImage = "https://images.unsplash.com/photo-1588359348347-9bc6cbbb689e?q=80&w=1470&auto=format&fit=crop";
   
-  // Normalize the images array to handle different possible formats
-  const normalizeImageArray = (imageInput: any): string[] => {
-    // If it's null or undefined, return empty array
-    if (!imageInput) return [];
-    
-    // If it's already an array, use it
-    if (Array.isArray(imageInput)) {
-      // Filter out any empty or invalid items
-      return imageInput.filter(img => !!img && typeof img === 'string');
-    }
-    
-    // If it's a string but not an array (could be JSON string), try to parse it
-    if (typeof imageInput === 'string') {
-      try {
-        const parsed = JSON.parse(imageInput);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(img => !!img && typeof img === 'string');
-        }
-      } catch (e) {
-        // If it's a single image URL as string, return it as an array
-        if (imageInput.match(/^(http|https|data):/) || imageInput.startsWith('/')) {
-          return [imageInput];
-        }
-      }
-    }
-    
-    // Default fallback
-    return [];
-  };
-  
   // Ensure we have at least one image
-  const normalizedImages = normalizeImageArray(images).length > 0 
-    ? normalizeImageArray(images) 
+  const normalizedImages = images && images.length > 0 
+    ? images 
     : [defaultImage];
   
   // When images prop changes, reset selected index
