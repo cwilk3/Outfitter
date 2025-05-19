@@ -867,10 +867,10 @@ export default function Experiences() {
         </TabsList>
         
         <TabsContent value="experiences" className="space-y-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">Experiences</h3>
-              <p className="text-sm text-gray-600">Manage your hunting and fishing offerings</p>
+              <h3 className="text-xl font-semibold text-gray-800">Experiences by Location</h3>
+              <p className="text-sm text-gray-600">Manage hunting and fishing offerings at each lodge</p>
             </div>
             {isAdmin && (
               <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
@@ -880,80 +880,84 @@ export default function Experiences() {
           </div>
           
           {experiences && experiences.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {experiences.map((experience: Experience) => (
-                <Card key={experience.id} className="shadow-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-all">
-                  <CardHeader className="pb-1">
-                    <CardTitle className="text-lg text-green-800">{experience.name}</CardTitle>
-                    <CardDescription className="text-xs">{formatCategory(experience.category)}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-3">{experience.description}</p>
-                    {/* Location badge - prominently displayed */}
-                    {experience.locationId && (
-                      <div className="mb-3">
-                        <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {locations.find(l => l.id === experience.locationId)?.name || 'Unknown location'}
-                        </Badge>
-                      </div>
-                    )}
-                    
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
-                        {experience.locationId ? (
-                          <span className="text-xs text-gray-700">
-                            {locations.find(l => l.id === experience.locationId)?.city || ''}, 
-                            {locations.find(l => l.id === experience.locationId)?.state || ''}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">No location assigned</span>
-                        )}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
-                        <span className="text-xs text-gray-700">{experience.duration} day{experience.duration > 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
-                        <span className="text-xs text-gray-700">Max {experience.capacity} people</span>
-                      </div>
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
-                        <span className="text-xs text-gray-700 font-medium">
-                          {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: 'USD'
-                          }).format(experience.price)}
-                        </span>
-                      </div>
+            <div className="space-y-10">
+              {/* Group experiences by location */}
+              {locations.map((location) => {
+                // Filter experiences for this location
+                const locationExperiences = experiences.filter(
+                  (exp) => exp.locationId === location.id
+                );
+                
+                // Skip locations with no experiences
+                if (locationExperiences.length === 0) return null;
+                
+                return (
+                  <div key={location.id} className="space-y-6">
+                    {/* Location header */}
+                    <div className="flex items-center border-b border-gray-200 pb-2">
+                      <MapPin className="h-5 w-5 mr-2 text-primary" />
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {location.name} <span className="text-sm font-normal text-gray-500 ml-2">{location.city}, {location.state}</span>
+                      </h3>
                     </div>
                     
-                    {/* Lodge information is now in the info grid above */}
-                  </CardContent>
-                  {isAdmin && (
-                    <CardFooter className="flex justify-end space-x-2 px-4 pt-1 pb-3 border-t border-gray-100">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-xs h-8 border-gray-200 hover:bg-gray-50"
-                        onClick={() => openEditDialog(experience)}
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="text-xs h-8" 
-                        onClick={() => openDeleteDialog(experience)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
-                      </Button>
-                    </CardFooter>
-                  )}
-                </Card>
-              ))}
+                    {/* Experiences grid for this location */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {locationExperiences.map((experience: Experience) => (
+                        <Card key={experience.id} className="shadow-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-all">
+                          <CardHeader className="pb-1">
+                            <CardTitle className="text-lg text-green-800">{experience.name}</CardTitle>
+                            <CardDescription className="text-xs">{formatCategory(experience.category)}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-3">
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-3">{experience.description}</p>
+                            
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                                <span className="text-xs text-gray-700">{experience.duration} day{experience.duration > 1 ? 's' : ''}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                                <span className="text-xs text-gray-700">Max {experience.capacity} people</span>
+                              </div>
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
+                                <span className="text-xs text-gray-700 font-medium">
+                                  {new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD'
+                                  }).format(experience.price)}
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                          {isAdmin && (
+                            <CardFooter className="flex justify-end space-x-2 px-4 pt-1 pb-3 border-t border-gray-100">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-xs h-8 border-gray-200 hover:bg-gray-50"
+                                onClick={() => openEditDialog(experience)}
+                              >
+                                <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                className="text-xs h-8" 
+                                onClick={() => openDeleteDialog(experience)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                              </Button>
+                            </CardFooter>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center p-8 border border-dashed rounded-lg bg-muted/30">
