@@ -377,12 +377,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Current experience data in database:`, JSON.stringify(currentExperience, null, 2));
       
-      // Create a request body with the current locationId preserved if not specified
+      // Create a request body with proper locationId from either:
+      // 1. selectedLocationIds array (preferred, if available)
+      // 2. Direct locationId if valid (>=1)
+      // 3. Original experience locationId (fallback)
       const updatedBody = {
         ...req.body,
-        // Critical: Keep the original locationId if it's not included in the request body
-        // This ensures we don't lose location associations when editing a duplicated experience
-        locationId: req.body.locationId !== undefined ? req.body.locationId : currentExperience.locationId
+        // Handle the locationId correctly, prioritizing the selectedLocationIds array
+        locationId: req.body.selectedLocationIds && req.body.selectedLocationIds.length > 0
+          ? req.body.selectedLocationIds[0] // Use the first selected location
+          : (req.body.locationId >= 1 ? req.body.locationId : currentExperience.locationId)
       };
       
       console.log(`Modified request body with preserved locationId:`, JSON.stringify(updatedBody, null, 2));
