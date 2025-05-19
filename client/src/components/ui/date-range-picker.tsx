@@ -67,8 +67,9 @@ export function DateRangePicker({
       }
     });
     
-    // Return true if date is at or over capacity
-    return bookedCount >= capacity;
+    // Return true if date is at or over capacity considering current guest count
+    // Check if adding the current guests would exceed capacity
+    return (bookedCount + guestCount) > capacity;
   };
   
   // Function to check if a date should be disabled

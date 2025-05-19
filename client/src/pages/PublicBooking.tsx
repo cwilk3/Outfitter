@@ -724,6 +724,7 @@ function PublicBooking() {
                                           capacity: 1
                                         }}
                                         bookings={formattedBookings || []}
+                                        guestCount={form.getValues().guests}
                                         className="w-full"
                                       />
                                     </CardContent>
