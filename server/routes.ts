@@ -300,6 +300,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.locationId = 1; // Force valid locationId
       }
       
+      // Normalize the images array to ensure proper storage format
+      let normalizedImages = [];
+      
+      // Process images if provided
+      if (req.body.images) {
+        // Handle various image formats that might be submitted
+        if (Array.isArray(req.body.images)) {
+          // If it's already an array, use it (after filtering out any invalid entries)
+          normalizedImages = req.body.images.filter(img => !!img && typeof img === 'string');
+        } else if (typeof req.body.images === 'string') {
+          // If it's a string but might be a JSON string, try to parse it
+          try {
+            const parsed = JSON.parse(req.body.images);
+            if (Array.isArray(parsed)) {
+              normalizedImages = parsed.filter(img => !!img && typeof img === 'string');
+            }
+          } catch (e) {
+            // If it's just a single image URL as string
+            if (req.body.images.match(/^(http|https|data):/) || req.body.images.startsWith('/')) {
+              normalizedImages = [req.body.images];
+            }
+          }
+        }
+        console.log(`Normalized ${normalizedImages.length} images for storage`);
+      }
+      
       // Create a pre-processed payload with guaranteed values to pass validation
       const guaranteedPayload = {
         name: req.body.name || "New Experience",
@@ -317,8 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 parseInt(req.body.capacity) : 
                 (Number(req.body.capacity) || 1),
         category: req.body.category || "other_hunting",
-        // Add fallbacks for all other fields
-        images: req.body.images || [],
+        // Use normalized images array
+        images: normalizedImages,
         availableDates: req.body.availableDates || [],
         rules: req.body.rules || [],
         amenities: req.body.amenities || [],
@@ -377,16 +403,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Current experience data in database:`, JSON.stringify(currentExperience, null, 2));
       
-      // Create a request body with proper locationId from either:
-      // 1. selectedLocationIds array (preferred, if available)
-      // 2. Direct locationId if valid (>=1)
-      // 3. Original experience locationId (fallback)
+      // Normalize the images array to ensure proper storage format
+      let normalizedImages = currentExperience.images || [];
+      
+      // If new images are provided, process them
+      if (req.body.images) {
+        // Handle various image formats that might be submitted
+        if (Array.isArray(req.body.images)) {
+          // If it's already an array, use it (after filtering out any invalid entries)
+          normalizedImages = req.body.images.filter(img => !!img && typeof img === 'string');
+        } else if (typeof req.body.images === 'string') {
+          // If it's a string but might be a JSON string, try to parse it
+          try {
+            const parsed = JSON.parse(req.body.images);
+            if (Array.isArray(parsed)) {
+              normalizedImages = parsed.filter(img => !!img && typeof img === 'string');
+            }
+          } catch (e) {
+            // If it's just a single image URL as string
+            if (req.body.images.match(/^(http|https|data):/) || req.body.images.startsWith('/')) {
+              normalizedImages = [req.body.images];
+            }
+          }
+        }
+        console.log(`Normalized ${normalizedImages.length} images for storage`);
+      }
+      
+      // Create a request body with proper locationId and normalized images
       const updatedBody = {
         ...req.body,
         // Handle the locationId correctly, prioritizing the selectedLocationIds array
         locationId: req.body.selectedLocationIds && req.body.selectedLocationIds.length > 0
           ? req.body.selectedLocationIds[0] // Use the first selected location
-          : (req.body.locationId >= 1 ? req.body.locationId : currentExperience.locationId)
+          : (req.body.locationId >= 1 ? req.body.locationId : currentExperience.locationId),
+        // Always use the normalized images array
+        images: normalizedImages
       };
       
       console.log(`Modified request body with preserved locationId:`, JSON.stringify(updatedBody, null, 2));
