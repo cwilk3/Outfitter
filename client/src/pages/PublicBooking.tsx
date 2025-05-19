@@ -545,6 +545,7 @@ function PublicBooking() {
                         {/* Step indicators */}
                         <div className="flex items-center gap-1 mb-4">
                           <div className={`flex-1 h-2 rounded-full ${bookingStep === 'description' ? 'bg-primary' : 'bg-gray-200'}`}></div>
+                          <div className={`flex-1 h-2 rounded-full ${bookingStep === 'guests' ? 'bg-primary' : 'bg-gray-200'}`}></div>
                           <div className={`flex-1 h-2 rounded-full ${bookingStep === 'dates' ? 'bg-primary' : 'bg-gray-200'}`}></div>
                           <div className={`flex-1 h-2 rounded-full ${bookingStep === 'details' ? 'bg-primary' : 'bg-gray-200'}`}></div>
                         </div>
