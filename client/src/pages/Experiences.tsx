@@ -1890,6 +1890,72 @@ export default function Experiences() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate Experience Dialog */}
+      <Dialog open={isDuplicateDialogOpen} onOpenChange={setIsDuplicateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-amber-500" />
+              Duplicate Experience
+            </DialogTitle>
+            <DialogDescription>
+              Duplicate <span className="font-semibold">{experienceToDuplicate?.name}</span> to another location.
+              The new experience will be created as a copy with the same details.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Source Location</h4>
+              <div className="px-3 py-2 bg-muted/50 rounded-md border text-sm">
+                {locations.find(loc => loc.id === experienceToDuplicate?.locationId)?.name} (Current)
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Select Destination Location</h4>
+                {selectedDuplicateLocationId && (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-100">
+                    Selected
+                  </Badge>
+                )}
+              </div>
+              
+              <Select 
+                value={selectedDuplicateLocationId?.toString() || ""}
+                onValueChange={(value) => setSelectedDuplicateLocationId(parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations
+                    .filter(loc => loc.id !== experienceToDuplicate?.locationId)
+                    .map(location => (
+                      <SelectItem key={location.id} value={location.id.toString()}>
+                        {location.name} ({location.city}, {location.state})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDuplicateDialog}>Cancel</Button>
+            <Button 
+              onClick={handleDuplicateExperience}
+              disabled={!selectedDuplicateLocationId}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Copy className="h-4 w-4 mr-2" /> Duplicate Experience
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
