@@ -78,6 +78,7 @@ import {
   Image,
   Clock,
   Tag,
+  Copy,
   Check,
   ChevronRight,
   ChevronLeft,
@@ -360,6 +361,31 @@ export default function Experiences() {
     },
   });
 
+  // Duplicate experience
+  const duplicateExperienceMutation = useMutation({
+    mutationFn: ({ experienceId, locationId }: { experienceId: number, locationId: number }) => {
+      return apiRequest('POST', `/api/experiences/${experienceId}/duplicate`, { locationId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Experience duplicated successfully",
+      });
+      // Invalidate both admin and public experience queries
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+      closeDuplicateDialog();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to duplicate experience",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Delete experience
   const deleteMutation = useMutation({
     mutationFn: (id: number) => {
@@ -435,6 +461,50 @@ export default function Experiences() {
     }
   }, [experienceLocationData]);
 
+  // Open dialog for duplicating an experience
+  const openDuplicateDialog = (experience: Experience) => {
+    setExperienceToDuplicate(experience);
+    setSelectedDuplicateLocationId(null);
+    setIsDuplicateDialogOpen(true);
+  };
+  
+  // Close duplicate dialog
+  const closeDuplicateDialog = () => {
+    setIsDuplicateDialogOpen(false);
+    setExperienceToDuplicate(null);
+    setSelectedDuplicateLocationId(null);
+  };
+  
+  // Handle duplicating an experience to a new location
+  const handleDuplicateExperience = () => {
+    if (experienceToDuplicate && selectedDuplicateLocationId) {
+      // Create a new experience based on the selected one
+      const newExperience = {
+        name: `${experienceToDuplicate.name} (Copy)`,
+        description: experienceToDuplicate.description,
+        price: experienceToDuplicate.price,
+        duration: experienceToDuplicate.duration,
+        capacity: experienceToDuplicate.capacity,
+        category: experienceToDuplicate.category,
+        images: experienceToDuplicate.images,
+        rules: experienceToDuplicate.rules,
+        amenities: experienceToDuplicate.amenities,
+        tripIncludes: experienceToDuplicate.tripIncludes,
+        locationId: selectedDuplicateLocationId
+      };
+      
+      // Create the new experience
+      createMutation.mutate(newExperience);
+      closeDuplicateDialog();
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select a location to duplicate this experience to",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Open dialog for creating a new experience
   const openCreateDialog = () => {
     setSelectedExperience(null);
