@@ -16,10 +16,19 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
   // Default placeholder if no images are provided
   const defaultImage = "https://images.unsplash.com/photo-1588359348347-9bc6cbbb689e?q=80&w=1470&auto=format&fit=crop";
   
-  // Ensure we have at least one image
+  // Ensure we have at least one image and filter out invalid images
   const normalizedImages = images && images.length > 0 
-    ? images 
+    ? images.filter(img => 
+        img && 
+        typeof img === 'string' && 
+        (img.startsWith('data:image/') || img.startsWith('http'))
+      )
     : [defaultImage];
+    
+  // If all images were filtered out (invalid), use the default
+  if (normalizedImages.length === 0) {
+    normalizedImages.push(defaultImage);
+  }
   
   // When images prop changes, reset selected index
   useEffect(() => {

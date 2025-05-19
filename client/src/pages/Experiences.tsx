@@ -773,7 +773,18 @@ export default function Experiences() {
       
       // Optimize images before submission to prevent payload too large errors
       console.log("Optimizing images...", { imageCount: selectedImages.length });
-      const optimizedImages = await optimizeImages(selectedImages);
+      
+      // First, validate all images to make sure they're valid
+      const validImages = selectedImages.filter(img => 
+        img && 
+        typeof img === 'string' && 
+        (img.startsWith('data:image/') || img.startsWith('http'))
+      );
+      
+      console.log(`Found ${validImages.length} valid images out of ${selectedImages.length}`);
+      
+      // Then optimize them (with our improved optimization function)
+      const optimizedImages = await optimizeImages(validImages);
       
       // CRITICAL FIX: Create a brand new object with the minimum required fields
       // This prevents any undefined fields or data structure issues
