@@ -391,34 +391,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const experienceLocations = await storage.getExperienceLocationsByExperience(id);
       console.log(`Current experience location associations:`, JSON.stringify(experienceLocations, null, 2));
       
-      // Allowing partial updates with type coercion
-      const modifiedExperienceSchema = insertExperienceSchema.partial()
-        .transform((data) => {
-          console.log("Data before transformation:", data);
-          
-          // Create a transformed object with proper type conversions
-          const transformed = {
-            ...data,
-            // Always convert duration to number if present (unconditional conversion)
-            duration: data.duration !== undefined ? Number(data.duration) : data.duration,
-            
-            // Always convert capacity to number if present (unconditional conversion)
-            capacity: data.capacity !== undefined ? Number(data.capacity) : data.capacity,
-            
-            // Price field needs to be a string in the database
-            price: data.price !== undefined ? 
-                  (typeof data.price === 'number' ? data.price.toString() : data.price) : 
-                  data.price,
-            
-            // Preserve the locationId - critical for keeping duplicate experiences in their location
-            locationId: data.locationId !== undefined ? Number(data.locationId) : currentExperience.locationId
-          };
-          
-          console.log("Data after transformation:", transformed);
-          return transformed;
-        });
+      // IMPORTANT: Log the data before any processing
+      console.log("Raw request body before preprocessing:", JSON.stringify(updatedBody, null, 2));
       
-      const validatedData = modifiedExperienceSchema.parse(updatedBody);
+      // Step 1: First preprocess the data to convert string values to proper types
+      // This happens BEFORE validation, so it can convert string values to numbers
+      const preprocessedData = {
+        ...updatedBody,
+        // Explicitly convert numeric fields to proper types
+        duration: updatedBody.duration !== undefined ? Number(updatedBody.duration) : currentExperience.duration,
+        capacity: updatedBody.capacity !== undefined ? Number(updatedBody.capacity) : currentExperience.capacity,
+        // Ensure price is always a string
+        price: updatedBody.price !== undefined 
+          ? (typeof updatedBody.price === 'number' ? updatedBody.price.toString() : updatedBody.price) 
+          : currentExperience.price,
+        // Preserve locationId which is critical
+        locationId: updatedBody.locationId !== undefined 
+          ? Number(updatedBody.locationId) 
+          : currentExperience.locationId
+      };
+      
+      console.log("Data after preprocessing:", JSON.stringify(preprocessedData, null, 2));
+      
+      // Step 2: Create a partial schema from the insert schema
+      const partialExperienceSchema = insertExperienceSchema.partial();
+      
+      // Step 3: Validate the preprocessed data
+      const validatedData = partialExperienceSchema.parse(preprocessedData);
+      
       console.log(`Final validated data for database update:`, JSON.stringify(validatedData, null, 2));
       
       const updatedExperience = await storage.updateExperience(id, validatedData);
