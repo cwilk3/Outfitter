@@ -186,7 +186,7 @@ export function DateRangePicker({
               </TooltipProvider>
             </div>
             <p className="text-xs text-muted-foreground">
-              Experience duration: {duration} {duration === 1 ? 'day' : 'days'}
+              Experience duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
             </p>
           </div>
           <Calendar
