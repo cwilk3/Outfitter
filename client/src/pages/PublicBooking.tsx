@@ -338,16 +338,16 @@ function PublicBooking() {
         ) : (
           // STEP 2: Experience Selection for the chosen location
           <>
-            <div className="mb-8 flex items-center flex-wrap">
+            <div className="mb-8">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="mr-4 mb-2"
+                className="mb-4 pl-0 -ml-2 hover:bg-transparent"
                 onClick={() => setSelectedLocation(null)}
               >
                 ← Back to Locations
               </Button>
-              <div>
+              <div className="text-center">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Experiences at {selectedLocation.name}</h2>
                 <p className="mt-1 text-gray-600">{selectedLocation.city}, {selectedLocation.state}</p>
               </div>
