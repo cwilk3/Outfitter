@@ -889,15 +889,26 @@ export default function Experiences() {
                   </CardHeader>
                   <CardContent className="pb-3">
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">{experience.description}</p>
+                    {/* Location badge - prominently displayed */}
+                    {experience.locationId && (
+                      <div className="mb-3">
+                        <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {locations.find(l => l.id === experience.locationId)?.name || 'Unknown location'}
+                        </Badge>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                      <div className="flex items-start">
-                        <MapPin className="h-4 w-4 mr-1 mt-0.5 text-gray-500 flex-shrink-0" />
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1 text-gray-500 flex-shrink-0" />
                         {experience.locationId ? (
-                          <span className="text-xs text-gray-700 line-clamp-2">
-                            {locations.find(l => l.id === experience.locationId)?.name || 'Unknown location'}
+                          <span className="text-xs text-gray-700">
+                            {locations.find(l => l.id === experience.locationId)?.city || ''}, 
+                            {locations.find(l => l.id === experience.locationId)?.state || ''}
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">No lodge assigned</span>
+                          <span className="text-xs text-gray-400 italic">No location assigned</span>
                         )}
                       </div>
                       <div className="flex items-center">
@@ -1164,9 +1175,12 @@ export default function Experiences() {
                       name="locationId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Lodge/Business Location</FormLabel>
+                          <FormLabel className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-2 text-primary" />
+                            <span>Required Location</span>
+                          </FormLabel>
                           <FormDescription>
-                            Select the location where this experience is offered
+                            Each experience must be assigned to exactly one location. This is where guests will check in.
                           </FormDescription>
                           <Select
                             value={field.value ? field.value.toString() : ""}
@@ -1179,7 +1193,7 @@ export default function Experiences() {
                               console.log("Location selected:", locationId);
                             }}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-primary/30 focus:ring-primary/30">
                               <SelectValue placeholder="Select a location" />
                             </SelectTrigger>
                             <SelectContent>
