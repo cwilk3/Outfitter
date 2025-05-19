@@ -1796,6 +1796,13 @@ export default function Experiences() {
                             selectedLocationIds: selectedLocIds || [],
                           };
                           
+                          // DETAILED LOGGING: Log the exact payload being sent
+                          console.log("=== EXPERIENCE UPDATE PAYLOAD DETAILS ===");
+                          console.log("Full payload:", JSON.stringify(payload, null, 2));
+                          console.log("Duration type:", typeof payload.duration, "Value:", payload.duration);
+                          console.log("Capacity type:", typeof payload.capacity, "Value:", payload.capacity);
+                          console.log("Price type:", typeof payload.price, "Value:", payload.price);
+                          console.log("LocationId type:", typeof payload.locationId, "Value:", payload.locationId);
                           console.log("Payload size:", JSON.stringify(payload).length);
                           
                           // Make API call
