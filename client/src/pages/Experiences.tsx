@@ -490,50 +490,34 @@ export default function Experiences() {
   // Handle duplicating an experience to a new location
   const handleDuplicateExperience = () => {
     if (experienceToDuplicate && selectedDuplicateLocationId) {
-      // Create a new experience based on the selected one
-      const newExperience = {
+      // Create a new experience object based on the selected one
+      // We need to ensure the type compatibility with ExperienceFormValues
+      const newExperience: ExperienceFormValues = {
         name: `${experienceToDuplicate.name} (Copy)`,
         description: experienceToDuplicate.description,
-        price: experienceToDuplicate.price,
+        price: typeof experienceToDuplicate.price === 'string' 
+          ? parseFloat(experienceToDuplicate.price) 
+          : experienceToDuplicate.price,
         duration: experienceToDuplicate.duration,
         capacity: experienceToDuplicate.capacity,
-        category: experienceToDuplicate.category,
-        images: experienceToDuplicate.images,
-        rules: experienceToDuplicate.rules,
-        amenities: experienceToDuplicate.amenities,
-        tripIncludes: experienceToDuplicate.tripIncludes,
-        locationId: selectedDuplicateLocationId
+        // Assert the category as a valid enum type for type safety
+        category: experienceToDuplicate.category as "bass_fishing" | "trout_fishing" | "deer_hunting" | "duck_hunting" | "elk_hunting" | "pheasant_hunting" | "other_hunting" | "other_fishing",
+        // Set locationId to the selected location
+        locationId: selectedDuplicateLocationId,
+        images: experienceToDuplicate.images || [],
+        availableDates: [],
       };
       
-      // Use a custom function to create the experience without adding junction table entries
-      apiRequest('POST', '/api/experiences', newExperience)
-        .then((response) => {
-          // Parse the response to get the experience data
-          return response.json();
-        })
-        .then((createdExperience) => {
-          // Success toast
-          toast({
-            title: "Success",
-            description: "Experience duplicated successfully",
-          });
-          
-          // Invalidate queries to update the UI
-          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          
-          // Close the dialog
-          closeDuplicateDialog();
-        })
-        .catch((error) => {
-          // Error toast
-          toast({
-            title: "Error",
-            description: error.message || "Failed to duplicate experience",
-            variant: "destructive",
-          });
-        });
+      // Save the selected location ID for later use
+      // This tells the mutation not to create any junction table entries
+      // since we're directly setting the locationId field
+      setSelectedLocIds([]);
+      
+      // Create the experience using the createMutation
+      createMutation.mutate(newExperience);
+      
+      // Close dialog after submitting
+      closeDuplicateDialog();
     } else {
       toast({
         title: "Error",
