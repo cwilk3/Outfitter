@@ -362,6 +362,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/experiences/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // First, get the current experience to preserve important fields if not provided
+      const currentExperience = await storage.getExperience(id);
+      if (!currentExperience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      // Create a request body with the current locationId preserved if not specified
+      const updatedBody = {
+        ...req.body,
+        // Critical: Keep the original locationId if it's not included in the request body
+        // This ensures we don't lose location associations when editing a duplicated experience
+        locationId: req.body.locationId !== undefined ? req.body.locationId : currentExperience.locationId
+      };
+      
       // Allowing partial updates with type coercion
       const modifiedExperienceSchema = insertExperienceSchema.partial()
         .transform((data) => ({
@@ -371,9 +386,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Price field needs to be a string in the database
           price: data.price && typeof data.price === 'number' ? data.price.toString() : data.price,
           capacity: data.capacity && typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
+          // Preserve the locationId - critical for keeping duplicate experiences in their location
+          locationId: Number(data.locationId) || currentExperience.locationId
         }));
       
-      const validatedData = modifiedExperienceSchema.parse(req.body);
+      const validatedData = modifiedExperienceSchema.parse(updatedBody);
+      console.log(`Updating experience ${id} with locationId: ${validatedData.locationId}`);
       
       const updatedExperience = await storage.updateExperience(id, validatedData);
       
