@@ -86,7 +86,7 @@ export function DateRangePicker({
       return;
     }
     
-    // Create a new date object to avoid reference issues
+    // Create a fresh copy of the start date to avoid reference issues
     const startDate = new Date(selectedRange.from);
     
     // Safety check - ensure duration is valid
@@ -114,7 +114,7 @@ export function DateRangePicker({
       return;
     }
     
-    // Create a new date range object to avoid reference issues
+    // Create a completely new date range object with fresh date objects
     const newRange = { 
       from: new Date(startDate), 
       to: new Date(endDate) 
@@ -123,11 +123,14 @@ export function DateRangePicker({
     // Log the complete selected range for verification
     console.log("DateRangePicker - Selected date range:", newRange);
     
-    // Update the selection with the callback
-    onSelect(newRange);
+    // Close the popup immediately to improve user experience
+    setOpen(false);
     
-    // Close the popup after selection is complete
-    setTimeout(() => setOpen(false), 100);
+    // Update the selection with the callback
+    // We add a slight delay to ensure the UI updates properly
+    setTimeout(() => {
+      onSelect(newRange);
+    }, 50);
   };
   
   return (
