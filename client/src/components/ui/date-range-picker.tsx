@@ -21,6 +21,7 @@ interface DateRangePickerProps {
     availableDates?: string[] | Date[];
   };
   bookings?: Booking[];
+  guestCount?: number;
   className?: string;
 }
 
@@ -29,6 +30,7 @@ export function DateRangePicker({
   onSelect, 
   experience,
   bookings = [],
+  guestCount = 1,
   className
 }: DateRangePickerProps) {
   // State to control the dropdown

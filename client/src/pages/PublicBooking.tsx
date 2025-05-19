@@ -79,7 +79,7 @@ function PublicBooking() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false);
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
-  const [bookingStep, setBookingStep] = useState<'description' | 'dates' | 'details'>('description');
+  const [bookingStep, setBookingStep] = useState<'description' | 'guests' | 'dates' | 'details'>('description');
   
   // Get locations from API
   const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
@@ -609,14 +609,90 @@ function PublicBooking() {
                             <Button 
                               type="button" 
                               className="w-full mt-4" 
-                              onClick={() => setBookingStep('dates')}
+                              onClick={() => setBookingStep('guests')}
                             >
-                              Continue to Dates
+                              Continue to Guest Selection
                             </Button>
                           </div>
                         )}
                         
-                        {/* Step 2: Date Selection */}
+                        {/* Step 2: Guest Selection */}
+                        {bookingStep === 'guests' && (
+                          <div className="space-y-4">
+                            <h3 className="text-xl font-bold">How many guests will be joining?</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Please select the number of guests to check availability.
+                              {selectedExperience && (
+                                <span className="block mt-1">
+                                  Maximum capacity: <span className="font-medium">{selectedExperience.capacity} guests</span>
+                                </span>
+                              )}
+                            </p>
+                            
+                            <FormField
+                              control={form.control}
+                              name="guests"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Number of Guests</FormLabel>
+                                  <Select
+                                    value={field.value.toString()}
+                                    onValueChange={(value) => field.onChange(parseInt(value))}
+                                  >
+                                    <SelectTrigger className="w-full">
+                                      <SelectValue placeholder="Select number of guests" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from(
+                                        { length: (selectedExperience?.capacity || 10) },
+                                        (_, i) => i + 1
+                                      ).map((num) => (
+                                        <SelectItem key={num} value={num.toString()}>
+                                          {num} {num === 1 ? 'guest' : 'guests'}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="flex space-x-4 pt-2">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                className="flex-1" 
+                                onClick={() => setBookingStep('description')}
+                              >
+                                Back
+                              </Button>
+                              <Button 
+                                type="button" 
+                                className="flex-1" 
+                                onClick={() => {
+                                  // Validate guest count is selected
+                                  const guestCount = form.getValues().guests;
+                                  if (!guestCount || guestCount < 1) {
+                                    toast({
+                                      title: "Guest selection required",
+                                      description: "Please select the number of guests for your booking",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  
+                                  // Proceed to dates selection
+                                  setBookingStep('dates');
+                                }}
+                              >
+                                Continue to Dates
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      
+                        {/* Step 3: Date Selection */}
                         {bookingStep === 'dates' && (
                           <div className="space-y-4">
                             <h3 className="text-xl font-bold">Select your dates</h3>
