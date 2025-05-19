@@ -312,10 +312,35 @@ export const upsertUserSchema = createInsertSchema(users).omit({
   updatedAt: true
 });
 
-export const insertExperienceSchema = createInsertSchema(experiences).omit({ 
+// Create a base schema from the experiences table
+const baseExperienceSchema = createInsertSchema(experiences).omit({ 
   id: true,
   createdAt: true,
   updatedAt: true
+});
+
+// Enhanced Experience schema with type coercion for numeric fields
+export const insertExperienceSchema = baseExperienceSchema.extend({
+  // Override duration to accept strings and convert them to numbers
+  duration: z.preprocess(
+    (val) => (typeof val === 'string' ? parseInt(val, 10) : val),
+    z.number().min(1)
+  ),
+  // Override capacity to accept strings and convert them to numbers
+  capacity: z.preprocess(
+    (val) => (typeof val === 'string' ? parseInt(val, 10) : val),
+    z.number().min(1)
+  ),
+  // Override price to ensure it's a string for database storage
+  price: z.preprocess(
+    (val) => (typeof val === 'number' ? val.toString() : val),
+    z.string()
+  ),
+  // Override locationId to ensure it's a number
+  locationId: z.preprocess(
+    (val) => (typeof val === 'string' ? parseInt(val, 10) : val),
+    z.number().min(1)
+  )
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({ 
