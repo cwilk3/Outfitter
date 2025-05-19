@@ -970,76 +970,78 @@ function PublicBooking() {
                     </Form>
                   </div>
                   
-                  {/* Right Column: Summary */}
+                  {/* Right Column: Summary - Only shown on dates and details steps */}
                   <div className="col-span-1">
-                    <div className="bg-gray-50 rounded-xl p-5 space-y-4 sticky top-6">
-                      <h3 className="font-bold text-lg">Booking Summary</h3>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">Experience:</span>
-                          <span className="font-medium">{selectedExperience.name}</span>
-                        </div>
+                    {(bookingStep === 'dates' || bookingStep === 'details') && (
+                      <div className="bg-gray-50 rounded-xl p-5 space-y-4 sticky top-6">
+                        <h3 className="font-bold text-lg">Booking Summary</h3>
                         
-                        <Separator />
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">Location:</span>
-                          <span className="font-medium">
-                            {selectedLocation ? `${selectedLocation.name}, ${selectedLocation.city}` : 
-                              selectedExperience.locations.length > 0 ? 
-                                `${selectedExperience.locations[0].name}, ${selectedExperience.locations[0].city}` : 
-                                'No location specified'}
-                          </span>
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">Duration:</span>
-                          <span className="font-medium">{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
-                        </div>
-                        
-                        <Separator />
-                        
-                        {form.watch('dateRange') && form.watch('dateRange')?.from && form.watch('dateRange')?.to && (
-                          <>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">Dates:</span>
-                              <span className="font-medium">
-                                {format(new Date(form.watch('dateRange')?.from as Date), 'MMM d, yyyy')} - {format(new Date(form.watch('dateRange')?.to as Date), 'MMM d, yyyy')}
-                              </span>
-                            </div>
-                            
-                            <Separator />
-                          </>
-                        )}
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">Guests:</span>
-                          <span className="font-medium">{form.watch('guests')}</span>
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="text-gray-700 font-bold">Cost per person:</span>
-                          <span className="font-bold">{formatPrice(selectedExperience.price)}</span>
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex justify-between items-center pt-2 text-lg">
-                          <span className="text-gray-900 font-bold">Total:</span>
-                          <span className="font-bold text-primary">
-                            {formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())}
-                          </span>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">Experience:</span>
+                            <span className="font-medium">{selectedExperience.name}</span>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">Location:</span>
+                            <span className="font-medium">
+                              {selectedLocation ? `${selectedLocation.name}, ${selectedLocation.city}` : 
+                                selectedExperience.locations.length > 0 ? 
+                                  `${selectedExperience.locations[0].name}, ${selectedExperience.locations[0].city}` : 
+                                  'No location specified'}
+                            </span>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">Duration:</span>
+                            <span className="font-medium">{selectedExperience.duration} {selectedExperience.duration > 1 ? 'days' : 'day'}</span>
+                          </div>
+                          
+                          <Separator />
+                          
+                          {form.watch('dateRange') && form.watch('dateRange')?.from && form.watch('dateRange')?.to && (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700">Dates:</span>
+                                <span className="font-medium">
+                                  {format(new Date(form.watch('dateRange')?.from as Date), 'MMM d, yyyy')} - {format(new Date(form.watch('dateRange')?.to as Date), 'MMM d, yyyy')}
+                                </span>
+                              </div>
+                              
+                              <Separator />
+                            </>
+                          )}
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">Guests:</span>
+                            <span className="font-medium">{form.watch('guests')}</span>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="text-gray-700 font-bold">Cost per person:</span>
+                            <span className="font-bold">{formatPrice(selectedExperience.price)}</span>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="flex justify-between items-center pt-2 text-lg">
+                            <span className="text-gray-900 font-bold">Total:</span>
+                            <span className="font-bold text-primary">
+                              {formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    )}
                 </div>
               </div>
+            </div>
             </>
           )}
         </DialogContent>
