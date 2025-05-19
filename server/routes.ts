@@ -393,16 +393,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Allowing partial updates with type coercion
       const modifiedExperienceSchema = insertExperienceSchema.partial()
-        .transform((data) => ({
-          ...data,
-          // Ensure numeric fields are converted to numbers if present
-          duration: data.duration && typeof data.duration === 'string' ? parseInt(data.duration) : data.duration,
-          // Price field needs to be a string in the database
-          price: data.price && typeof data.price === 'number' ? data.price.toString() : data.price,
-          capacity: data.capacity && typeof data.capacity === 'string' ? parseInt(data.capacity) : data.capacity,
-          // Preserve the locationId - critical for keeping duplicate experiences in their location
-          locationId: Number(data.locationId) || currentExperience.locationId
-        }));
+        .transform((data) => {
+          console.log("Data before transformation:", data);
+          
+          // Create a transformed object with proper type conversions
+          const transformed = {
+            ...data,
+            // Always convert duration to number if present (unconditional conversion)
+            duration: data.duration !== undefined ? Number(data.duration) : data.duration,
+            
+            // Always convert capacity to number if present (unconditional conversion)
+            capacity: data.capacity !== undefined ? Number(data.capacity) : data.capacity,
+            
+            // Price field needs to be a string in the database
+            price: data.price !== undefined ? 
+                  (typeof data.price === 'number' ? data.price.toString() : data.price) : 
+                  data.price,
+            
+            // Preserve the locationId - critical for keeping duplicate experiences in their location
+            locationId: data.locationId !== undefined ? Number(data.locationId) : currentExperience.locationId
+          };
+          
+          console.log("Data after transformation:", transformed);
+          return transformed;
+        });
       
       const validatedData = modifiedExperienceSchema.parse(updatedBody);
       console.log(`Final validated data for database update:`, JSON.stringify(validatedData, null, 2));
