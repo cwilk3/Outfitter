@@ -42,6 +42,8 @@ export function DateRangePicker({
   bookings = [],
   className
 }: DateRangePickerProps) {
+  // State to control the popover
+  const [open, setOpen] = React.useState(false);
   // Add safety check for undefined experience with default values
   const { 
     duration = 1, 
@@ -167,101 +169,103 @@ export function DateRangePicker({
   
   return (
     <div className={className}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !dateRange && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
-                <>
-                  {format(new Date(dateRange.from), "LLL dd, y")} - {format(new Date(dateRange.to), "LLL dd, y")}
-                </>
-              ) : (
-                format(new Date(dateRange.from), "LLL dd, y")
-              )
-            ) : (
-              <span>Select dates</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-auto p-0 z-50 shadow-lg mt-10" 
-          align="start" 
-          side="bottom"
-          sideOffset={5}
-          avoidCollisions={true}
-        >
-          <div className="p-3 border-b bg-background">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium text-sm">Select Your Dates</h4>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Click on an available start date. End date will be automatically set based on duration ({typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}).
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Experience duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
-            </p>
-          </div>
-          
-          <div className="p-4">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
-              selected={{
-                from: dateRange?.from ? new Date(dateRange.from) : undefined,
-                to: dateRange?.to ? new Date(dateRange.to) : undefined
-              }}
-              onSelect={(range) => {
-                if (range?.from) {
-                  // Only trigger if a start date is selected
-                  handleSelect(range);
-                } else {
-                  onSelect(undefined);
-                }
-              }}
-              numberOfMonths={2}
-              disabled={isDateDisabled}
-              fromDate={new Date()}
-              fixedWeeks
-              className="rounded-md"
-              // Removed modifiers prop to fix type errors
-              classNames={{
-                day_range_start: "day-range-start bg-primary text-primary-foreground rounded-l-md",
-                day_range_end: "day-range-end bg-primary text-primary-foreground rounded-r-md",
-                day_range_middle: "day-range-middle bg-primary/20 text-primary-foreground",
-              }}
-            />
-          </div>
-          
-          {dateRange?.from && dateRange?.to && (
-            <div className="p-3 border-t bg-muted/20">
-              <p className="text-xs font-medium">
-                Selected dates: {format(new Date(dateRange.from), "MMMM d")} - {format(new Date(dateRange.to), "MMMM d, yyyy")}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
-              </p>
-            </div>
+      <div className="relative">
+        <Button
+          id="date"
+          variant={"outline"} 
+          onClick={() => setOpen(!open)}
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !dateRange && "text-muted-foreground"
           )}
-        </PopoverContent>
-      </Popover>
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {dateRange?.from ? (
+            dateRange.to ? (
+              <>
+                {format(new Date(dateRange.from), "LLL dd, y")} - {format(new Date(dateRange.to), "LLL dd, y")}
+              </>
+            ) : (
+              format(new Date(dateRange.from), "LLL dd, y")
+            )
+          ) : (
+            <span>Select dates</span>
+          )}
+        </Button>
+        
+        {open && (
+          <div className="absolute left-0 top-full mt-2 z-50 bg-background border rounded-md shadow-lg">
+            <div className="p-3 border-b">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-sm">Select Your Dates</h4>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs max-w-xs">
+                          Click on an available start date. End date will be automatically set based on duration ({typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}).
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+                    <span className="sr-only">Close</span>
+                    <span className="text-lg font-bold">&times;</span>
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Experience duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
+              </p>
+            </div>
+            
+            <div className="p-4">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
+                selected={{
+                  from: dateRange?.from ? new Date(dateRange.from) : undefined,
+                  to: dateRange?.to ? new Date(dateRange.to) : undefined
+                }}
+                onSelect={(range) => {
+                  if (range?.from) {
+                    // Only trigger if a start date is selected
+                    handleSelect(range);
+                    setOpen(false); // Close after selection
+                  } else {
+                    onSelect(undefined);
+                  }
+                }}
+                numberOfMonths={1}
+                disabled={isDateDisabled}
+                fromDate={new Date()}
+                fixedWeeks
+                className="rounded-md"
+                classNames={{
+                  day_range_start: "bg-primary text-primary-foreground rounded-l-md",
+                  day_range_end: "bg-primary text-primary-foreground rounded-r-md",
+                  day_range_middle: "bg-primary/20 text-primary-foreground",
+                }}
+              />
+            </div>
+            
+            {dateRange?.from && dateRange?.to && (
+              <div className="p-3 border-t bg-muted/20">
+                <p className="text-xs font-medium">
+                  Selected dates: {format(new Date(dateRange.from), "MMMM d")} - {format(new Date(dateRange.to), "MMMM d, yyyy")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
