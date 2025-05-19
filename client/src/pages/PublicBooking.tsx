@@ -487,7 +487,7 @@ function PublicBooking() {
       
       {/* Experience Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="max-w-5xl p-0 overflow-hidden">
+        <DialogContent className="max-w-5xl p-0 max-h-[90vh] overflow-y-auto">
           {selectedExperience && (
             <>
               {/* Header Image */}
@@ -539,7 +539,7 @@ function PublicBooking() {
               </div>
               
               {/* Booking Form */}
-              <div className="p-6 bg-white">
+              <div className="p-6 pb-20 bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Form Column - expands to full width when summary is hidden */}
                   <div className={bookingStep === 'description' || bookingStep === 'guests' ? "col-span-1 md:col-span-3" : "col-span-1 md:col-span-2"}>
@@ -620,13 +620,15 @@ function PublicBooking() {
                               </div>
                             </div>
                             
-                            <Button 
-                              type="button" 
-                              className="w-full mt-6" 
-                              onClick={() => setBookingStep('guests')}
-                            >
-                              Continue to Guest Selection
-                            </Button>
+                            <div className="sticky bottom-0 pt-6">
+                              <Button 
+                                type="button" 
+                                className="w-full" 
+                                onClick={() => setBookingStep('guests')}
+                              >
+                                Continue to Guest Selection
+                              </Button>
+                            </div>
                           </div>
                         )}
                         
@@ -672,36 +674,38 @@ function PublicBooking() {
                               )}
                             />
                             
-                            <div className="flex space-x-4 pt-2">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                className="flex-1" 
-                                onClick={() => setBookingStep('description')}
-                              >
-                                Back
-                              </Button>
-                              <Button 
-                                type="button" 
-                                className="flex-1" 
-                                onClick={() => {
-                                  // Validate guest count is selected
-                                  const guestCount = form.getValues().guests;
-                                  if (!guestCount || guestCount < 1) {
-                                    toast({
-                                      title: "Guest selection required",
-                                      description: "Please select the number of guests for your booking",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  
-                                  // Proceed to dates selection
-                                  setBookingStep('dates');
-                                }}
-                              >
-                                Continue to Dates
-                              </Button>
+                            <div className="sticky bottom-0 pt-6 pb-2 bg-white">
+                              <div className="flex space-x-4">
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  className="flex-1" 
+                                  onClick={() => setBookingStep('description')}
+                                >
+                                  Back
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  className="flex-1" 
+                                  onClick={() => {
+                                    // Validate guest count is selected
+                                    const guestCount = form.getValues().guests;
+                                    if (!guestCount || guestCount < 1) {
+                                      toast({
+                                        title: "Guest selection required",
+                                        description: "Please select the number of guests for your booking",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    
+                                    // Proceed to dates selection
+                                    setBookingStep('dates');
+                                  }}
+                                >
+                                  Continue to Dates
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -749,34 +753,36 @@ function PublicBooking() {
                               )}
                             />
                             
-                            <div className="flex space-x-4">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                className="flex-1" 
-                                onClick={() => setBookingStep('guests')}
-                              >
-                                Back
-                              </Button>
-                              <Button 
-                                type="button" 
-                                className="flex-1" 
-                                onClick={() => {
-                                  // Validate dateRange before proceeding
-                                  const dateRange = form.getValues().dateRange;
-                                  if (!dateRange || !dateRange.from || !dateRange.to) {
-                                    toast({
-                                      title: "Date selection required",
-                                      description: "Please select dates for your booking",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                  setBookingStep('details');
-                                }}
-                              >
-                                Continue
-                              </Button>
+                            <div className="sticky bottom-0 pt-6 pb-2 bg-white">
+                              <div className="flex space-x-4">
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  className="flex-1" 
+                                  onClick={() => setBookingStep('guests')}
+                                >
+                                  Back
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  className="flex-1" 
+                                  onClick={() => {
+                                    // Validate dateRange before proceeding
+                                    const dateRange = form.getValues().dateRange;
+                                    if (!dateRange || !dateRange.from || !dateRange.to) {
+                                      toast({
+                                        title: "Date selection required",
+                                        description: "Please select dates for your booking",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    setBookingStep('details');
+                                  }}
+                                >
+                                  Continue
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -884,18 +890,20 @@ function PublicBooking() {
                               )}
                             />
                             
-                            <div className="flex space-x-4">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                className="flex-1" 
-                                onClick={() => setBookingStep('dates')}
-                              >
-                                Back
-                              </Button>
-                              <Button type="submit" className="flex-1">
-                                Complete Booking
-                              </Button>
+                            <div className="sticky bottom-0 pt-6 pb-2 bg-white">
+                              <div className="flex space-x-4">
+                                <Button 
+                                  type="button" 
+                                  variant="outline" 
+                                  className="flex-1" 
+                                  onClick={() => setBookingStep('dates')}
+                                >
+                                  Back
+                                </Button>
+                                <Button type="submit" className="flex-1">
+                                  Complete Booking
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
