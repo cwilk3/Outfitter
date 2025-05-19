@@ -19,7 +19,7 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
   // Ensure we have at least one image
   const normalizedImages = images && images.length > 0 
     ? images 
-    : [defaultImage, defaultImage];
+    : [defaultImage];
   
   // When images prop changes, reset selected index
   useEffect(() => {
@@ -63,7 +63,7 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
     <div className={`space-y-3 ${className}`}>
       {/* Main featured image */}
       <div 
-        className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-[16/9] cursor-pointer transition-all hover:brightness-90"
+        className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-[4/3] cursor-pointer transition-all hover:brightness-90"
         onClick={() => openLightbox(selectedImageIndex)}
       >
         <img 
@@ -76,8 +76,8 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
       
       {/* Thumbnails */}
       {normalizedImages.length > 1 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-          {normalizedImages.slice(0, 5).map((image, index) => (
+        <div className="grid grid-cols-4 gap-2">
+          {normalizedImages.slice(0, 4).map((image, index) => (
             <div 
               key={index}
               className={`aspect-square rounded-md overflow-hidden cursor-pointer transition-all hover:opacity-80 ${
@@ -96,10 +96,10 @@ export function ExperienceImageGallery({ images = [], className = "" }: Experien
         </div>
       )}
       
-      {/* Image count indicator (if more than 5 images) */}
-      {normalizedImages.length > 5 && (
+      {/* Image count indicator (if more than 4 images) */}
+      {normalizedImages.length > 4 && (
         <div className="text-xs text-right text-gray-500">
-          +{normalizedImages.length - 5} more photos
+          +{normalizedImages.length - 4} more photos
         </div>
       )}
       

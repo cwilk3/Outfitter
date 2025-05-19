@@ -556,25 +556,17 @@ function PublicBooking() {
                           <div className="space-y-4">
                             <h3 className="text-xl font-bold">About this experience</h3>
                             
-                            {/* Full-width container */}
-                            <div className="w-full space-y-6">
-                              {/* Description */}
-                              <div className="text-gray-700">
-                                <p>{selectedExperience.description}</p>
-                              </div>
-                              
-                              {/* Image Gallery - Full width */}
-                              <div className="w-full">
-                                <ExperienceImageGallery images={selectedExperience.images} />
-                              </div>
-                              
-                              {/* Details in full width section */}
+                            {/* Two-column layout for description and gallery */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Left column: Description and details */}
                               <div className="text-gray-700 space-y-4">
+                                <p>{selectedExperience.description}</p>
+                                
                                 {/* What's included */}
                                 {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
                                   <div className="mt-4">
                                     <h4 className="font-medium text-lg">What's included:</h4>
-                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {selectedExperience.tripIncludes.map((item, index) => (
                                         <li key={index} className="flex items-start">
                                           <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -591,7 +583,7 @@ function PublicBooking() {
                                 {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
                                   <div className="mt-4">
                                     <h4 className="font-medium text-lg">Amenities:</h4>
-                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                       {selectedExperience.amenities.map((item, index) => (
                                         <li key={index} className="flex items-start">
                                           <svg className="h-5 w-5 text-primary mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -618,6 +610,11 @@ function PublicBooking() {
                                     </ul>
                                   </div>
                                 )}
+                              </div>
+                              
+                              {/* Right column: Image gallery */}
+                              <div className="hidden md:block">
+                                <ExperienceImageGallery images={selectedExperience.images} />
                               </div>
                             </div>
                             
