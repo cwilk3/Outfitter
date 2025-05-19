@@ -164,10 +164,10 @@ export function DateRangePicker({
             {dateRange?.from ? (
               dateRange.to ? (
                 <>
-                  {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                  {format(new Date(dateRange.from), "LLL dd, y")} - {format(new Date(dateRange.to), "LLL dd, y")}
                 </>
               ) : (
-                format(dateRange.from, "LLL dd, y")
+                format(new Date(dateRange.from), "LLL dd, y")
               )
             ) : (
               <span>Select dates</span>
@@ -175,12 +175,11 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-auto p-0 z-50" 
-          align="center" 
-          sideOffset={24}
-          style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}
+          className="w-auto p-0 z-50 shadow-lg" 
+          align="start" 
+          sideOffset={40} 
         >
-          <div className="p-3 border-b sticky top-0 bg-background z-10">
+          <div className="p-3 border-b bg-background">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-sm">Select Your Dates</h4>
               <TooltipProvider>
@@ -200,24 +199,25 @@ export function DateRangePicker({
               Experience duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
             </p>
           </div>
-          <div className="p-3 flex-1">
-            <div className="pt-4 pb-4">
-              <Calendar
-                initialFocus
-                mode="single"
-                defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
-                selected={dateRange?.from ? new Date(dateRange.from) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    handleSelect({ from: date });
-                  } else {
-                    onSelect(undefined);
-                  }
-                }}
-                numberOfMonths={1}
-                disabled={isDateDisabled}
-                fromDate={new Date()}
-                fixedWeeks
+          
+          <div className="p-4">
+            <Calendar
+              initialFocus
+              mode="single"
+              defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
+              selected={dateRange?.from ? new Date(dateRange.from) : undefined}
+              onSelect={(date) => {
+                if (date) {
+                  handleSelect({ from: date });
+                } else {
+                  onSelect(undefined);
+                }
+              }}
+              numberOfMonths={1}
+              disabled={isDateDisabled}
+              fromDate={new Date()}
+              fixedWeeks
+              className="rounded-md"
             />
           </div>
           
