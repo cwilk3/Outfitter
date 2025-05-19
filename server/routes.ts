@@ -387,12 +387,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Modified request body with preserved locationId:`, JSON.stringify(updatedBody, null, 2));
       
-      // Check for experienceLocations entries
-      const experienceLocations = await storage.getExperienceLocationsByExperience(id);
-      console.log(`Current experience location associations:`, JSON.stringify(experienceLocations, null, 2));
-      
       // IMPORTANT: Log the data before any processing
       console.log("Raw request body before preprocessing:", JSON.stringify(updatedBody, null, 2));
+      
+      // We don't need to check experienceLocations as our data model has simplified to a direct locationId reference
+      // The locationId is already preserved in the updatedBody object above
       
       // Step 1: First preprocess the data to convert string values to proper types
       // This happens BEFORE validation, so it can convert string values to numbers
