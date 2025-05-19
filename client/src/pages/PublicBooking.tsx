@@ -347,7 +347,7 @@ function PublicBooking() {
               >
                 ← Back to Locations
               </Button>
-              <div className="text-center">
+              <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Experiences at {selectedLocation.name}</h2>
                 <p className="mt-1 text-gray-600">{selectedLocation.city}, {selectedLocation.state}</p>
               </div>
