@@ -190,6 +190,11 @@ export default function Experiences() {
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   
+  // Duplicate experience dialog state
+  const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false);
+  const [experienceToDuplicate, setExperienceToDuplicate] = useState<Experience | null>(null);
+  const [selectedDuplicateLocationId, setSelectedDuplicateLocationId] = useState<number | null>(null);
+  
   type AddonType = {
     name: string;
     description: string;
@@ -933,7 +938,7 @@ export default function Experiences() {
                             </div>
                           </CardContent>
                           {isAdmin && (
-                            <CardFooter className="flex justify-end space-x-2 px-4 pt-1 pb-3 border-t border-gray-100">
+                            <CardFooter className="flex justify-end flex-wrap gap-2 px-4 pt-1 pb-3 border-t border-gray-100">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -941,6 +946,14 @@ export default function Experiences() {
                                 onClick={() => openEditDialog(experience)}
                               >
                                 <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-xs h-8 border-amber-100 text-amber-700 hover:bg-amber-50"
+                                onClick={() => openDuplicateDialog(experience)}
+                              >
+                                <Copy className="h-3.5 w-3.5 mr-1" /> Duplicate
                               </Button>
                               <Button 
                                 variant="destructive" 
