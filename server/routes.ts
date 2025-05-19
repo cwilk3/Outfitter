@@ -1311,13 +1311,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Fetch bookings for this experience
-      const bookings = await storage.listBookings({ experienceId });
+      const bookings = await storage.listBookings({ 
+        // Use the filter options that are actually available in the storage interface
+        status: undefined,
+        startDate: undefined,
+        endDate: undefined
+      });
+      
+      // Filter the bookings for this experience ID after fetching
+      const experienceBookings = bookings.filter(booking => 
+        booking.experienceId === experienceId
+      );
       
       // Transform bookings to a format suitable for availability checking
-      const bookingsForAvailability = bookings.map(booking => ({
+      const bookingsForAvailability = experienceBookings.map(booking => ({
         startDate: booking.startDate,
         endDate: booking.endDate,
-        guests: booking.guestCount || 1,
+        bookedCount: 1 // For now, assume 1 booking = 1 person (we'll enhance this later)
       }));
       
       res.json(bookingsForAvailability);

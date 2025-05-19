@@ -121,6 +121,14 @@ function PublicBooking() {
   // Fetch bookings data for the selected experience
   const { data: bookings = [] } = useQuery<any[]>({
     queryKey: ['/api/public/bookings', selectedExperience?.id],
+    queryFn: async () => {
+      if (!selectedExperience) return [];
+      const response = await fetch(`/api/public/bookings?experienceId=${selectedExperience.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookings');
+      }
+      return response.json();
+    },
     enabled: !!selectedExperience?.id && bookingDialogOpen,
   });
   
