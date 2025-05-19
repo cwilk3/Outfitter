@@ -173,27 +173,20 @@ function PublicBooking() {
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     
-    // Calculate days
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate nights
+    const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate total based on the experience price, days, and guest count
-    const guestCount = guests || 1;
-    const basePrice = parseFloat(selectedExperience.price);
-    const total = basePrice * guestCount;
-    
-    // Calculate deposit (50% of total)
-    const deposit = total * 0.5;
+    // Calculate total (simple calculation for now)
+    const basePrice = parseFloat(selectedExperience.price) * guests;
+    const total = basePrice;
     
     return {
-      days,
-      guestCount,
+      startDate,
+      endDate,
+      nights,
       basePrice,
       total,
-      deposit,
-      dates: {
-        start: startDate,
-        end: endDate
-      }
+      guests,
     };
   };
   
@@ -638,42 +631,25 @@ function PublicBooking() {
                                     <CardContent className="pt-4">
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
-                                        onSelect={(range) => {
-                                          console.log("PublicBooking: date selection received", range);
+                                        onSelect={(range: DateRange | undefined) => {
+                                          console.log("Original selection:", range);
                                           
-                                          if (!range || !range.from) {
-                                            form.setValue("dateRange", undefined);
-                                            return;
-                                          }
+                                          // Create a new range object to avoid mutation issues
+                                          let newRange = range ? { ...range } : undefined;
                                           
-                                          // Create completely new date objects to avoid reference issues
-                                          const startDate = new Date(range.from);
-                                          
-                                          // Calculate end date based on experience duration
-                                          let endDate;
-                                          if (selectedExperience) {
+                                          // If start date is selected, auto-calculate end date based on experience duration
+                                          if (newRange?.from && selectedExperience && !newRange.to) {
                                             const duration = selectedExperience.duration || 1;
-                                            endDate = addDays(startDate, duration - 1);
-                                          } else if (range.to) {
-                                            endDate = new Date(range.to);
-                                          } else {
-                                            endDate = addDays(startDate, 0);
+                                            // Set end date based on experience duration
+                                            const calculatedEndDate = addDays(new Date(newRange.from), duration - 1);
+                                            newRange.to = calculatedEndDate;
                                           }
                                           
-                                          // Create a fresh range object with new date instances
-                                          const newRange = {
-                                            from: startDate,
-                                            to: endDate
-                                          };
+                                          // Update form field value
+                                          field.onChange(newRange);
                                           
-                                          console.log("PublicBooking: setting form value", newRange);
-                                          
-                                          // Use form.setValue for more reliable form updates
-                                          form.setValue("dateRange", newRange, {
-                                            shouldDirty: true,
-                                            shouldTouch: true,
-                                            shouldValidate: true
-                                          });
+                                          // Log selection to verify it's working
+                                          console.log("Date range with calculated end date:", newRange);
                                         }}
                                         experience={selectedExperience || {
                                           duration: 1,
@@ -966,17 +942,6 @@ function PublicBooking() {
                               </span>
                             </div>
                             
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">Stay length:</span>
-                              <span className="font-medium">
-                                {Math.ceil(
-                                  (new Date(form.watch('dateRange')?.to as Date).getTime() - 
-                                   new Date(form.watch('dateRange')?.from as Date).getTime()) / 
-                                   (1000 * 60 * 60 * 24)
-                                ) + 1} days
-                              </span>
-                            </div>
-                            
                             <Separator />
                           </>
                         )}
@@ -998,18 +963,7 @@ function PublicBooking() {
                         <div className="flex justify-between items-center pt-2 text-lg">
                           <span className="text-gray-900 font-bold">Total:</span>
                           <span className="font-bold text-primary">
-                            {form.watch('dateRange') && form.watch('dateRange')?.from && form.watch('dateRange')?.to ? (
-                              formatPrice(
-                                (parseFloat(selectedExperience.price) * form.watch('guests') * 
-                                (Math.ceil(
-                                  (new Date(form.watch('dateRange')?.to as Date).getTime() - 
-                                   new Date(form.watch('dateRange')?.from as Date).getTime()) / 
-                                   (1000 * 60 * 60 * 24)
-                                ) + 1)).toString()
-                              )
-                            ) : (
-                              formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())
-                            )}
+                            {formatPrice((parseFloat(selectedExperience.price) * form.watch('guests')).toString())}
                           </span>
                         </div>
                       </div>
