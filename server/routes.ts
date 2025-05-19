@@ -1300,6 +1300,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Client-side routing will handle /public-booking routes
+  
+  // GET public bookings for availability tracking
+  app.get('/api/public/bookings', async (req, res) => {
+    try {
+      const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
+      
+      if (!experienceId) {
+        return res.status(400).json({ message: 'Experience ID is required' });
+      }
+      
+      // Fetch bookings for this experience
+      const bookings = await storage.listBookings({ experienceId });
+      
+      // Transform bookings to a format suitable for availability checking
+      const bookingsForAvailability = bookings.map(booking => ({
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        guests: booking.guestCount || 1,
+      }));
+      
+      res.json(bookingsForAvailability);
+    } catch (error) {
+      console.error('Error fetching bookings for availability:', error);
+      res.status(500).json({ message: 'Failed to fetch bookings data' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

@@ -643,7 +643,7 @@ function PublicBooking() {
                                           capacity: 1,
                                           availableDates: []
                                         }}
-                                        bookings={formattedBookings} // Pass actual bookings data
+                                        bookings={formattedBookings || []} // Pass actual bookings data
                                         className="w-full"
                                       />
                                     </CardContent>
