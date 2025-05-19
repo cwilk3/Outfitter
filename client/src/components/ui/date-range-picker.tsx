@@ -135,11 +135,17 @@ export function DateRangePicker({
     // Auto-calculate end date based on duration
     const endDate = addDays(startDate, durationDays - 1);
     
-    // Update the selection
-    onSelect({ 
-      from: startDate, 
-      to: endDate 
-    });
+    // Create a new date range object to avoid reference issues
+    const newRange = { 
+      from: new Date(startDate), 
+      to: new Date(endDate) 
+    };
+    
+    // Log what's being selected to verify
+    console.log("DateRangePicker - handleSelect:", newRange);
+    
+    // Update the selection with the callback
+    onSelect(newRange);
   };
   
   return (

@@ -608,13 +608,18 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range: DateRange | undefined) => {
+                                          // Update form field value
                                           field.onChange(range);
+                                          
+                                          // Log selection to verify it's working
+                                          console.log("Date range selected:", range);
                                         }}
                                         experience={selectedExperience || {
                                           duration: 1,
                                           capacity: 1,
                                           availableDates: getAvailableDates()
                                         }}
+                                        bookings={[]} // Provide empty bookings array
                                       />
                                     </CardContent>
                                   </Card>
