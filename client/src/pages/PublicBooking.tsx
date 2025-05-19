@@ -173,20 +173,27 @@ function PublicBooking() {
     const startDate = dateRange.from;
     const endDate = dateRange.to;
     
-    // Calculate nights
-    const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Calculate days
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    // Calculate total (simple calculation for now)
-    const basePrice = parseFloat(selectedExperience.price) * guests;
-    const total = basePrice;
+    // Calculate total based on the experience price, days, and guest count
+    const guestCount = guests || 1;
+    const basePrice = parseFloat(selectedExperience.price);
+    const total = basePrice * guestCount;
+    
+    // Calculate deposit (50% of total)
+    const deposit = total * 0.5;
     
     return {
-      startDate,
-      endDate,
-      nights,
+      days,
+      guestCount,
       basePrice,
       total,
-      guests,
+      deposit,
+      dates: {
+        start: startDate,
+        end: endDate
+      }
     };
   };
   
