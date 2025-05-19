@@ -176,18 +176,23 @@ export class DatabaseStorage implements IStorage {
     // First, get the current experience data to ensure we don't lose the locationId
     const currentExperience = await this.getExperience(id);
     if (!currentExperience) {
+      console.log(`[STORAGE] ERROR: Experience with ID ${id} not found in updateExperience`);
       return undefined;
     }
+    
+    console.log(`[STORAGE] Current experience before update:`, JSON.stringify(currentExperience, null, 2));
+    console.log(`[STORAGE] Incoming update data:`, JSON.stringify(experienceData, null, 2));
     
     // Make sure we preserve the locationId if it's not explicitly provided
     const updateData = {
       ...experienceData,
       // Critical: Keep the original locationId if not provided in update
-      locationId: experienceData.locationId || currentExperience.locationId,
+      locationId: experienceData.locationId !== undefined ? experienceData.locationId : currentExperience.locationId,
       updatedAt: new Date()
     };
     
-    console.log(`Preserving experience data for ID ${id}. Using locationId: ${updateData.locationId}`);
+    console.log(`[STORAGE] Final update data with preserved locationId:`, JSON.stringify(updateData, null, 2));
+    console.log(`[STORAGE] LocationId being used for update: ${updateData.locationId} (original: ${currentExperience.locationId})`);
     
     const [experience] = await db
       .update(experiences)
@@ -195,7 +200,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(experiences.id, id))
       .returning();
       
+    if (!experience) {
+      console.log(`[STORAGE] ERROR: Failed to update experience with ID ${id}`);
+      return undefined;
+    }
+    
+    console.log(`[STORAGE] Experience after update:`, JSON.stringify(experience, null, 2));
     return experience;
+  }
+  
+  // Helper method to get experience locations by experience ID
+  async getExperienceLocationsByExperience(experienceId: number): Promise<{ id: number, experienceId: number, locationId: number }[]> {
+    // Check if there are any entries in the experienceLocations junction table
+    const junctionEntries = await db
+      .select()
+      .from(experienceLocations)
+      .where(eq(experienceLocations.experienceId, experienceId));
+      
+    // Also check the direct locationId on the experience
+    const [experience] = await db
+      .select()
+      .from(experiences)
+      .where(eq(experiences.id, experienceId));
+      
+    console.log(`[STORAGE] Junction table entries for experience ${experienceId}:`, JSON.stringify(junctionEntries, null, 2));
+    console.log(`[STORAGE] Direct locationId for experience ${experienceId}:`, experience ? experience.locationId : 'Experience not found');
+    
+    if (junctionEntries.length === 0 && !experience) {
+      return [];
+    }
+    
+    const result = junctionEntries.map(entry => ({
+      id: entry.id,
+      experienceId: entry.experienceId,
+      locationId: entry.locationId
+    }));
+    
+    // If there are no junction entries but the experience has a locationId,
+    // include it in the result to maintain consistency
+    if (result.length === 0 && experience && experience.locationId) {
+      result.push({
+        id: experience.id,
+        experienceId: experience.id,
+        locationId: experience.locationId as number
+      });
+    }
+    
+    return result;
   }
 
   async deleteExperience(id: number): Promise<void> {

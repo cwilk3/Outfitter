@@ -363,11 +363,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       
+      // DETAILED LOGGING: Log the incoming request body
+      console.log(`===== EXPERIENCE UPDATE DEBUG =====`);
+      console.log(`Experience ID being updated: ${id}`);
+      console.log(`Raw request body:`, JSON.stringify(req.body, null, 2));
+      
       // First, get the current experience to preserve important fields if not provided
       const currentExperience = await storage.getExperience(id);
       if (!currentExperience) {
+        console.log(`ERROR: Experience with ID ${id} not found!`);
         return res.status(404).json({ message: 'Experience not found' });
       }
+      
+      console.log(`Current experience data in database:`, JSON.stringify(currentExperience, null, 2));
       
       // Create a request body with the current locationId preserved if not specified
       const updatedBody = {
@@ -376,6 +384,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // This ensures we don't lose location associations when editing a duplicated experience
         locationId: req.body.locationId !== undefined ? req.body.locationId : currentExperience.locationId
       };
+      
+      console.log(`Modified request body with preserved locationId:`, JSON.stringify(updatedBody, null, 2));
+      
+      // Check for experienceLocations entries
+      const experienceLocations = await storage.getExperienceLocationsByExperience(id);
+      console.log(`Current experience location associations:`, JSON.stringify(experienceLocations, null, 2));
       
       // Allowing partial updates with type coercion
       const modifiedExperienceSchema = insertExperienceSchema.partial()
@@ -391,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       
       const validatedData = modifiedExperienceSchema.parse(updatedBody);
-      console.log(`Updating experience ${id} with locationId: ${validatedData.locationId}`);
+      console.log(`Final validated data for database update:`, JSON.stringify(validatedData, null, 2));
       
       const updatedExperience = await storage.updateExperience(id, validatedData);
       
