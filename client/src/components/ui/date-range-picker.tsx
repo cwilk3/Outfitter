@@ -42,7 +42,12 @@ export function DateRangePicker({
   bookings = [],
   className
 }: DateRangePickerProps) {
-  const { duration, capacity, availableDates = [] } = experience;
+  // Add safety check for undefined experience with default values
+  const { 
+    duration = 1, 
+    capacity = 1, 
+    availableDates = [] 
+  } = experience || {};
   
   // Convert any string dates to Date objects
   const parsedAvailableDates = availableDates.map(date => 
@@ -54,42 +59,59 @@ export function DateRangePicker({
   
   // Function to determine if a date is valid for selection as a start date
   const isDateDisabled = (date: Date) => {
+    // Safety check - if date is invalid, disable it
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return true;
+    }
+    
     // Disable past dates
     if (isBefore(date, today)) {
       return true;
     }
     
     // If there are specific available dates, only allow those
-    if (parsedAvailableDates.length > 0) {
+    if (Array.isArray(parsedAvailableDates) && parsedAvailableDates.length > 0) {
       const isAvailable = parsedAvailableDates.some(availableDate => 
-        isSameDay(availableDate, date)
+        availableDate && isSameDay(availableDate, date)
       );
       if (!isAvailable) {
         return true;
       }
     }
     
+    // Safety check - ensure duration is valid
+    const durationDays = typeof duration === 'number' && duration > 0 ? duration : 1;
+    
     // Check if the date range would overlap with any fully booked dates
-    for (let i = 0; i < duration; i++) {
+    for (let i = 0; i < durationDays; i++) {
       const checkDate = addDays(date, i);
       
       // Check if this date is at capacity in any existing booking
-      const bookingsOnDate = bookings.filter(booking => {
+      const bookingsOnDate = Array.isArray(bookings) ? bookings.filter(booking => {
+        if (!booking || !booking.startDate || !booking.endDate) return false;
+        
         const bookingStart = new Date(booking.startDate);
         const bookingEnd = new Date(booking.endDate);
+        
+        // Validate dates before comparing
+        if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) return false;
+        
         return (
           (isSameDay(checkDate, bookingStart) || isAfter(checkDate, bookingStart)) &&
           (isSameDay(checkDate, bookingEnd) || isBefore(checkDate, bookingEnd))
         );
-      });
+      }) : [];
       
       // Sum the bookings for this date
       const totalBooked = bookingsOnDate.reduce((total, booking) => 
-        total + booking.bookedCount, 0
+        total + (booking.bookedCount || 0), 0
       );
       
+      // Safety check - ensure capacity is valid
+      const maxCapacity = typeof capacity === 'number' && capacity > 0 ? capacity : 1;
+      
       // If the date is at capacity, it's not available
-      if (totalBooked >= capacity) {
+      if (totalBooked >= maxCapacity) {
         return true;
       }
     }
@@ -107,8 +129,11 @@ export function DateRangePicker({
     
     const startDate = selectedRange.from;
     
+    // Safety check - ensure duration is valid
+    const durationDays = typeof duration === 'number' && duration > 0 ? duration : 1;
+    
     // Auto-calculate end date based on duration
-    const endDate = addDays(startDate, duration - 1);
+    const endDate = addDays(startDate, durationDays - 1);
     
     // Update the selection
     onSelect({ 
@@ -154,7 +179,7 @@ export function DateRangePicker({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs max-w-xs">
-                      Click on an available start date. End date will be automatically set based on duration ({duration} {duration === 1 ? 'day' : 'days'}).
+                      Click on an available start date. End date will be automatically set based on duration ({typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}).
                     </p>
                   </TooltipContent>
                 </Tooltip>
