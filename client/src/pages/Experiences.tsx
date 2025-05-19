@@ -309,9 +309,16 @@ export default function Experiences() {
   // Update experience
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: ExperienceFormValues }) => {
+      // Make sure we keep the original locationId if it's already set
+      // This ensures we don't lose the location when editing a duplicated experience
+      const currentExperience = experiences?.find(exp => exp.id === id);
+      const locationId = selectedLocIds.length > 0 
+        ? selectedLocIds[0] 
+        : (currentExperience?.locationId || null);
+      
       return apiRequest('PATCH', `/api/experiences/${id}`, {
         ...data,
-        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : null,
+        locationId,
       });
     },
     onSuccess: (response) => {
@@ -320,28 +327,33 @@ export default function Experiences() {
         description: "Experience updated successfully",
       });
       
-      // Handle location associations
+      // Handle location associations - but more carefully to avoid removing the only location
       if (selectedExperience) {
         const experienceId = selectedExperience.id;
         const existingLocations = experienceLocations[experienceId] || [];
         
-        // Remove locations that were unselected
-        for (const locationId of existingLocations) {
-          if (!selectedLocIds.includes(locationId)) {
-            removeExperienceLocationMutation.mutate({
-              experienceId,
-              locationId,
-            });
+        // Only handle location changes if there are selected locations
+        // This ensures we don't accidentally remove the only location
+        if (selectedLocIds.length > 0) {
+          // Remove locations that were unselected, but never remove the last location
+          // to prevent experience from being orphaned
+          for (const locationId of existingLocations) {
+            if (!selectedLocIds.includes(locationId) && (existingLocations.length > 1 || selectedLocIds.length > 0)) {
+              removeExperienceLocationMutation.mutate({
+                experienceId,
+                locationId,
+              });
+            }
           }
-        }
-        
-        // Add newly selected locations
-        for (const locationId of selectedLocIds) {
-          if (!existingLocations.includes(locationId)) {
-            addExperienceLocationMutation.mutate({
-              experienceId,
-              locationId,
-            });
+          
+          // Add newly selected locations
+          for (const locationId of selectedLocIds) {
+            if (!existingLocations.includes(locationId)) {
+              addExperienceLocationMutation.mutate({
+                experienceId,
+                locationId,
+              });
+            }
           }
         }
       }
