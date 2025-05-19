@@ -173,11 +173,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateExperience(id: number, experienceData: Partial<InsertExperience>): Promise<Experience | undefined> {
+    // First, get the current experience data to ensure we don't lose the locationId
+    const currentExperience = await this.getExperience(id);
+    if (!currentExperience) {
+      return undefined;
+    }
+    
+    // Make sure we preserve the locationId if it's not explicitly provided
+    const updateData = {
+      ...experienceData,
+      // Critical: Keep the original locationId if not provided in update
+      locationId: experienceData.locationId || currentExperience.locationId,
+      updatedAt: new Date()
+    };
+    
+    console.log(`Preserving experience data for ID ${id}. Using locationId: ${updateData.locationId}`);
+    
     const [experience] = await db
       .update(experiences)
-      .set({...experienceData, updatedAt: new Date()})
+      .set(updateData)
       .where(eq(experiences.id, id))
       .returning();
+      
     return experience;
   }
 
