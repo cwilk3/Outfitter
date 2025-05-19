@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Calendar, Users, MapPin } from "lucide-react";
 import { z } from "zod";
-import { format, addDays, startOfDay, isSameDay } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
@@ -102,6 +102,8 @@ function PublicBooking() {
     enabled: !!selectedLocation, // Only run query when a location is selected
   });
   
+
+  
   // Helper to format prices consistently
   const formatPrice = (price: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -116,6 +118,20 @@ function PublicBooking() {
     setSelectedExperience(experience);
     setBookingDialogOpen(true);
   };
+  // Fetch bookings data for the selected experience
+  const { data: bookings = [] } = useQuery<any[]>({
+    queryKey: ['/api/public/bookings', selectedExperience?.id],
+    enabled: !!selectedExperience?.id && bookingDialogOpen,
+  });
+  
+  // Format bookings data for the date picker
+  const formattedBookings = useMemo(() => {
+    return bookings.map(booking => ({
+      startDate: new Date(booking.startDate),
+      endDate: new Date(booking.endDate),
+      bookedCount: booking.guests || 1
+    }));
+  }, [bookings]);
   
   // Setup form
   const form = useForm<BookingFormValues>({
@@ -608,6 +624,14 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range: DateRange | undefined) => {
+                                          // If start date is selected, auto-calculate end date based on experience duration
+                                          if (range?.from && selectedExperience && !range.to) {
+                                            const duration = selectedExperience.duration || 1;
+                                            // Set end date based on experience duration
+                                            const calculatedEndDate = addDays(range.from, duration - 1);
+                                            range.to = calculatedEndDate;
+                                          }
+                                          
                                           // Update form field value
                                           field.onChange(range);
                                           
@@ -617,9 +641,9 @@ function PublicBooking() {
                                         experience={selectedExperience || {
                                           duration: 1,
                                           capacity: 1,
-                                          availableDates: getAvailableDates()
+                                          availableDates: []
                                         }}
-                                        bookings={[]} // Provide empty bookings array
+                                        bookings={formattedBookings} // Pass actual bookings data
                                         className="w-full"
                                       />
                                     </CardContent>
