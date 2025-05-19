@@ -249,8 +249,7 @@ export default function Experiences() {
   // Create experience
   const createMutation = useMutation({
     mutationFn: (data: ExperienceFormValues) => {
-      // Create a fixed payload with required locationId field
-      // Ensuring it's hardcoded to a valid number to prevent the error
+      // Create a payload using the provided locationId value
       const payload = {
         name: data.name,
         description: data.description,
@@ -258,7 +257,8 @@ export default function Experiences() {
         price: data.price,
         capacity: data.capacity,
         category: data.category,
-        locationId: 1, // Hardcode to location ID 1 to guarantee it exists
+        // Use the provided locationId, with a fallback to 1 if none is specified
+        locationId: data.locationId || 1,
         rules: rules,
         amenities: amenities,
         tripIncludes: tripIncludes,
@@ -266,8 +266,9 @@ export default function Experiences() {
         availableDates: data.availableDates
       };
       
-      // Log the exact payload being sent
+      // Log the exact payload being sent with emphasized locationId
       console.log("Creating experience with payload:", payload);
+      console.log("  ↳ Using locationId:", payload.locationId);
       
       return apiRequest<Experience>('POST', '/api/experiences', payload);
     },
