@@ -603,24 +603,28 @@ function PublicBooking() {
                               render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                   <FormLabel>Dates</FormLabel>
-                                  <Card>
-                                    <CardContent>
-                                      <DateRangePicker
-                                        dateRange={field.value as DateRange}
-                                        onSelect={(range: DateRange | undefined) => {
-                                          // Update form field value
-                                          field.onChange(range);
-                                          
-                                          // Log selection to verify it's working
-                                          console.log("Date range selected:", range);
-                                        }}
-                                        experience={selectedExperience || {
-                                          duration: 1,
-                                          capacity: 1,
-                                          availableDates: getAvailableDates()
-                                        }}
-                                        bookings={[]} // Provide empty bookings array
-                                      />
+                                  <Card className="border shadow-sm">
+                                    <CardContent className="pt-4">
+                                      {/* Add some height to ensure calendar is fully visible */}
+                                      <div className="min-h-[400px]">
+                                        <DateRangePicker
+                                          dateRange={field.value as DateRange}
+                                          onSelect={(range: DateRange | undefined) => {
+                                            // Update form field value
+                                            field.onChange(range);
+                                            
+                                            // Log selection to verify it's working
+                                            console.log("Date range selected:", range);
+                                          }}
+                                          experience={selectedExperience || {
+                                            duration: 1,
+                                            capacity: 1,
+                                            availableDates: getAvailableDates()
+                                          }}
+                                          bookings={[]} // Provide empty bookings array
+                                          className="w-full"
+                                        />
+                                      </div>
                                     </CardContent>
                                   </Card>
                                   <FormMessage />

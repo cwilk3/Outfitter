@@ -174,8 +174,13 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="p-3 border-b">
+        <PopoverContent 
+          className="w-auto p-0 z-50" 
+          align="center" 
+          sideOffset={24}
+          style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}
+        >
+          <div className="p-3 border-b sticky top-0 bg-background z-10">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-sm">Select Your Dates</h4>
               <TooltipProvider>
@@ -195,30 +200,27 @@ export function DateRangePicker({
               Experience duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
             </p>
           </div>
-          <Calendar
-            initialFocus
-            mode="single" // Change to single mode for better control
-            defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
-            selected={dateRange?.from ? new Date(dateRange.from) : undefined}
-            onSelect={(date) => {
-              // Create a simple range with a single date, then let handleSelect expand it
-              if (date) {
-                handleSelect({ from: date });
-              } else {
-                onSelect(undefined);
-              }
-            }}
-            numberOfMonths={2}
-            disabled={isDateDisabled}
-            className="p-3"
-            classNames={{
-              day_selected: "bg-primary text-primary-foreground rounded-md",
-              day_today: "bg-accent text-accent-foreground",
-            }}
-            // Improve navigation
-            fromDate={new Date()}
-            fixedWeeks
-          />
+          <div className="p-3 flex-1">
+            <div className="pt-4 pb-4">
+              <Calendar
+                initialFocus
+                mode="single"
+                defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
+                selected={dateRange?.from ? new Date(dateRange.from) : undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    handleSelect({ from: date });
+                  } else {
+                    onSelect(undefined);
+                  }
+                }}
+                numberOfMonths={1}
+                disabled={isDateDisabled}
+                fromDate={new Date()}
+                fixedWeeks
+            />
+          </div>
+          
           {dateRange?.from && dateRange?.to && (
             <div className="p-3 border-t bg-muted/20">
               <p className="text-xs font-medium">
