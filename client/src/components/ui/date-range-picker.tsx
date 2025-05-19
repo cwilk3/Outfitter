@@ -239,12 +239,7 @@ export function DateRangePicker({
               fromDate={new Date()}
               fixedWeeks
               className="rounded-md"
-              modifiers={{
-                range: dateRange ? {
-                  from: new Date(dateRange.from),
-                  to: dateRange.to ? new Date(dateRange.to) : new Date(dateRange.from)
-                } : undefined
-              }}
+              // Removed modifiers prop to fix type errors
               classNames={{
                 day_range_start: "day-range-start bg-primary text-primary-foreground rounded-l-md",
                 day_range_end: "day-range-end bg-primary text-primary-foreground rounded-r-md",

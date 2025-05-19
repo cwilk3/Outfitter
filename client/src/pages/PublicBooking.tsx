@@ -605,28 +605,79 @@ function PublicBooking() {
                                   <FormLabel>Dates</FormLabel>
                                   <Card className="border shadow-sm">
                                     <CardContent className="pt-4">
-                                      {/* Add some height to ensure calendar is fully visible */}
-                                      <div className="min-h-[400px]">
-                                        <DateRangePicker
-                                          dateRange={field.value as DateRange}
-                                          onSelect={(range: DateRange | undefined) => {
-                                            // Update form field value
-                                            field.onChange(range);
-                                            
-                                            // Log selection to verify it's working
-                                            console.log("Date range selected:", range);
-                                          }}
-                                          experience={selectedExperience || {
-                                            duration: 1,
-                                            capacity: 1,
-                                            availableDates: getAvailableDates()
-                                          }}
-                                          bookings={[]} // Provide empty bookings array
-                                          className="w-full"
-                                        />
-                                      </div>
+                                      <DateRangePicker
+                                        dateRange={field.value as DateRange}
+                                        onSelect={(range: DateRange | undefined) => {
+                                          // Update form field value
+                                          field.onChange(range);
+                                          
+                                          // Log selection to verify it's working
+                                          console.log("Date range selected:", range);
+                                        }}
+                                        experience={selectedExperience || {
+                                          duration: 1,
+                                          capacity: 1,
+                                          availableDates: getAvailableDates()
+                                        }}
+                                        bookings={[]} // Provide empty bookings array
+                                        className="w-full"
+                                      />
                                     </CardContent>
                                   </Card>
+                                  
+                                  {/* Experience Details Section - Fill the empty space */}
+                                  {selectedExperience && (
+                                    <div className="mt-4 border rounded-lg overflow-hidden">
+                                      <div className="bg-primary text-primary-foreground p-3">
+                                        <h4 className="font-medium text-sm">Experience Details</h4>
+                                      </div>
+                                      <div className="p-4 space-y-3">
+                                        {/* Description */}
+                                        <div>
+                                          <h5 className="text-sm font-medium mb-1">Description</h5>
+                                          <p className="text-sm text-muted-foreground">{selectedExperience.description}</p>
+                                        </div>
+                                        
+                                        {/* What's Included */}
+                                        {selectedExperience.tripIncludes && selectedExperience.tripIncludes.length > 0 && (
+                                          <div>
+                                            <h5 className="text-sm font-medium mb-1">What's Included</h5>
+                                            <ul className="text-sm text-muted-foreground list-disc ml-5">
+                                              {selectedExperience.tripIncludes.map((item, i) => (
+                                                <li key={i}>{item}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Rules & Requirements */}
+                                        {selectedExperience.rules && selectedExperience.rules.length > 0 && (
+                                          <div>
+                                            <h5 className="text-sm font-medium mb-1">Rules & Requirements</h5>
+                                            <ul className="text-sm text-muted-foreground list-disc ml-5">
+                                              {selectedExperience.rules.map((rule, i) => (
+                                                <li key={i}>{rule}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                        
+                                        {/* Amenities */}
+                                        {selectedExperience.amenities && selectedExperience.amenities.length > 0 && (
+                                          <div>
+                                            <h5 className="text-sm font-medium mb-1">Amenities</h5>
+                                            <div className="flex flex-wrap gap-2">
+                                              {selectedExperience.amenities.map((amenity, i) => (
+                                                <div key={i} className="text-xs bg-muted rounded-full px-3 py-1">
+                                                  {amenity}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                   <FormMessage />
                                 </FormItem>
                               )}
