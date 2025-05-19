@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Calendar, Users, MapPin } from "lucide-react";
 import { z } from "zod";
-import { format, addDays } from "date-fns";
+import { format, addDays, startOfDay, isSameDay } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
