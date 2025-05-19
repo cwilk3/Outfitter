@@ -160,6 +160,20 @@ export function DateRangePicker({
               <p className="text-xs text-muted-foreground mt-1">
                 Experience duration: {duration} {duration === 1 ? 'day' : 'days'}
               </p>
+              <div className="flex items-center mt-2 space-x-4 text-xs">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-primary rounded-full mr-1"></div>
+                  <span>Selected</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-gray-300 rounded-full mr-1 line-through"></div>
+                  <span>Unavailable</span>
+                </div>
+              </div>
             </div>
             
             <div className="p-4">
@@ -180,6 +194,10 @@ export function DateRangePicker({
                 fromDate={new Date()}
                 fixedWeeks
                 className="rounded-md"
+                modifiersClassNames={{
+                  selected: "bg-primary text-primary-foreground",
+                  disabled: "text-muted-foreground opacity-50 line-through"
+                }}
               />
             </div>
             

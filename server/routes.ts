@@ -1323,8 +1323,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         booking.experienceId === experienceId
       );
       
+      // Get only active bookings for availability tracking
+      // This excludes pending and cancelled bookings
+      const activeBookings = experienceBookings.filter(booking => 
+        ['confirmed', 'deposit_paid', 'paid', 'completed'].includes(booking.status)
+      );
+      
       // Transform bookings to a format suitable for availability checking
-      const bookingsForAvailability = experienceBookings.map(booking => ({
+      const bookingsForAvailability = activeBookings.map(booking => ({
         startDate: booking.startDate,
         endDate: booking.endDate,
         bookedCount: 1 // For now, assume 1 booking = 1 person (we'll enhance this later)
