@@ -601,17 +601,13 @@ function PublicBooking() {
                                     <CardContent>
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
-                                        onDateChange={(range: DateRange) => {
+                                        onSelect={(range: DateRange | undefined) => {
                                           field.onChange(range);
                                         }}
-                                        disabled={(date) => {
-                                          const availableDates = getAvailableDates();
-                                          if (availableDates.length === 0) return false;
-                                          return !availableDates.some(availableDate => 
-                                            availableDate.getDate() === date.getDate() &&
-                                            availableDate.getMonth() === date.getMonth() &&
-                                            availableDate.getFullYear() === date.getFullYear()
-                                          );
+                                        experience={selectedExperience || {
+                                          duration: 1,
+                                          capacity: 1,
+                                          availableDates: getAvailableDates()
                                         }}
                                       />
                                     </CardContent>
