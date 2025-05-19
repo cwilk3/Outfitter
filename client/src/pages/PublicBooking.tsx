@@ -953,12 +953,18 @@ function PublicBooking() {
                             <>
                               <Separator />
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-700">Dates:</span>
+                                <span className="text-gray-700">Check-In:</span>
                                 <span className="font-medium">
                                   {form.watch('dateRange')?.from ? 
                                     format(form.watch('dateRange')?.from, 'MMM d, yyyy') : ''}
+                                </span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700">Check-Out:</span>
+                                <span className="font-medium">
                                   {form.watch('dateRange')?.to ? 
-                                    ` to ${format(form.watch('dateRange')?.to, 'MMM d, yyyy')}` : ''}
+                                    format(form.watch('dateRange')?.to, 'MMM d, yyyy') : ''}
                                 </span>
                               </div>
                             </>
