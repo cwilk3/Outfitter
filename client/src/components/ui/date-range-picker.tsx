@@ -36,15 +36,55 @@ export function DateRangePicker({
   
   // Add safety check for undefined experience with default values
   const { 
-    duration = 1
+    duration = 1,
+    capacity = 1
   } = experience || {};
   
   // Get today's date at the start of the day
   const today = startOfDay(new Date());
   
-  // Simple function to disable past dates
+  // Function to check if a date is at capacity based on existing bookings
+  const isDateAtCapacity = (date: Date) => {
+    // Normalize to start of day for consistent comparison
+    const checkDate = startOfDay(new Date(date));
+    
+    // Count bookings that include this date
+    let bookedCount = 0;
+    
+    bookings.forEach(booking => {
+      if (!booking.startDate || !booking.endDate) return;
+      
+      const bookingStart = startOfDay(new Date(booking.startDate));
+      const bookingEnd = startOfDay(new Date(booking.endDate));
+      
+      // Check if this date falls within the booking range
+      if (
+        (checkDate >= bookingStart && checkDate <= bookingEnd)
+      ) {
+        bookedCount += booking.bookedCount || 1;
+      }
+    });
+    
+    // Return true if date is at or over capacity
+    return bookedCount >= capacity;
+  };
+  
+  // Function to check if a date should be disabled
   const isDateDisabled = (date: Date) => {
-    return date < today;
+    // Past dates are disabled
+    if (date < today) return true;
+    
+    // Check if date is at capacity
+    if (isDateAtCapacity(date)) return true;
+    
+    // Check if any date in the range would be at capacity
+    // Important for multi-day experiences
+    for (let i = 0; i < duration; i++) {
+      const rangeDate = addDays(date, i);
+      if (isDateAtCapacity(rangeDate)) return true;
+    }
+    
+    return false;
   };
   
   // Handle date selection
