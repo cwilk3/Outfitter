@@ -197,32 +197,35 @@ export function DateRangePicker({
           </div>
           <Calendar
             initialFocus
-            mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
-            onSelect={handleSelect}
-            numberOfMonths={2}
-            disabled={isDateDisabled}
-            modifiers={{
-              range: { 
-                from: dateRange?.from || new Date(0), 
-                to: dateRange?.to || new Date(0) 
+            mode="single" // Change to single mode for better control
+            defaultMonth={dateRange?.from ? new Date(dateRange.from) : new Date()}
+            selected={dateRange?.from ? new Date(dateRange.from) : undefined}
+            onSelect={(date) => {
+              // Create a simple range with a single date, then let handleSelect expand it
+              if (date) {
+                handleSelect({ from: date });
+              } else {
+                onSelect(undefined);
               }
             }}
+            numberOfMonths={2}
+            disabled={isDateDisabled}
             className="p-3"
             classNames={{
-              day_range_middle: "day-range-middle bg-primary/20 text-primary-foreground rounded-none",
-              day_range_start: "day-range-start bg-primary text-primary-foreground rounded-l-md",
-              day_range_end: "day-range-end bg-primary text-primary-foreground rounded-r-md",
+              day_selected: "bg-primary text-primary-foreground rounded-md",
+              day_today: "bg-accent text-accent-foreground",
             }}
-            // The following forces a new selection to clear the previous one
-            pagedNavigation
+            // Improve navigation
+            fromDate={new Date()}
             fixedWeeks
           />
-          {dateRange?.from && (
+          {dateRange?.from && dateRange?.to && (
             <div className="p-3 border-t bg-muted/20">
               <p className="text-xs font-medium">
-                Selected dates: {format(dateRange.from, "MMMM d")} - {dateRange.to && format(dateRange.to, "MMMM d, yyyy")}
+                Selected dates: {format(new Date(dateRange.from), "MMMM d")} - {format(new Date(dateRange.to), "MMMM d, yyyy")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Duration: {typeof duration === 'number' ? duration : 1} {duration === 1 ? 'day' : 'days'}
               </p>
             </div>
           )}

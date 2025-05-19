@@ -846,7 +846,7 @@ function PublicBooking() {
                             <div className="flex justify-between items-center">
                               <span className="text-gray-700">Dates:</span>
                               <span className="font-medium">
-                                {format(form.watch('dateRange')?.from as Date, 'MMM d, yyyy')} - {format(form.watch('dateRange')?.to as Date, 'MMM d, yyyy')}
+                                {format(new Date(form.watch('dateRange')?.from as Date), 'MMM d, yyyy')} - {format(new Date(form.watch('dateRange')?.to as Date), 'MMM d, yyyy')}
                               </span>
                             </div>
                             
