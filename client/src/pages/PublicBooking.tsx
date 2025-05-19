@@ -663,7 +663,19 @@ function PublicBooking() {
                               <Button 
                                 type="button" 
                                 className="flex-1" 
-                                onClick={() => setBookingStep('details')}
+                                onClick={() => {
+                                  // Validate dateRange before proceeding
+                                  const dateRange = form.getValues().dateRange;
+                                  if (!dateRange || !dateRange.from || !dateRange.to) {
+                                    toast({
+                                      title: "Date selection required",
+                                      description: "Please select dates for your booking",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  setBookingStep('details');
+                                }}
                               >
                                 Continue
                               </Button>
