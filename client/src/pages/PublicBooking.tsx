@@ -73,7 +73,10 @@ const addonSchema = z.object({
   description: z.string().optional(),
   price: z.number(),
   isOptional: z.boolean(),
+  inventory: z.number().optional(),
+  maxPerBooking: z.number().optional(),
   selected: z.boolean().default(false),
+  quantity: z.number().min(0).default(0),
 });
 
 // Form schema for booking
@@ -204,9 +207,9 @@ function PublicBooking() {
     // Base price calculation
     const basePrice = parseFloat(selectedExperience.price) * guests;
     
-    // Calculate add-ons total
+    // Calculate add-ons total (price × quantity for each)
     const addonsTotal = selectedAddons && selectedAddons.length > 0
-      ? selectedAddons.reduce((sum, addon) => sum + addon.price, 0)
+      ? selectedAddons.reduce((sum, addon) => sum + (addon.price * (addon.quantity || 1)), 0)
       : 0;
     
     // Calculate final total
@@ -794,48 +797,119 @@ function PublicBooking() {
                                 </p>
                                 
                                 <div className="space-y-4">
-                                  {selectedExperience.addons.map((addon, index) => (
-                                    <Card key={addon.id} className="border shadow-sm overflow-hidden">
-                                      <CardContent className="p-0">
-                                        <div className="flex items-center p-4">
-                                          <Checkbox 
-                                            id={`addon-${addon.id}`} 
-                                            className="mr-3"
-                                            onCheckedChange={(checked: boolean) => {
-                                              const currentAddons = form.getValues().selectedAddons || [];
-                                              
-                                              if (checked) {
-                                                // Add this addon to the selected list
-                                                form.setValue('selectedAddons', [
-                                                  ...currentAddons,
-                                                  {...addon, selected: true}
-                                                ]);
-                                              } else {
-                                                // Remove this addon from the selected list
-                                                form.setValue('selectedAddons', 
-                                                  currentAddons.filter(item => item.id !== addon.id)
-                                                );
-                                              }
-                                            }}
-                                          />
-                                          <div className="flex-1">
-                                            <div className="flex justify-between">
-                                              <label 
-                                                htmlFor={`addon-${addon.id}`}
-                                                className="font-medium cursor-pointer"
-                                              >
-                                                {addon.name}
-                                              </label>
-                                              <span className="font-bold">{formatPrice(String(addon.price))}</span>
+                                  {selectedExperience.addons.map((addon, index) => {
+                                    // Calculate max quantity based on inventory or maxPerBooking
+                                    const maxQuantity = addon.maxPerBooking || addon.inventory || 10;
+                                    
+                                    // Get current selected status and quantity
+                                    const currentAddons = form.getValues().selectedAddons || [];
+                                    const addonInSelection = currentAddons.find(item => item.id === addon.id);
+                                    const isSelected = Boolean(addonInSelection);
+                                    const currentQuantity = addonInSelection?.quantity || 0;
+                                    
+                                    return (
+                                      <Card key={addon.id} className="border shadow-sm overflow-hidden">
+                                        <CardContent className="p-4">
+                                          <div className="flex flex-col md:flex-row md:items-center">
+                                            <div className="flex items-center flex-1">
+                                              <Checkbox 
+                                                id={`addon-${addon.id}`} 
+                                                className="mr-3"
+                                                checked={isSelected}
+                                                onCheckedChange={(checked: boolean) => {
+                                                  const currentAddons = form.getValues().selectedAddons || [];
+                                                  
+                                                  if (checked) {
+                                                    // Add this addon to the selected list with quantity of 1
+                                                    form.setValue('selectedAddons', [
+                                                      ...currentAddons.filter(item => item.id !== addon.id),
+                                                      {
+                                                        ...addon, 
+                                                        selected: true, 
+                                                        quantity: 1
+                                                      }
+                                                    ]);
+                                                  } else {
+                                                    // Remove this addon from the selected list
+                                                    form.setValue('selectedAddons', 
+                                                      currentAddons.filter(item => item.id !== addon.id)
+                                                    );
+                                                  }
+                                                }}
+                                              />
+                                              <div className="flex-1">
+                                                <div className="flex flex-col md:flex-row md:justify-between">
+                                                  <label 
+                                                    htmlFor={`addon-${addon.id}`}
+                                                    className="font-medium cursor-pointer"
+                                                  >
+                                                    {addon.name}
+                                                  </label>
+                                                  <span className="font-bold">{formatPrice(String(addon.price))}</span>
+                                                </div>
+                                                {addon.description && (
+                                                  <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
+                                                )}
+                                                {addon.inventory !== undefined && (
+                                                  <p className="text-xs text-gray-500 mt-1">
+                                                    {addon.inventory} available
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
-                                            {addon.description && (
-                                              <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
+                                            
+                                            {/* Quantity selector */}
+                                            {isSelected && (
+                                              <div className="flex items-center mt-3 md:mt-0 md:ml-4">
+                                                <Label htmlFor={`quantity-${addon.id}`} className="mr-2 text-sm">
+                                                  Quantity:
+                                                </Label>
+                                                <div className="flex items-center border rounded-md">
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="px-2 h-8 text-lg"
+                                                    onClick={() => {
+                                                      if (currentQuantity > 1) {
+                                                        const newAddons = currentAddons.map(item => 
+                                                          item.id === addon.id 
+                                                            ? {...item, quantity: item.quantity - 1}
+                                                            : item
+                                                        );
+                                                        form.setValue('selectedAddons', newAddons);
+                                                      }
+                                                    }}
+                                                  >
+                                                    -
+                                                  </Button>
+                                                  <span className="w-8 text-center">{currentQuantity}</span>
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="px-2 h-8 text-lg"
+                                                    onClick={() => {
+                                                      if (currentQuantity < maxQuantity) {
+                                                        const newAddons = currentAddons.map(item => 
+                                                          item.id === addon.id 
+                                                            ? {...item, quantity: item.quantity + 1}
+                                                            : item
+                                                        );
+                                                        form.setValue('selectedAddons', newAddons);
+                                                      }
+                                                    }}
+                                                  >
+                                                    +
+                                                  </Button>
+                                                </div>
+                                              </div>
                                             )}
                                           </div>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
+                                        </CardContent>
+                                      </Card>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -1078,8 +1152,15 @@ function PublicBooking() {
                                 <div className="text-sm font-medium mb-1">Selected Add-ons:</div>
                                 {form.watch('selectedAddons').map(addon => (
                                   <div key={addon.id} className="flex justify-between text-sm pl-2">
-                                    <span>{addon.name}</span>
-                                    <span>{formatPrice(String(addon.price))}</span>
+                                    <span>
+                                      {addon.name}
+                                      {addon.quantity > 1 && (
+                                        <span className="text-gray-500 ml-1">
+                                          ({addon.quantity}x)
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span>{formatPrice(String(addon.price * (addon.quantity || 1)))}</span>
                                   </div>
                                 ))}
                               </>
@@ -1093,7 +1174,7 @@ function PublicBooking() {
                                   // Calculate base price
                                   parseFloat(selectedExperience.price) * (form.watch('guests') || 1) +
                                   // Add selected add-ons price
-                                  (form.watch('selectedAddons')?.reduce((sum, addon) => sum + addon.price, 0) || 0)
+                                  (form.watch('selectedAddons')?.reduce((sum, addon) => sum + (addon.price * (addon.quantity || 1)), 0) || 0)
                                 ))}
                               </span>
                             </div>
