@@ -916,6 +916,52 @@ export class MemStorage implements IStorage {
     };
     this.createExperience(flyfishing);
     
+    // Add add-ons for experiences
+    const fishingGuide: InsertExperienceAddon = {
+      name: 'Professional Guide',
+      description: 'Get a professional fishing guide for your experience',
+      price: '150',
+      experienceId: 3, // Bass Fishing
+      isOptional: true
+    };
+    this.createExperienceAddon(fishingGuide);
+    
+    const premiumGear: InsertExperienceAddon = {
+      name: 'Premium Gear Package',
+      description: 'Use our high-end fishing equipment',
+      price: '75',
+      experienceId: 3, // Bass Fishing
+      isOptional: true
+    };
+    this.createExperienceAddon(premiumGear);
+    
+    const lunchPackage: InsertExperienceAddon = {
+      name: 'Lunch Package',
+      description: 'Gourmet lunch provided during your trip',
+      price: '50',
+      experienceId: 3, // Bass Fishing
+      isOptional: true
+    };
+    this.createExperienceAddon(lunchPackage);
+    
+    const huntingGuide: InsertExperienceAddon = {
+      name: 'Expert Hunting Guide',
+      description: 'Personal guide with expert knowledge of the area',
+      price: '200',
+      experienceId: 1, // Duck Hunt
+      isOptional: true
+    };
+    this.createExperienceAddon(huntingGuide);
+    
+    const huntingDogs: InsertExperienceAddon = {
+      name: 'Hunting Dogs',
+      description: 'Trained hunting dogs to assist with your hunt',
+      price: '100',
+      experienceId: 1, // Duck Hunt
+      isOptional: true
+    };
+    this.createExperienceAddon(huntingDogs);
+
     // Add experience-location associations
     // Duck Hunt can be offered at both Texas Ranch and Kansas Fields
     this.addExperienceLocation({
