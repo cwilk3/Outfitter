@@ -60,9 +60,11 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     enabled: !!experienceId
   });
   
-  // Fetch available guides
+  // Fetch available guides - ensuring we get all guides with the 'guide' role
   const { data: availableGuides, isLoading: loadingGuides } = useQuery({
-    queryKey: ['/api/users', { role: 'guide' }]
+    queryKey: ['/api/users'],
+    select: (data) => data.filter((user: any) => user.role === 'guide'),
+    enabled: true
   });
   
   // Assign guide mutation
@@ -161,19 +163,24 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     
     if (!availableGuides) return [];
     
+    // Make sure we're dealing with the correct structure for assigned guides
     const assignedGuideIds = Array.isArray(experienceGuides) 
-      ? experienceGuides.map((eg: ExperienceGuide) => eg.guideId)
+      ? experienceGuides.map((eg: any) => eg.guideId || eg.id)
       : [];
       
     console.log("Assigned guide IDs:", assignedGuideIds);
     
-    return Array.isArray(availableGuides) 
+    // Make sure we properly filter out already assigned guides
+    const unassignedGuides = Array.isArray(availableGuides) 
       ? availableGuides.filter((guide: any) => 
           !assignedGuideIds.includes(guide.id) &&
           (searchQuery === "" || 
            `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
            (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase()))))
       : [];
+      
+    console.log("Unassigned guides after filtering:", unassignedGuides);
+    return unassignedGuides;
   };
   
   // Format guide name for display
