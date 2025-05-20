@@ -1,0 +1,40 @@
+Let's implement a guide assignment feature for our Outfitter application that allows administrators to assign guides to experiences during both creation and editing.
+
+The complete flow should include:
+Admin creates guide users with the 'guide' role in the system
+These guide users are available for selection when assigning guides to experiences
+Admin can assign multiple guides to an experience
+Admin can set one guide as the primary guide
+Guide assignment happens during Step 5 'Add-ons & Guides' of the experience creation/editing flow. Make ‘Review’ standalone in Step 6.
+Guide assignment works during both initial experience creation and when editing existing experiences
+Once guides are assigned to experiences, these experiences automatically appear in the respective guide's dashboard view
+
+The feature needs:
+UI components for selecting and managing guides
+All necessary backend APIs and storage functions
+Clear data flow from guide creation to guide selection
+Guide-specific views to see assigned experiences
+Integration with the existing multi-step form, specifically in the 'Add-ons & Guides' step
+
+Technical requirements:
+Database schema updates in shared/schema.ts to properly define guide-experience relationships
+Storage interface updates in server/storage.ts to handle guide assignment operations
+API route updates in server/routes.ts to expose guide management endpoints
+Frontend components in client/src/components/ui/ for guide selection and management
+Form state handling to properly save and retrieve guide assignments
+Proper transaction handling for experience creation that includes guide assignments
+Helper functions to convert between data types if needed
+
+When implementing, please be especially careful with:
+Type consistency between frontend and backend - guide IDs should be consistently treated as strings throughout the entire flow
+Proper handling of the experience ID during creation when it doesn't exist yet
+Clear separation between the creation flow component (ExperienceGuideSelector) and editing flow component (ExperienceGuides)
+Proper error handling and validation for guide assignments
+Filter mechanisms so guides only see experiences they're assigned to
+Ensuring guide selection integrates properly with the add-ons stage of the form
+Handling the state during multi-step form completion, especially for newly created guides
+Proper error handling for cases where guides might be deleted but still referenced
+Handling the case where a primary guide is removed (should assign a new primary guide if available)
+Optimistic UI updates for better user experience during guide assignment changes
+
+Previous implementation issues included type mismatches between string and number IDs, inconsistent handling of IDs between components, and problems with the ID generation mechanism for guide assignments. Please ensure these are addressed in the new implementation.

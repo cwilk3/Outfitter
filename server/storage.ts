@@ -1,11 +1,13 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, 
+  experienceLocations, experienceAddons, experienceGuides, addonInventoryDates,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
+  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
+  type ExperienceGuide, type InsertExperienceGuide
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
