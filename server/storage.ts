@@ -992,7 +992,6 @@ export class MemStorage implements IStorage {
       experience: 1,
       experienceLocation: 1,
       experienceAddon: 1, // Added for add-ons support
-      experienceGuide: 1, // Added for guide assignments
       customer: 1,
       booking: 1,
       bookingGuide: 1,
