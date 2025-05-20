@@ -827,7 +827,15 @@ export default function Experiences() {
           try {
             // First get existing add-ons to determine what needs to be created, updated, or deleted
             console.log("Fetching existing add-ons for experience:", selectedExperience.id);
-            const existingAddons = await apiRequest('GET', `/api/experience-addons/${selectedExperience.id}`);
+            
+            // Use direct fetch to get better debugging information
+            const addonResponse = await fetch(`/api/experience-addons/${selectedExperience.id}`);
+            if (!addonResponse.ok) {
+              console.error(`Error fetching add-ons: ${addonResponse.status} ${addonResponse.statusText}`);
+              throw new Error(`Failed to fetch add-ons: ${addonResponse.statusText}`);
+            }
+            
+            const existingAddons = await addonResponse.json();
             console.log("Existing add-ons:", existingAddons);
             
             if (addons && addons.length > 0) {
@@ -844,27 +852,61 @@ export default function Experiences() {
                   if (existingAddon) {
                     // Update existing addon
                     console.log("Updating addon:", addon);
-                    // Only include fields that match the database schema
-                    await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
-                      name: addon.name,
-                      description: addon.description || '',
-                      price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                      isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                    // Use direct fetch for better error visibility
+                    const updateResponse = await fetch(`/api/experience-addons/${addon.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        name: addon.name,
+                        description: addon.description || '',
+                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                      })
                     });
+                    
+                    if (!updateResponse.ok) {
+                      console.error(`Error updating add-on: ${updateResponse.status} ${updateResponse.statusText}`);
+                      const errorText = await updateResponse.text();
+                      throw new Error(`Failed to update add-on: ${errorText}`);
+                    }
+                    
+                    console.log(`Add-on ${addon.id} updated successfully`);
                   } else {
                     // Create new addon
                     console.log("Creating new addon:", addon);
-                    await apiRequest('POST', `/api/experience-addons`, {
-                      experienceId: selectedExperience.id,
-                      name: addon.name,
-                      description: addon.description || '',
-                      price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                      isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                    const createResponse = await fetch('/api/experience-addons', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        experienceId: selectedExperience.id,
+                        name: addon.name,
+                        description: addon.description || '',
+                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                      })
                     });
+                    
+                    if (!createResponse.ok) {
+                      console.error(`Error creating add-on: ${createResponse.status} ${createResponse.statusText}`);
+                      const errorText = await createResponse.text();
+                      throw new Error(`Failed to create add-on: ${errorText}`);
+                    }
+                    
+                    const newAddon = await createResponse.json();
+                    console.log("New add-on created successfully:", newAddon);
                   }
                 } catch (addonError) {
                   console.error("Error processing add-on:", addonError);
-                  // Continue with other add-ons even if one fails
+                  // Show error toast but continue with other add-ons
+                  toast({
+                    title: "Add-on Error",
+                    description: `Failed to process add-on "${addon.name}": ${addonError.message}`,
+                    variant: "destructive"
+                  });
                 }
               }
             } else {
@@ -878,17 +920,40 @@ export default function Experiences() {
                   // If an existing addon is not in our current list, delete it
                   if (!addons.some(a => a.id === existingAddon.id)) {
                     console.log("Deleting addon:", existingAddon);
-                    await apiRequest('DELETE', `/api/experience-addons/${existingAddon.id}`);
+                    const deleteResponse = await fetch(`/api/experience-addons/${existingAddon.id}`, {
+                      method: 'DELETE'
+                    });
+                    
+                    if (!deleteResponse.ok) {
+                      console.error(`Error deleting add-on: ${deleteResponse.status} ${deleteResponse.statusText}`);
+                      const errorText = await deleteResponse.text();
+                      throw new Error(`Failed to delete add-on: ${errorText}`);
+                    }
+                    
+                    console.log(`Add-on ${existingAddon.id} deleted successfully`);
                   }
                 } catch (deleteError) {
                   console.error("Error deleting add-on:", deleteError);
-                  // Continue with other deletions even if one fails
+                  // Show error toast but continue with other deletions
+                  toast({
+                    title: "Add-on Error",
+                    description: `Failed to delete add-on "${existingAddon.name}": ${deleteError.message}`,
+                    variant: "destructive"
+                  });
                 }
               }
             }
+            
+            // Invalidate add-ons query to ensure we get fresh data
+            queryClient.invalidateQueries({ queryKey: [`/api/experience-addons/${selectedExperience.id}`] });
           } catch (addonsError) {
             console.error("Error handling add-ons:", addonsError);
-            // Don't throw - we still want to complete the experience update
+            // Show error toast but don't rethrow - we still want to complete the experience update
+            toast({
+              title: "Add-ons Error",
+              description: `Problem processing add-ons: ${addonsError.message}`,
+              variant: "destructive"
+            });
           }
           
           toast({
