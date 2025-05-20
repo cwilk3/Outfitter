@@ -1654,6 +1654,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Location: ${location.name}, ${location.city}, ${location.state}\nGroup Size: ${groupSize}`
       });
       
+      // Get guides assigned to this experience and link them to the booking
+      const guides = await storage.getExperienceGuides(expId);
+      if (guides && guides.length > 0) {
+        console.log(`Assigning ${guides.length} guides to public booking ${booking.id}`);
+        
+        for (const guide of guides) {
+          try {
+            await storage.assignGuideToBooking({
+              bookingId: booking.id,
+              guideId: guide.guideId
+            });
+            console.log(`Assigned guide ${guide.guideId} to public booking ${booking.id}`);
+          } catch (guideError) {
+            console.error(`Error assigning guide ${guide.guideId} to public booking:`, guideError);
+            // Continue with other guides if one fails
+          }
+        }
+      }
+      
       // Log activity
       await storage.createActivity({
         userId: 1, // Using admin user ID for system actions
