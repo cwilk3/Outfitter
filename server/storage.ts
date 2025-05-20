@@ -1603,17 +1603,23 @@ export class MemStorage implements IStorage {
     return guides;
   }
   
-  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
+  async getExperienceGuidesWithDetails(experienceId: number): Promise<any[]> {
     const guides = await this.getExperienceGuides(experienceId);
-    const result: (ExperienceGuide & User)[] = [];
+    const result = [];
     
     for (const guide of guides) {
       const user = await this.getUser(guide.guideId);
       if (user) {
-        // Combine the guide assignment info with the user details
+        // Format the data as expected by the frontend component
         result.push({
           ...guide,
-          ...user
+          guide: {
+            id: user.id,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            avatarUrl: user.profileImageUrl
+          }
         });
       }
     }
