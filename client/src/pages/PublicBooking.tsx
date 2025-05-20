@@ -799,7 +799,7 @@ function PublicBooking() {
                                           <Checkbox 
                                             id={`addon-${addon.id}`} 
                                             className="mr-3"
-                                            onCheckedChange={(checked) => {
+                                            onCheckedChange={(checked: boolean) => {
                                               const currentAddons = form.getValues().selectedAddons || [];
                                               
                                               if (checked) {
@@ -1069,12 +1069,29 @@ function PublicBooking() {
                               <span>× {form.watch('guests')}</span>
                             </div>
                             
+                            {/* Selected Add-ons */}
+                            {form.watch('selectedAddons')?.length > 0 && (
+                              <>
+                                <Separator className="my-2" />
+                                <div className="text-sm font-medium mb-1">Selected Add-ons:</div>
+                                {form.watch('selectedAddons').map(addon => (
+                                  <div key={addon.id} className="flex justify-between text-sm pl-2">
+                                    <span>{addon.name}</span>
+                                    <span>{formatPrice(String(addon.price))}</span>
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            
                             <Separator />
                             <div className="flex justify-between font-bold">
                               <span>Total</span>
                               <span>
                                 {formatPrice(String(
-                                  parseFloat(selectedExperience.price) * (form.watch('guests') || 1)
+                                  // Calculate base price
+                                  parseFloat(selectedExperience.price) * (form.watch('guests') || 1) +
+                                  // Add selected add-ons price
+                                  (form.watch('selectedAddons')?.reduce((sum, addon) => sum + addon.price, 0) || 0)
                                 ))}
                               </span>
                             </div>
