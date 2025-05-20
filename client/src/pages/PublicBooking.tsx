@@ -18,6 +18,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { ExperienceImageGallery } from "../components/ExperienceImageGallery";
 
@@ -33,15 +34,12 @@ interface Location {
   isActive: boolean;
 }
 
-interface ExperienceAddon {
+interface Addon {
   id: number;
-  experienceId: number;
   name: string;
   description?: string;
   price: number;
   isOptional: boolean;
-  inventory?: number;
-  maxPerBooking?: number;
 }
 
 interface Experience {
@@ -57,21 +55,23 @@ interface Experience {
   rules?: string[];
   amenities?: string[];
   tripIncludes?: string[];
+  addons?: Addon[];
   locations: {
     id: number;
     name: string;
     city: string;
     state: string;
   }[];
-  addons?: ExperienceAddon[];
 }
 
-// Add-on selection schema
-const selectedAddonSchema = z.object({
+// Define add-on schema
+const addonSchema = z.object({
   id: z.number(),
   name: z.string(),
+  description: z.string().optional(),
   price: z.number(),
-  quantity: z.number().min(0),
+  isOptional: z.boolean(),
+  selected: z.boolean().default(false),
 });
 
 // Form schema for booking
@@ -89,8 +89,7 @@ const bookingFormSchema = z.object({
   agreedToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions",
   }),
-  // New field for selected add-ons
-  addons: z.array(selectedAddonSchema).default([]),
+  selectedAddons: z.array(addonSchema).default([]),
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -187,7 +186,7 @@ function PublicBooking() {
   const calculateSummary = (formValues: BookingFormValues) => {
     if (!selectedExperience) return null;
     
-    const { dateRange, guests, addons = [] } = formValues;
+    const { dateRange, guests, selectedAddons } = formValues;
     
     // Add null checks for dateRange
     if (!dateRange || !dateRange.from || !dateRange.to) {
@@ -200,27 +199,26 @@ function PublicBooking() {
     // Calculate nights
     const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate base price
+    // Base price calculation
     const basePrice = parseFloat(selectedExperience.price) * guests;
     
-    // Calculate addon prices
-    const addonItems = addons.filter(addon => addon.quantity > 0);
-    const addonTotal = addonItems.reduce((sum, addon) => {
-      return sum + (addon.price * addon.quantity);
-    }, 0);
+    // Calculate add-ons total
+    const addonsTotal = selectedAddons && selectedAddons.length > 0
+      ? selectedAddons.reduce((sum, addon) => sum + addon.price, 0)
+      : 0;
     
-    // Calculate total
-    const total = basePrice + addonTotal;
+    // Calculate final total
+    const total = basePrice + addonsTotal;
     
     return {
       startDate,
       endDate,
       nights,
       basePrice,
-      addonItems,
-      addonTotal,
+      addonsTotal,
       total,
       guests,
+      selectedAddons,
     };
   };
   
@@ -246,16 +244,8 @@ function PublicBooking() {
           guests: data.guests,
           notes: data.notes || '',
         },
-        addons: data.addons.filter(addon => addon.quantity > 0).map(addon => ({
-          id: addon.id,
-          name: addon.name,
-          price: addon.price,
-          quantity: addon.quantity
-        })),
         payment: {
           totalAmount: summary.total.toString(),
-          baseAmount: summary.basePrice.toString(),
-          addonAmount: summary.addonTotal.toString()
         }
       };
       
@@ -750,9 +740,9 @@ function PublicBooking() {
                           </div>
                         )}
                       
-                        {/* Step 3: Date Selection */}
+                        {/* Step 3: Date Selection and Add-ons */}
                         {bookingStep === 'dates' && (
-                          <div className="space-y-4">
+                          <div className="space-y-6">
                             <h3 className="text-xl font-bold">Select your dates</h3>
                             
                             <FormField
@@ -793,28 +783,58 @@ function PublicBooking() {
                               )}
                             />
                             
-                            {/* Add-ons Selection */}
+                            {/* Add-ons Section */}
                             {selectedExperience?.addons && selectedExperience.addons.length > 0 && (
                               <div className="mt-8">
-                                <Separator className="my-4" />
-                                <FormField
-                                  control={form.control}
-                                  name="addons"
-                                  render={() => (
-                                    <FormItem>
-                                      <Card className="border shadow-sm">
-                                        <CardContent className="pt-4">
-                                          <AddOnSelector 
-                                            addons={selectedExperience.addons || []} 
-                                            startDate={form.getValues().dateRange?.from}
-                                            endDate={form.getValues().dateRange?.to}
-                                            guests={form.getValues().guests}
+                                <h3 className="text-xl font-bold mb-4">Customize your experience</h3>
+                                <p className="text-gray-600 mb-4">
+                                  Enhance your {selectedExperience.name} with these optional add-ons
+                                </p>
+                                
+                                <div className="space-y-4">
+                                  {selectedExperience.addons.map((addon, index) => (
+                                    <Card key={addon.id} className="border shadow-sm overflow-hidden">
+                                      <CardContent className="p-0">
+                                        <div className="flex items-center p-4">
+                                          <Checkbox 
+                                            id={`addon-${addon.id}`} 
+                                            className="mr-3"
+                                            onCheckedChange={(checked: boolean) => {
+                                              const currentAddons = form.getValues().selectedAddons || [];
+                                              
+                                              if (checked) {
+                                                // Add this addon to the selected list
+                                                form.setValue('selectedAddons', [
+                                                  ...currentAddons,
+                                                  {...addon, selected: true}
+                                                ]);
+                                              } else {
+                                                // Remove this addon from the selected list
+                                                form.setValue('selectedAddons', 
+                                                  currentAddons.filter(item => item.id !== addon.id)
+                                                );
+                                              }
+                                            }}
                                           />
-                                        </CardContent>
-                                      </Card>
-                                    </FormItem>
-                                  )}
-                                />
+                                          <div className="flex-1">
+                                            <div className="flex justify-between">
+                                              <label 
+                                                htmlFor={`addon-${addon.id}`}
+                                                className="font-medium cursor-pointer"
+                                              >
+                                                {addon.name}
+                                              </label>
+                                              <span className="font-bold">{formatPrice(String(addon.price))}</span>
+                                            </div>
+                                            {addon.description && (
+                                              <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             
@@ -1049,15 +1069,15 @@ function PublicBooking() {
                               <span>× {form.watch('guests')}</span>
                             </div>
                             
-                            {/* Add-ons Section */}
-                            {form.watch('addons') && form.watch('addons').length > 0 && (
+                            {/* Selected Add-ons */}
+                            {form.watch('selectedAddons')?.length > 0 && (
                               <>
-                                <Separator className="my-1" />
-                                <div className="text-sm font-medium mb-1">Add-ons:</div>
-                                {form.watch('addons').filter((addon: any) => addon.quantity > 0).map((addon: any) => (
-                                  <div key={addon.id} className="flex justify-between text-sm">
-                                    <span>{addon.name} × {addon.quantity}</span>
-                                    <span>{formatPrice(String(addon.price * addon.quantity))}</span>
+                                <Separator className="my-2" />
+                                <div className="text-sm font-medium mb-1">Selected Add-ons:</div>
+                                {form.watch('selectedAddons').map(addon => (
+                                  <div key={addon.id} className="flex justify-between text-sm pl-2">
+                                    <span>{addon.name}</span>
+                                    <span>{formatPrice(String(addon.price))}</span>
                                   </div>
                                 ))}
                               </>
@@ -1068,10 +1088,10 @@ function PublicBooking() {
                               <span>Total</span>
                               <span>
                                 {formatPrice(String(
+                                  // Calculate base price
                                   parseFloat(selectedExperience.price) * (form.watch('guests') || 1) +
-                                  (form.watch('addons') ? form.watch('addons').reduce((sum: number, addon: any) => {
-                                    return sum + (addon.price * addon.quantity);
-                                  }, 0) : 0)
+                                  // Add selected add-ons price
+                                  (form.watch('selectedAddons')?.reduce((sum, addon) => sum + addon.price, 0) || 0)
                                 ))}
                               </span>
                             </div>
@@ -1105,24 +1125,7 @@ function PublicBooking() {
                 <p>Experience: {bookingConfirmation.experienceName}</p>
                 <p>Dates: {bookingConfirmation.startDate} - {bookingConfirmation.endDate}</p>
                 <p>Guests: {bookingConfirmation.guests}</p>
-                
-                {/* Show add-ons if any */}
-                {bookingConfirmation.addons && bookingConfirmation.addons.length > 0 && (
-                  <div className="mt-1 pt-1 border-t border-green-200">
-                    <p className="font-medium">Add-ons:</p>
-                    <ul className="list-disc list-inside pl-2">
-                      {bookingConfirmation.addons.map((addon: any, idx: number) => (
-                        <li key={idx}>
-                          {addon.name} × {addon.quantity} ({formatPrice(String(addon.price * addon.quantity))})
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                <p className="mt-1 pt-1 border-t border-green-200 font-medium">
-                  Total: {formatPrice(bookingConfirmation.totalAmount)}
-                </p>
+                <p>Total: {formatPrice(bookingConfirmation.totalAmount)}</p>
               </div>
             </div>
           )}
