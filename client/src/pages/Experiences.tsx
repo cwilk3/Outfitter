@@ -1389,7 +1389,7 @@ export default function Experiences() {
               <div className="space-y-2">
                 <Steps 
                   currentStep={currentStep} 
-                  steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
+                  steps={["Basic Info", "Details", "Media", "Features", "Add-ons & Guides", "Review"]} 
                   onStepClick={setCurrentStep} 
                   clickable={true}
                 />
@@ -1406,7 +1406,7 @@ export default function Experiences() {
             ) : (
               <Steps 
                 currentStep={currentStep} 
-                steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
+                steps={["Basic Info", "Details", "Media", "Features", "Add-ons & Guides", "Review"]} 
               />
             )}
           </div>
@@ -1843,7 +1843,7 @@ export default function Experiences() {
                 </div>
               )}
               
-              {/* Step 5: Add-ons */}
+              {/* Step 5: Add-ons & Guides */}
               {currentStep === 5 && (
                 <div className="space-y-6">
                   <div>
@@ -1859,6 +1859,23 @@ export default function Experiences() {
                   </div>
                   
                   <div className="pt-4 border-t">
+                    <h3 className="text-base font-medium mb-1">Guide Assignment</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Assign guides to this experience. The primary guide will be the main point of contact.
+                    </p>
+                    
+                    <ExperienceGuides
+                      experienceId={selectedExperience?.id || 0}
+                      readOnly={false}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 6: Review */}
+              {currentStep === 6 && (
+                <div className="space-y-6">
+                  <div>
                     <h3 className="text-base font-medium">Review</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                       Review your experience details before submitting.
@@ -1969,7 +1986,7 @@ export default function Experiences() {
                     </Button>
                   )}
                   
-                  {currentStep < 5 ? (
+                  {currentStep < 6 ? (
                     // Next button for both modes
                     <Button 
                       type="button"

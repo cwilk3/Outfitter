@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 
 interface Guide {
   id: string;
@@ -142,9 +141,18 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
   // Remove a guide assignment
   const removeGuideMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/experience-guides/${id}`, {
+      const response = await fetch(`/api/experience-guides/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove guide');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
