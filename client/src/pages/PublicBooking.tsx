@@ -864,8 +864,10 @@ function PublicBooking() {
                                                   <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
                                                 )}
                                                 {addon.inventory !== undefined && (
-                                                  <p className="text-xs text-gray-500 mt-1">
-                                                    {addon.inventory} available
+                                                  <p className={`text-xs mt-1 ${currentQuantity >= maxQuantity ? 'text-orange-500 font-semibold' : 'text-gray-500'}`}>
+                                                    {currentQuantity >= maxQuantity ? 
+                                                      'Maximum quantity reached' : 
+                                                      `${addon.inventory - (currentQuantity > 0 ? currentQuantity : 0)} of ${addon.inventory} available`}
                                                   </p>
                                                 )}
                                               </div>
@@ -902,6 +904,7 @@ function PublicBooking() {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="px-2 h-8 text-lg"
+                                                    disabled={currentQuantity >= maxQuantity}
                                                     onClick={() => {
                                                       if (currentQuantity < maxQuantity) {
                                                         const newAddons = currentAddons.map(item => 
