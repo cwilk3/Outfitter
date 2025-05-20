@@ -73,10 +73,19 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
     mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
-      return apiRequest(`/api/experiences/${experienceId}/guides`, {
+      const response = await fetch(`/api/experiences/${experienceId}/guides`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to assign guide');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
@@ -99,10 +108,19 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
   // Update a guide assignment (set primary)
   const updateGuideMutation = useMutation({
     mutationFn: async (data: { id: number; isPrimary: boolean }) => {
-      return apiRequest(`/api/experience-guides/${data.id}`, {
+      const response = await fetch(`/api/experience-guides/${data.id}`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ isPrimary: data.isPrimary }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update guide assignment');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });

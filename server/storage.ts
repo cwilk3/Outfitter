@@ -957,6 +957,65 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User>;
+  private locations: Map<number, Location>;
+  private experiences: Map<number, Experience>;
+  private experienceLocations: Map<number, ExperienceLocation>;
+  private experienceAddons: Map<number, ExperienceAddon>;
+  private experienceGuides: Map<number, ExperienceGuide>;
+  private customers: Map<number, Customer>;
+  private bookings: Map<number, Booking>;
+  private bookingGuides: Map<number, BookingGuide>;
+  private documents: Map<number, Document>;
+  private payments: Map<number, Payment>;
+  private settings: Settings | undefined;
+  private activities: Map<number, Activity>;
+  
+  private currentIds = {
+    location: 1,
+    experience: 1,
+    experienceLocation: 1,
+    experienceAddon: 1,
+    experienceGuide: 1,
+    customer: 1,
+    booking: 1,
+    bookingGuide: 1,
+    document: 1,
+    payment: 1,
+    activity: 1,
+  };
+  
+  constructor() {
+    this.users = new Map();
+    this.locations = new Map();
+    this.experiences = new Map();
+    this.experienceLocations = new Map();
+    this.experienceAddons = new Map();
+    this.experienceGuides = new Map();
+    this.customers = new Map();
+    this.bookings = new Map();
+    this.bookingGuides = new Map();
+    this.documents = new Map();
+    this.payments = new Map();
+    this.activities = new Map();
+    
+    this.currentIds = {
+      location: 1,
+      experience: 1,
+      experienceLocation: 1,
+      experienceAddon: 1,
+      experienceGuide: 1,
+      customer: 1,
+      booking: 1,
+      bookingGuide: 1,
+      document: 1,
+      payment: 1,
+      activity: 1,
+    };
+    
+    this.seedData();
+  }
+  
   // Experience Guide management methods
   async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
     const result: ExperienceGuide[] = [];
@@ -987,7 +1046,9 @@ export class MemStorage implements IStorage {
       ...data, 
       id, 
       createdAt: now, 
-      updatedAt: now 
+      updatedAt: now,
+      // Ensure isPrimary is never undefined
+      isPrimary: data.isPrimary === true ? true : false
     };
     
     this.experienceGuides.set(id, guide);
