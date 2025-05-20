@@ -197,13 +197,10 @@ export default function Experiences() {
   const [selectedDuplicateLocationId, setSelectedDuplicateLocationId] = useState<number | null>(null);
   
   type AddonType = {
-    id?: number;
     name: string;
     description: string;
     price: number;
     isOptional: boolean;
-    inventory?: number;
-    maxPerBooking?: number;
   };
   
   // State for new form fields
@@ -814,60 +811,15 @@ export default function Experiences() {
         console.log("Updating experience", { id: selectedExperience.id });
         
         try {
-          // Step 1: Update the experience data
           const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
             ...basicData,
             locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
           });
           
-          console.log("Experience update successful", result);
-          
-          // Step 2: Handle add-ons separately
-          // First get existing add-ons to determine what needs to be created, updated, or deleted
-          const existingAddons = await apiRequest('GET', `/api/experience-addons/${selectedExperience.id}`);
-          console.log("Existing add-ons:", existingAddons);
-          
-          // Process each addon in our form state
-          for (const addon of addons) {
-            // Check if this addon has an ID (existing addon)
-            if (addon.id) {
-              // Update existing addon
-              console.log("Updating addon:", addon);
-              // Only include fields that match the database schema
-              await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
-                name: addon.name,
-                description: addon.description,
-                price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional
-                // Explicitly omitting inventory and maxPerBooking as they're not in the schema
-              });
-            } else {
-              // Create new addon
-              console.log("Creating new addon:", addon);
-              await apiRequest('POST', `/api/experience-addons`, {
-                experienceId: selectedExperience.id,
-                name: addon.name,
-                description: addon.description,
-                price: addon.price,
-                isOptional: addon.isOptional
-              });
-            }
-          }
-          
-          // Find add-ons that were removed and delete them
-          if (Array.isArray(existingAddons)) {
-            for (const existingAddon of existingAddons) {
-              // If an existing addon is not in our current list, delete it
-              if (!addons.some(a => a.id === existingAddon.id)) {
-                console.log("Deleting addon:", existingAddon);
-                await apiRequest('DELETE', `/api/experience-addons/${existingAddon.id}`);
-              }
-            }
-          }
-          
+          console.log("Update successful", result);
           toast({
             title: "Success",
-            description: "Experience and add-ons updated successfully",
+            description: "Experience updated successfully",
           });
           
           // Refresh data
@@ -875,7 +827,6 @@ export default function Experiences() {
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
           
           // Close dialog
           setIsCreating(false);
@@ -953,35 +904,10 @@ export default function Experiences() {
             }
           }
           
-          // Step 2: Save the add-ons for the new experience
-          if (addons.length > 0 && result && result.id) {
-            console.log("Creating add-ons for the new experience:", addons);
-            
-            // Create each add-on individually
-            for (const addon of addons) {
-              try {
-                console.log("Creating addon:", addon);
-                // Only include fields that match the database schema
-              await apiRequest('POST', '/api/experience-addons', {
-                  experienceId: result.id,
-                  name: addon.name,
-                  description: addon.description || '',
-                  price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                  isOptional: addon.isOptional
-                  // Explicitly omitting inventory and maxPerBooking as they're not in the schema
-                });
-              } catch (addonError) {
-                console.error("Error creating add-on:", addonError);
-                // Continue with the other add-ons even if one fails
-              }
-            }
-          }
-          
           // Invalidate data
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
           
           // Reset and close the form
           closeDialog();

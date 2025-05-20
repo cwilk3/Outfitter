@@ -1,11 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
+  type ExperienceLocation, type InsertExperienceLocation
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -37,13 +37,6 @@ export interface IStorage {
   getAllExperienceLocations(): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
-  
-  // Experience Add-ons operations
-  getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]>;
-  getExperienceAddon(id: number): Promise<ExperienceAddon | undefined>;
-  createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
-  updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
-  deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -355,61 +348,6 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(experiences.id, experienceId));
-  }
-  
-  // Experience Add-ons operations
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    return db
-      .select()
-      .from(experienceAddons)
-      .where(eq(experienceAddons.experienceId, experienceId))
-      .orderBy(experienceAddons.name);
-  }
-  
-  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
-    const [addon] = await db
-      .select()
-      .from(experienceAddons)
-      .where(eq(experienceAddons.id, id));
-    return addon;
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    // Preprocess numeric fields
-    const processedData = {
-      ...addonData,
-      price: typeof addonData.price === 'number' ? addonData.price.toString() : addonData.price
-    };
-    
-    const [addon] = await db
-      .insert(experienceAddons)
-      .values(processedData)
-      .returning();
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    // Preprocess numeric fields if present
-    const processedData = {
-      ...addonData,
-      price: addonData.price !== undefined && typeof addonData.price === 'number' 
-        ? addonData.price.toString() 
-        : addonData.price,
-      updatedAt: new Date()
-    };
-    
-    const [addon] = await db
-      .update(experienceAddons)
-      .set(processedData)
-      .where(eq(experienceAddons.id, id))
-      .returning();
-    return addon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    await db
-      .delete(experienceAddons)
-      .where(eq(experienceAddons.id, id));
   }
 
   // Customer operations
@@ -746,7 +684,6 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
-  private experienceAddons: Map<number, ExperienceAddon>; // Added for add-ons support
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -760,7 +697,6 @@ export class MemStorage implements IStorage {
     location: number;
     experience: number;
     experienceLocation: number;
-    experienceAddon: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -774,7 +710,6 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
-    this.experienceAddons = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -787,7 +722,6 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
-      experienceAddon: 1, // Added for add-ons support
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -916,52 +850,6 @@ export class MemStorage implements IStorage {
     };
     this.createExperience(flyfishing);
     
-    // Add add-ons for experiences
-    const fishingGuide: InsertExperienceAddon = {
-      name: 'Professional Guide',
-      description: 'Get a professional fishing guide for your experience',
-      price: '150',
-      experienceId: 3, // Bass Fishing
-      isOptional: true
-    };
-    this.createExperienceAddon(fishingGuide);
-    
-    const premiumGear: InsertExperienceAddon = {
-      name: 'Premium Gear Package',
-      description: 'Use our high-end fishing equipment',
-      price: '75',
-      experienceId: 3, // Bass Fishing
-      isOptional: true
-    };
-    this.createExperienceAddon(premiumGear);
-    
-    const lunchPackage: InsertExperienceAddon = {
-      name: 'Lunch Package',
-      description: 'Gourmet lunch provided during your trip',
-      price: '50',
-      experienceId: 3, // Bass Fishing
-      isOptional: true
-    };
-    this.createExperienceAddon(lunchPackage);
-    
-    const huntingGuide: InsertExperienceAddon = {
-      name: 'Expert Hunting Guide',
-      description: 'Personal guide with expert knowledge of the area',
-      price: '200',
-      experienceId: 1, // Duck Hunt
-      isOptional: true
-    };
-    this.createExperienceAddon(huntingGuide);
-    
-    const huntingDogs: InsertExperienceAddon = {
-      name: 'Hunting Dogs',
-      description: 'Trained hunting dogs to assist with your hunt',
-      price: '100',
-      experienceId: 1, // Duck Hunt
-      isOptional: true
-    };
-    this.createExperienceAddon(huntingDogs);
-
     // Add experience-location associations
     // Duck Hunt can be offered at both Texas Ranch and Kansas Fields
     this.addExperienceLocation({
@@ -1341,54 +1229,6 @@ export class MemStorage implements IStorage {
     if (toRemove) {
       this.experienceLocations.delete(toRemove[0]);
     }
-  }
-
-  // Experience Add-on operations
-  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
-    // Return all add-ons for this experience
-    return Array.from(this.experienceAddons.values())
-      .filter(addon => addon.experienceId === experienceId)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }
-  
-  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
-    return this.experienceAddons.get(id);
-  }
-  
-  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
-    const id = this.currentIds.experienceAddon++;
-    const now = new Date();
-    
-    const addon: ExperienceAddon = { 
-      ...addonData, 
-      id, 
-      createdAt: now, 
-      updatedAt: now 
-    };
-    
-    this.experienceAddons.set(id, addon);
-    return addon;
-  }
-  
-  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
-    const addon = this.experienceAddons.get(id);
-    
-    if (!addon) {
-      return undefined;
-    }
-    
-    const updatedAddon: ExperienceAddon = { 
-      ...addon, 
-      ...addonData, 
-      updatedAt: new Date() 
-    };
-    
-    this.experienceAddons.set(id, updatedAddon);
-    return updatedAddon;
-  }
-  
-  async deleteExperienceAddon(id: number): Promise<void> {
-    this.experienceAddons.delete(id);
   }
 
   // Customer operations
