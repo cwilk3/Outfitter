@@ -1390,7 +1390,7 @@ export default function Experiences() {
               <div className="space-y-2">
                 <Steps 
                   currentStep={currentStep} 
-                  steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
+                  steps={["Basic Info", "Details", "Media", "Features", "Add-ons & Guides"]} 
                   onStepClick={setCurrentStep} 
                   clickable={true}
                 />
@@ -1407,7 +1407,7 @@ export default function Experiences() {
             ) : (
               <Steps 
                 currentStep={currentStep} 
-                steps={["Basic Info", "Details", "Media", "Features", "Add-ons", "Guides"]} 
+                steps={["Basic Info", "Details", "Media", "Features", "Add-ons & Guides", "Review"]} 
               />
             )}
           </div>
@@ -1844,11 +1844,17 @@ export default function Experiences() {
                 </div>
               )}
               
-              {/* Step 5: Add-ons */}
+              {/* Step 5: Add-ons & Guides */}
               {currentStep === 5 && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-base font-medium mb-1">Add-ons & Extras</h3>
+                <div className="space-y-8">
+                  {/* Add-ons Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <div className="bg-primary/10 p-1.5 rounded-md">
+                        <Tag className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-medium">Add-ons & Extras</h3>
+                    </div>
                     <p className="text-sm text-muted-foreground mb-4">
                       Create optional or required add-ons that customers can choose when booking.
                     </p>
@@ -1859,79 +1865,16 @@ export default function Experiences() {
                     />
                   </div>
                   
-                  <div className="pt-4 border-t">
-                    <h3 className="text-base font-medium">Review</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Review your experience details before submitting.
-                    </p>
-                    
-                    <div className="space-y-3">
-                      <div className="bg-muted p-4 rounded-md">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Name</h4>
-                            <p className="font-medium">{form.getValues('name')}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Category</h4>
-                            <p className="font-medium">{formatCategory(form.getValues('category') || 'other_hunting')}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Duration</h4>
-                            <p className="font-medium">{form.getValues('duration')} days</p>
-                          </div>
-                          <div>
-                            <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Price</h4>
-                            <p className="font-medium">${form.getValues('price')}</p>
-                          </div>
-                        </div>
+                  <Separator />
+                  
+                  {/* Guide Assignment Section */}
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <div className="bg-primary/10 p-1.5 rounded-md">
+                        <Users className="h-5 w-5 text-primary" />
                       </div>
-                      
-                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Images</p>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedImages.length} of 5 images
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {selectedImages.length > 0 ? 'Added' : 'None'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Available Dates</p>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedDates.length} dates selected
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {selectedDates.length > 0 ? 'Added' : 'None'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center bg-muted/50 p-3 rounded-md">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Add-ons & Extras</p>
-                          <p className="text-xs text-muted-foreground">
-                            {addons.length} add-ons defined
-                          </p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {addons.length > 0 ? 'Added' : 'None'}
-                        </Badge>
-                      </div>
+                      <h3 className="text-base font-medium">Guide Assignment</h3>
                     </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Step 6: Guide Assignment */}
-              {currentStep === 6 && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-base font-medium mb-1">Guide Assignment</h3>
                     <p className="text-sm text-muted-foreground mb-4">
                       Assign guides who will lead this experience
                     </p>
@@ -1941,6 +1884,129 @@ export default function Experiences() {
                     ) : (
                       <div className="p-4 text-sm text-amber-600 bg-amber-50 rounded-md border border-amber-200">
                         Save the basic experience details first before assigning guides.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 6: Final Review */}
+              {currentStep === 6 && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <div className="bg-primary/10 p-1.5 rounded-md">
+                      <Check className="h-5 w-5 text-primary" />
+                    </div>
+                    <h3 className="text-base font-medium">Final Review</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Review all details of your experience before submitting.
+                  </p>
+                  
+                  <div className="space-y-6">
+                    {/* Basic Information */}
+                    <div className="bg-muted p-5 rounded-md">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center">
+                        <InfoIcon className="h-4 w-4 mr-2 text-primary" />
+                        Basic Information
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Name</h5>
+                          <p className="font-medium">{form.getValues('name')}</p>
+                        </div>
+                        <div>
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Category</h5>
+                          <p className="font-medium">{formatCategory(form.getValues('category') || 'other_hunting')}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Description</h5>
+                          <p className="text-sm line-clamp-2">{form.getValues('description')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Details Summary */}
+                    <div className="bg-muted p-5 rounded-md">
+                      <h4 className="text-sm font-semibold mb-3 flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-primary" />
+                        Experience Details
+                      </h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Duration</h5>
+                          <p className="font-medium">{form.getValues('duration')} days</p>
+                        </div>
+                        <div>
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Price</h5>
+                          <p className="font-medium">${form.getValues('price')}</p>
+                        </div>
+                        <div>
+                          <h5 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Capacity</h5>
+                          <p className="font-medium">{form.getValues('capacity')} people</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Media, Dates and Features */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center bg-muted/50 p-4 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium flex items-center">
+                            <Image className="h-4 w-4 mr-1 text-primary" />
+                            Images
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedImages.length} of 5 images
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className={`text-xs ${selectedImages.length > 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}`}>
+                          {selectedImages.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center bg-muted/50 p-4 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium flex items-center">
+                            <Calendar className="h-4 w-4 mr-1 text-primary" />
+                            Available Dates
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedDates.length} dates selected
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className={`text-xs ${selectedDates.length > 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}`}>
+                          {selectedDates.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center bg-muted/50 p-4 rounded-md">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium flex items-center">
+                            <Tag className="h-4 w-4 mr-1 text-primary" />
+                            Add-ons
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {addons.length} add-ons defined
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className={`text-xs ${addons.length > 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}`}>
+                          {addons.length > 0 ? 'Added' : 'None'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Notice if any important section is missing */}
+                    {(!selectedImages.length || !selectedDates.length) && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-md p-4 flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">Some recommended items are missing</p>
+                          <ul className="text-xs text-amber-700 mt-1 space-y-1 list-disc list-inside">
+                            {!selectedImages.length && <li>Adding images helps customers visualize the experience</li>}
+                            {!selectedDates.length && <li>Available dates are needed for customers to book</li>}
+                          </ul>
+                        </div>
                       </div>
                     )}
                   </div>
