@@ -999,20 +999,7 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.activities = new Map();
     
-    // Initialize currentIds
-    this.currentIds = {
-      location: 1,
-      experience: 1,
-      experienceLocation: 1,
-      experienceAddon: 1,
-      experienceGuide: 1,
-      customer: 1,
-      booking: 1,
-      bookingGuide: 1,
-      document: 1,
-      payment: 1,
-      activity: 1,
-    };
+    // The currentIds are already initialized above, no need to do it again
     
     // Add sample data
     this.seedData();
