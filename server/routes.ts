@@ -465,7 +465,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: addon.name,
               description: addon.description || '',
               price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-              isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+              isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+              inventory: addon.inventory || 0,
+              maxPerBooking: addon.maxPerBooking || 0
             });
           }
           console.log("Add-ons for new experience created successfully");
@@ -593,7 +595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: addon.name,
                 description: addon.description || '',
                 price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+                inventory: addon.inventory !== undefined ? addon.inventory : undefined,
+                maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : undefined
               });
             } else {
               // Create new addon
@@ -603,7 +607,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: addon.name,
                 description: addon.description || '',
                 price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+                inventory: addon.inventory || 0,
+                maxPerBooking: addon.maxPerBooking || 0
               });
             }
           }
