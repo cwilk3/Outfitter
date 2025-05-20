@@ -243,11 +243,6 @@ function PublicBooking() {
           endDate: format(summary.endDate, 'yyyy-MM-dd'),
           guests: data.guests,
           notes: data.notes || '',
-          addons: data.selectedAddons.map(addon => ({
-            id: addon.id,
-            name: addon.name,
-            price: addon.price
-          }))
         },
         payment: {
           totalAmount: summary.total.toString(),
@@ -797,57 +792,48 @@ function PublicBooking() {
                                 </p>
                                 
                                 <div className="space-y-4">
-                                  {selectedExperience.addons.map((addon, index) => {
-                                    // Check if addon is already selected
-                                    const isSelected = form.getValues().selectedAddons?.some(item => item.id === addon.id) || false;
-                                    
-                                    return (
-                                      <Card 
-                                        key={addon.id} 
-                                        className={`border overflow-hidden transition-all duration-200 hover:shadow-md ${isSelected ? 'border-primary bg-primary/5' : 'shadow-sm'}`}
-                                      >
-                                        <CardContent className="p-0">
-                                          <div className="flex items-center p-4">
-                                            <Checkbox 
-                                              id={`addon-${addon.id}`}
-                                              className="mr-3"
-                                              checked={isSelected}
-                                              onCheckedChange={(checked: boolean) => {
-                                                const currentAddons = form.getValues().selectedAddons || [];
-                                                
-                                                if (checked) {
-                                                  // Add this addon to the selected list
-                                                  form.setValue('selectedAddons', [
-                                                    ...currentAddons,
-                                                    {...addon, selected: true}
-                                                  ]);
-                                                } else {
-                                                  // Remove this addon from the selected list
-                                                  form.setValue('selectedAddons', 
-                                                    currentAddons.filter(item => item.id !== addon.id)
-                                                  );
-                                                }
-                                              }}
-                                            />
-                                            <div className="flex-1">
-                                              <div className="flex justify-between">
-                                                <label 
-                                                  htmlFor={`addon-${addon.id}`}
-                                                  className="font-medium cursor-pointer"
-                                                >
-                                                  {addon.name}
-                                                </label>
-                                                <span className="font-bold">{formatPrice(String(addon.price))}</span>
-                                              </div>
-                                              {addon.description && (
-                                                <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
-                                              )}
+                                  {selectedExperience.addons.map((addon, index) => (
+                                    <Card key={addon.id} className="border shadow-sm overflow-hidden">
+                                      <CardContent className="p-0">
+                                        <div className="flex items-center p-4">
+                                          <Checkbox 
+                                            id={`addon-${addon.id}`} 
+                                            className="mr-3"
+                                            onCheckedChange={(checked: boolean) => {
+                                              const currentAddons = form.getValues().selectedAddons || [];
+                                              
+                                              if (checked) {
+                                                // Add this addon to the selected list
+                                                form.setValue('selectedAddons', [
+                                                  ...currentAddons,
+                                                  {...addon, selected: true}
+                                                ]);
+                                              } else {
+                                                // Remove this addon from the selected list
+                                                form.setValue('selectedAddons', 
+                                                  currentAddons.filter(item => item.id !== addon.id)
+                                                );
+                                              }
+                                            }}
+                                          />
+                                          <div className="flex-1">
+                                            <div className="flex justify-between">
+                                              <label 
+                                                htmlFor={`addon-${addon.id}`}
+                                                className="font-medium cursor-pointer"
+                                              >
+                                                {addon.name}
+                                              </label>
+                                              <span className="font-bold">{formatPrice(String(addon.price))}</span>
                                             </div>
+                                            {addon.description && (
+                                              <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
+                                            )}
                                           </div>
-                                        </CardContent>
-                                      </Card>
-                                    );
-                                  })}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  ))}
                                 </div>
                               </div>
                             )}
