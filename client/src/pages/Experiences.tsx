@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation, ExperienceAddon } from "@/types";
+import { ExperienceGuides } from "@/components/ui/experience-guides";
 // Import Image processing utility
 import imageCompression from 'browser-image-compression';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
