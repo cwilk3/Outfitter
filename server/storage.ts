@@ -1658,6 +1658,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     
+    // Save the new guide assignment to the map
     this.experienceGuides.set(id, newGuideAssignment);
     return newGuideAssignment;
   }
