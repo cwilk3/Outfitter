@@ -33,6 +33,17 @@ interface Location {
   isActive: boolean;
 }
 
+interface ExperienceAddon {
+  id: number;
+  experienceId: number;
+  name: string;
+  description?: string;
+  price: number;
+  isOptional: boolean;
+  inventory?: number;
+  maxPerBooking?: number;
+}
+
 interface Experience {
   id: number;
   name: string;
@@ -52,7 +63,16 @@ interface Experience {
     city: string;
     state: string;
   }[];
+  addons?: ExperienceAddon[];
 }
+
+// Add-on selection schema
+const selectedAddonSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  price: z.number(),
+  quantity: z.number().min(0),
+});
 
 // Form schema for booking
 const bookingFormSchema = z.object({
@@ -69,6 +89,8 @@ const bookingFormSchema = z.object({
   agreedToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions",
   }),
+  // New field for selected add-ons
+  addons: z.array(selectedAddonSchema).default([]),
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
