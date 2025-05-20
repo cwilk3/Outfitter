@@ -237,15 +237,21 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
               <CardContent className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    {eg.guide.avatarUrl ? (
-                      <AvatarImage src={eg.guide.avatarUrl} alt={formatGuideName(eg.guide)} />
+                    {eg.guide && eg.guide.avatarUrl ? (
+                      <AvatarImage src={eg.guide.avatarUrl} alt={eg.guide ? formatGuideName(eg.guide) : 'Guide'} />
                     ) : (
-                      <AvatarFallback>{getInitials(eg.guide.firstName, eg.guide.lastName)}</AvatarFallback>
+                      <AvatarFallback>
+                        {eg.guide ? getInitials(eg.guide.firstName, eg.guide.lastName) : 'GD'}
+                      </AvatarFallback>
                     )}
                   </Avatar>
                   <div>
-                    <div className="font-medium">{formatGuideName(eg.guide)}</div>
-                    <div className="text-xs text-muted-foreground">{eg.guide.email}</div>
+                    <div className="font-medium">
+                      {eg.guide ? formatGuideName(eg.guide) : `Guide ${eg.guideId}`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {eg.guide ? eg.guide.email : ''}
+                    </div>
                   </div>
                   {eg.isPrimary && (
                     <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
