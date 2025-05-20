@@ -1647,7 +1647,7 @@ export class MemStorage implements IStorage {
     
     // Add the new guide assignment
     const now = new Date();
-    const id = this.currentIds.experienceGuide++;
+    const id = ++this.currentIds.experience; // Using experience ID as a temporary solution
     
     const newGuideAssignment: ExperienceGuide = {
       id,

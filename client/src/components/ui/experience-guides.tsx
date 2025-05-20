@@ -155,12 +155,18 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Filter out guides that are already assigned
   const getUnassignedGuides = () => {
-    if (!availableGuides || !experienceGuides) return [];
+    // Debug logging to help trace issue
+    console.log("Available guides:", availableGuides);
+    console.log("Experience guides:", experienceGuides);
+    
+    if (!availableGuides) return [];
     
     const assignedGuideIds = Array.isArray(experienceGuides) 
       ? experienceGuides.map((eg: ExperienceGuide) => eg.guideId)
       : [];
       
+    console.log("Assigned guide IDs:", assignedGuideIds);
+    
     return Array.isArray(availableGuides) 
       ? availableGuides.filter((guide: any) => 
           !assignedGuideIds.includes(guide.id) &&
