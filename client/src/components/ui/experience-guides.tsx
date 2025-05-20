@@ -92,9 +92,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Set primary guide mutation
   const setPrimaryGuideMutation = useMutation({
     mutationFn: async (guideAssignmentId: number) => {
-      return apiRequest(`/api/experience-guides/${guideAssignmentId}/primary`, {
-        method: 'PUT',
-      });
+      return apiRequest(`/api/experience-guides/${guideAssignmentId}/primary`, 'PUT');
     },
     onSuccess: () => {
       toast({
@@ -128,8 +126,12 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const getUnassignedGuides = () => {
     if (!availableGuides || !experienceGuides) return [];
     
-    const assignedGuideIds = experienceGuides.map((eg: ExperienceGuide) => eg.guideId);
-    return availableGuides.filter((guide: any) => !assignedGuideIds.includes(guide.id));
+    const assignedGuideIds = Array.isArray(experienceGuides) 
+      ? experienceGuides.map((eg: ExperienceGuide) => eg.guideId)
+      : [];
+    return Array.isArray(availableGuides) 
+      ? availableGuides.filter((guide: any) => !assignedGuideIds.includes(guide.id))
+      : [];
   };
   
   const getInitials = (firstName?: string, lastName?: string) => {
