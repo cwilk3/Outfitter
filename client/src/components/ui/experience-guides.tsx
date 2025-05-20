@@ -139,21 +139,32 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Set primary guide mutation
   const setPrimaryGuideMutation = useMutation({
     mutationFn: async (guideAssignment: {experienceId: number, guideId: string}) => {
+      console.log("Setting primary guide:", guideAssignment);
       return apiRequest(`/api/experience-guides/${guideAssignment.experienceId}/${guideAssignment.guideId}/primary`, 'PATCH', {
         isPrimary: true
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Primary guide update successful:", data);
       toast({
         title: "Primary guide updated",
         description: "Primary guide has been updated for this experience",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/experience-guides', experienceId] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Error setting primary guide:", error);
+      let errorMessage = "Failed to update primary guide";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to update primary guide",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -179,20 +190,29 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Filter out guides that are already assigned
   const getUnassignedGuides = () => {
-    if (!availableGuides || !Array.isArray(availableGuides)) return [];
+    if (!availableGuides || !Array.isArray(availableGuides)) {
+      console.log('No available guides or not an array:', availableGuides);
+      return [];
+    }
     
     // Make sure we're dealing with the correct structure for assigned guides
     const assignedGuideIds = Array.isArray(experienceGuides) 
       ? experienceGuides.map((eg: any) => eg.guideId)
       : [];
     
-    // Make sure we properly filter out already assigned guides
-    return availableGuides.filter((guide: any) => 
+    console.log('Available guides:', availableGuides);
+    console.log('Assigned guide IDs:', assignedGuideIds);
+    
+    // Make sure we properly filter out already assigned guides and apply search
+    const filteredGuides = availableGuides.filter((guide: any) => 
       !assignedGuideIds.includes(guide.id) &&
       (searchQuery === "" || 
         `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase())))
     );
+    
+    console.log('Filtered unassigned guides:', filteredGuides);
+    return filteredGuides;
   };
   
   // Format guide name for display
