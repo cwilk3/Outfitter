@@ -40,6 +40,8 @@ interface Addon {
   description?: string;
   price: number;
   isOptional: boolean;
+  inventory?: number;
+  maxPerBooking?: number;
 }
 
 interface Experience {
