@@ -775,6 +775,31 @@ function PublicBooking() {
                               )}
                             />
                             
+                            {/* Add-ons Selection */}
+                            {selectedExperience?.addons && selectedExperience.addons.length > 0 && (
+                              <div className="mt-8">
+                                <Separator className="my-4" />
+                                <FormField
+                                  control={form.control}
+                                  name="addons"
+                                  render={() => (
+                                    <FormItem>
+                                      <Card className="border shadow-sm">
+                                        <CardContent className="pt-4">
+                                          <AddOnSelector 
+                                            addons={selectedExperience.addons || []} 
+                                            startDate={form.getValues().dateRange?.from}
+                                            endDate={form.getValues().dateRange?.to}
+                                            guests={form.getValues().guests}
+                                          />
+                                        </CardContent>
+                                      </Card>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            )}
+                            
                             <div className="sticky bottom-0 pt-6 pb-2 bg-white">
                               <div className="flex space-x-4">
                                 <Button 
@@ -1006,12 +1031,29 @@ function PublicBooking() {
                               <span>× {form.watch('guests')}</span>
                             </div>
                             
+                            {/* Add-ons Section */}
+                            {form.watch('addons') && form.watch('addons').length > 0 && (
+                              <>
+                                <Separator className="my-1" />
+                                <div className="text-sm font-medium mb-1">Add-ons:</div>
+                                {form.watch('addons').filter((addon: any) => addon.quantity > 0).map((addon: any) => (
+                                  <div key={addon.id} className="flex justify-between text-sm">
+                                    <span>{addon.name} × {addon.quantity}</span>
+                                    <span>{formatPrice(String(addon.price * addon.quantity))}</span>
+                                  </div>
+                                ))}
+                              </>
+                            )}
+                            
                             <Separator />
                             <div className="flex justify-between font-bold">
                               <span>Total</span>
                               <span>
                                 {formatPrice(String(
-                                  parseFloat(selectedExperience.price) * (form.watch('guests') || 1)
+                                  parseFloat(selectedExperience.price) * (form.watch('guests') || 1) +
+                                  (form.watch('addons') ? form.watch('addons').reduce((sum: number, addon: any) => {
+                                    return sum + (addon.price * addon.quantity);
+                                  }, 0) : 0)
                                 ))}
                               </span>
                             </div>
