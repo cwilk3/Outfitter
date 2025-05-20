@@ -60,15 +60,19 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [menuOpen, setMenuOpen] = React.useState(false);
   
-  // Define the fetch function before using it
+  // Fetch experience guides with proper typing
   const fetchExperienceGuides = async (): Promise<any[]> => {
     if (!experienceId) return [];
-    const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
-    console.log('Fetched guides for experience:', response);
-    return response || [];
+    try {
+      const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
+      console.log('Fetched guides for experience:', response);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Error fetching guides:', error);
+      return [];
+    }
   };
   
-  // Fetch experience guides with proper typing
   const { 
     data: experienceGuides, 
     isLoading, 
@@ -256,14 +260,6 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
   };
 
-  // Fix queryFn return type to avoid TypeScript errors
-  const fetchExperienceGuides = async (): Promise<any[]> => {
-    if (!experienceId) return [];
-    const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
-    console.log('Fetched guides for experience:', response);
-    return response || [];
-  };
-
   // Check if there's a primary guide
   const getPrimaryGuideId = () => {
     if (!experienceGuides || !Array.isArray(experienceGuides)) return null;
@@ -378,7 +374,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
                         {guide.avatarUrl ? (
                           <AvatarImage src={guide.avatarUrl} alt={formatGuideName(guide)} />
                         ) : (
-                          <AvatarFallback>{getInitials(guide.firstName, guide.lastName)}</AvatarFallback>
+                          <AvatarFallback>{getInitials(guide)}</AvatarFallback>
                         )}
                       </Avatar>
                       <span>{formatGuideName(guide)}</span>
