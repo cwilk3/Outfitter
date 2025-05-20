@@ -829,38 +829,48 @@ export default function Experiences() {
           
           // Process each addon in our form state
           for (const addon of addons) {
-            // Check if this addon has an ID (existing addon)
-            if (addon.id) {
-              // Update existing addon
-              console.log("Updating addon:", addon);
-              // Only include fields that match the database schema
-              await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
-                name: addon.name,
-                description: addon.description,
-                price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional
-                // Explicitly omitting inventory and maxPerBooking as they're not in the schema
-              });
-            } else {
-              // Create new addon
-              console.log("Creating new addon:", addon);
-              await apiRequest('POST', `/api/experience-addons`, {
-                experienceId: selectedExperience.id,
-                name: addon.name,
-                description: addon.description,
-                price: addon.price,
-                isOptional: addon.isOptional
-              });
+            try {
+              // Check if this addon has an ID (existing addon)
+              if (addon.id) {
+                // Update existing addon
+                console.log("Updating addon:", addon);
+                // Only include fields that match the database schema
+                await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
+                  name: addon.name,
+                  description: addon.description || '',
+                  price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                  isOptional: addon.isOptional
+                  // Explicitly omitting inventory and maxPerBooking as they're not in the schema
+                });
+              } else {
+                // Create new addon
+                console.log("Creating new addon:", addon);
+                await apiRequest('POST', `/api/experience-addons`, {
+                  experienceId: selectedExperience.id,
+                  name: addon.name,
+                  description: addon.description || '',
+                  price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                  isOptional: addon.isOptional
+                });
+              }
+            } catch (addonError) {
+              console.error("Error processing add-on:", addonError);
+              // Continue with other add-ons even if one fails
             }
           }
           
           // Find add-ons that were removed and delete them
           if (Array.isArray(existingAddons)) {
             for (const existingAddon of existingAddons) {
-              // If an existing addon is not in our current list, delete it
-              if (!addons.some(a => a.id === existingAddon.id)) {
-                console.log("Deleting addon:", existingAddon);
-                await apiRequest('DELETE', `/api/experience-addons/${existingAddon.id}`);
+              try {
+                // If an existing addon is not in our current list, delete it
+                if (!addons.some(a => a.id === existingAddon.id)) {
+                  console.log("Deleting addon:", existingAddon);
+                  await apiRequest('DELETE', `/api/experience-addons/${existingAddon.id}`);
+                }
+              } catch (deleteError) {
+                console.error("Error deleting add-on:", deleteError);
+                // Continue with other deletions even if one fails
               }
             }
           }
@@ -962,12 +972,12 @@ export default function Experiences() {
               try {
                 console.log("Creating addon:", addon);
                 // Only include fields that match the database schema
-              await apiRequest('POST', '/api/experience-addons', {
+                await apiRequest('POST', '/api/experience-addons', {
                   experienceId: result.id,
                   name: addon.name,
                   description: addon.description || '',
                   price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                  isOptional: addon.isOptional
+                  isOptional: addon.isOptional !== undefined ? addon.isOptional : true
                   // Explicitly omitting inventory and maxPerBooking as they're not in the schema
                 });
               } catch (addonError) {
