@@ -898,6 +898,7 @@ function PublicBooking() {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="px-2 h-8 text-lg"
+                                                    disabled={currentQuantity >= maxQuantity}
                                                     onClick={() => {
                                                       if (currentQuantity < maxQuantity) {
                                                         const newAddons = currentAddons.map(item => 
