@@ -1564,7 +1564,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: addon.name, 
           description: addon.description || '',
           price: Number(addon.price),
-          isOptional: addon.isOptional
+          isOptional: addon.isOptional,
+          inventory: addon.inventory !== null ? Number(addon.inventory) : undefined,
+          maxPerBooking: addon.maxPerBooking !== null ? Number(addon.maxPerBooking) : undefined
         }));
         
         return {
