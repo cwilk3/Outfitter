@@ -756,6 +756,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get experiences assigned to a specific guide
+  app.get('/api/guides/:guideId/experiences', isAuthenticated, async (req, res) => {
+    try {
+      const guideId = req.params.guideId;
+      
+      // Get all guide assignments for this guide
+      const guideAssignments = await storage.getGuideAssignmentsByGuideId(guideId);
+      
+      if (!guideAssignments || guideAssignments.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all experience IDs from the assignments
+      const experienceIds = guideAssignments.map(assignment => assignment.experienceId);
+      
+      // Get full experience details for each assigned experience
+      const assignedExperiences = await Promise.all(
+        experienceIds.map(id => storage.getExperienceById(id))
+      );
+      
+      // Filter out any null results (in case an experience was deleted)
+      const filteredExperiences = assignedExperiences.filter(exp => exp !== null);
+      
+      res.json(filteredExperiences);
+    } catch (error) {
+      console.error('Error fetching guide assigned experiences:', error);
+      res.status(500).json({ message: 'Failed to fetch assigned experiences' });
+    }
+  });
+  
   // Assign a guide to an experience
   app.post('/api/experiences/:experienceId/guides', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {

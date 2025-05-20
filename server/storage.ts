@@ -1044,6 +1044,16 @@ export class MemStorage implements IStorage {
     return guide;
   }
 
+  async getGuideAssignmentsByGuideId(guideId: string): Promise<ExperienceGuide[]> {
+    const result: ExperienceGuide[] = [];
+    for (const guide of this.experienceGuides.values()) {
+      if (guide.guideId === guideId) {
+        result.push(guide);
+      }
+    }
+    return result;
+  }
+  
   async updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined> {
     const guide = this.experienceGuides.get(id);
     if (!guide) return undefined;
