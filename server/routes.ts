@@ -593,10 +593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: addon.name,
                 description: addon.description || '',
                 price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
-                // Include inventory fields when updating
-                inventory: addon.inventory !== undefined ? addon.inventory : 0,
-                maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
               });
             } else {
               // Create new addon
@@ -1555,15 +1552,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           state: associatedLocation.state
         }] : [];
         
-        // Format add-ons for the frontend with inventory and maxPerBooking fields
+        // Format add-ons for the frontend
         const formattedAddons = addons.map(addon => ({
           id: addon.id,
           name: addon.name, 
           description: addon.description || '',
           price: Number(addon.price),
-          isOptional: addon.isOptional,
-          inventory: addon.inventory,
-          maxPerBooking: addon.maxPerBooking
+          isOptional: addon.isOptional
         }));
         
         return {

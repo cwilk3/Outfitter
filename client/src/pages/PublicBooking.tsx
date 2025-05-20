@@ -804,21 +804,11 @@ function PublicBooking() {
                                 <div className="space-y-4">
                                   {selectedExperience.addons.map((addon, index) => {
                                     // Calculate max quantity based on the minimum of inventory and maxPerBooking
-                                    // Log the actual values for debugging
-                                    console.log(`Addon: ${addon.name} - maxPerBooking: ${addon.maxPerBooking}, inventory: ${addon.inventory}`);
-                                    
-                                    // Ensure limits are enforced
-                                    let maxQuantity = 5; // Hard default limit of 5 for safety
-                                    
-                                    if (addon.maxPerBooking && typeof addon.maxPerBooking === 'number') {
-                                      maxQuantity = Math.min(maxQuantity, addon.maxPerBooking);
-                                    }
-                                    
-                                    if (addon.inventory && typeof addon.inventory === 'number') {
-                                      maxQuantity = Math.min(maxQuantity, addon.inventory);
-                                    }
-                                    
-                                    console.log(`Final max quantity for ${addon.name}: ${maxQuantity}`);
+                                    const maxQuantity = Math.min(
+                                      addon.maxPerBooking || Number.MAX_SAFE_INTEGER,
+                                      addon.inventory || Number.MAX_SAFE_INTEGER,
+                                      10 // Default max limit
+                                    );
                                     
                                     // Get current selected status and quantity
                                     const currentAddons = form.getValues().selectedAddons || [];
@@ -908,7 +898,6 @@ function PublicBooking() {
                                                     variant="ghost"
                                                     size="sm"
                                                     className="px-2 h-8 text-lg"
-                                                    disabled={currentQuantity >= maxQuantity}
                                                     onClick={() => {
                                                       if (currentQuantity < maxQuantity) {
                                                         const newAddons = currentAddons.map(item => 

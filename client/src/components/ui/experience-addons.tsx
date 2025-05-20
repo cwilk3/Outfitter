@@ -41,27 +41,15 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
     setEditingAddonIndex(null);
   };
   
-  const startEditingAddon = (index: number, event?: React.MouseEvent) => {
-    // Prevent event propagation to stop any parent handlers from firing
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    
+  const startEditingAddon = (index: number) => {
     const addon = addons[index];
-    
-    // Using setTimeout to ensure this runs after any other event handlers
-    setTimeout(() => {
-      setName(addon.name);
-      setDescription(addon.description);
-      setPrice(addon.price);
-      setIsOptional(addon.isOptional);
-      setInventory(addon.inventory || 0);
-      setMaxPerBooking(addon.maxPerBooking || 1);
-      setEditingAddonIndex(index);
-      
-      console.log(`Started editing addon: ${addon.name} (index: ${index})`);
-    }, 0);
+    setName(addon.name);
+    setDescription(addon.description);
+    setPrice(addon.price);
+    setIsOptional(addon.isOptional);
+    setInventory(addon.inventory || 0);
+    setMaxPerBooking(addon.maxPerBooking || 1);
+    setEditingAddonIndex(index);
   };
   
   const updateAddon = () => {
@@ -300,7 +288,7 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
                     variant="ghost" 
                     size="icon"
                     className="text-muted-foreground hover:text-blue-600 h-8 w-8"
-                    onClick={(event) => startEditingAddon(index, event)}
+                    onClick={() => startEditingAddon(index)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
