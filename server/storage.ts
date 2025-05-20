@@ -1,11 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation
+  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -37,6 +37,13 @@ export interface IStorage {
   getAllExperienceLocations(): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }[]>;
   addExperienceLocation(experienceLocation: InsertExperienceLocation): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null }>;
   removeExperienceLocation(experienceId: number, locationId: number): Promise<void>;
+  
+  // Experience Add-ons operations
+  getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]>;
+  getExperienceAddon(id: number): Promise<ExperienceAddon | undefined>;
+  createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
+  updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
+  deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -348,6 +355,61 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(experiences.id, experienceId));
+  }
+  
+  // Experience Add-ons operations
+  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
+    return db
+      .select()
+      .from(experienceAddons)
+      .where(eq(experienceAddons.experienceId, experienceId))
+      .orderBy(experienceAddons.name);
+  }
+  
+  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
+    const [addon] = await db
+      .select()
+      .from(experienceAddons)
+      .where(eq(experienceAddons.id, id));
+    return addon;
+  }
+  
+  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
+    // Preprocess numeric fields
+    const processedData = {
+      ...addonData,
+      price: typeof addonData.price === 'number' ? addonData.price.toString() : addonData.price
+    };
+    
+    const [addon] = await db
+      .insert(experienceAddons)
+      .values(processedData)
+      .returning();
+    return addon;
+  }
+  
+  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
+    // Preprocess numeric fields if present
+    const processedData = {
+      ...addonData,
+      price: addonData.price !== undefined && typeof addonData.price === 'number' 
+        ? addonData.price.toString() 
+        : addonData.price,
+      updatedAt: new Date()
+    };
+    
+    const [addon] = await db
+      .update(experienceAddons)
+      .set(processedData)
+      .where(eq(experienceAddons.id, id))
+      .returning();
+    return addon;
+  }
+  
+  async deleteExperienceAddon(id: number): Promise<void> {
+    await db
+      .delete(experienceAddons)
+      .where(eq(experienceAddons.id, id));
   }
 
   // Customer operations
