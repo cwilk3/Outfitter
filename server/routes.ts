@@ -16,7 +16,8 @@ import {
   insertSettingsSchema,
   insertActivitySchema,
   insertLocationSchema,
-  insertExperienceLocationSchema
+  insertExperienceLocationSchema,
+  insertExperienceAddonSchema
 } from "@shared/schema";
 
 // Development authentication middleware
@@ -270,6 +271,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching experiences:', error);
       res.status(500).json({ message: 'Failed to fetch experiences' });
+    }
+  });
+  
+  // Experience Add-ons routes
+  app.get('/api/experience-addons/:experienceId', isAuthenticated, async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      const addons = await storage.getExperienceAddons(experienceId);
+      res.json(addons);
+    } catch (error) {
+      console.error('Error fetching experience add-ons:', error);
+      res.status(500).json({ message: 'Failed to fetch experience add-ons' });
+    }
+  });
+  
+  app.post('/api/experience-addons', isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertExperienceAddonSchema.parse(req.body);
+      
+      // Make sure the experience exists
+      const experience = await storage.getExperience(validatedData.experienceId);
+      if (!experience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      const addon = await storage.createExperienceAddon(validatedData);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: 0, // Should be the authenticated user's ID
+        action: 'Created experience add-on',
+        details: { addonId: addon.id, name: addon.name, experienceId: addon.experienceId }
+      });
+      
+      res.status(201).json(addon);
+    } catch (error) {
+      console.error('Error creating experience add-on:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to create experience add-on' });
+    }
+  });
+  
+  app.patch('/api/experience-addons/:id', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      // Allowing partial updates
+      const validatedData = insertExperienceAddonSchema.partial().parse(req.body);
+      
+      const updatedAddon = await storage.updateExperienceAddon(id, validatedData);
+      
+      if (!updatedAddon) {
+        return res.status(404).json({ message: 'Experience add-on not found' });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: 0, // Should be the authenticated user's ID
+        action: 'Updated experience add-on',
+        details: { addonId: updatedAddon.id, name: updatedAddon.name }
+      });
+      
+      res.json(updatedAddon);
+    } catch (error) {
+      console.error('Error updating experience add-on:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'Failed to update experience add-on' });
+    }
+  });
+  
+  app.delete('/api/experience-addons/:id', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const addon = await storage.getExperienceAddon(id);
+      
+      if (!addon) {
+        return res.status(404).json({ message: 'Experience add-on not found' });
+      }
+      
+      await storage.deleteExperienceAddon(id);
+      
+      // Log activity
+      await storage.createActivity({
+        userId: 0, // Should be the authenticated user's ID
+        action: 'Deleted experience add-on',
+        details: { addonId: id, name: addon.name }
+      });
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting experience add-on:', error);
+      res.status(500).json({ message: 'Failed to delete experience add-on' });
     }
   });
 
