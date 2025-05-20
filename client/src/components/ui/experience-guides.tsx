@@ -70,8 +70,8 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Remove guide mutation
   const removeGuideMutation = useMutation({
-    mutationFn: async (guideAssignmentId: number) => {
-      return apiRequest(`/api/experience-guides/${guideAssignmentId}`, 'DELETE');
+    mutationFn: async (guideAssignment: {experienceId: number, guideId: string}) => {
+      return apiRequest(`/api/experience-guides/${guideAssignment.experienceId}/${guideAssignment.guideId}`, 'DELETE');
     },
     onSuccess: () => {
       toast({
@@ -91,8 +91,10 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Set primary guide mutation
   const setPrimaryGuideMutation = useMutation({
-    mutationFn: async (guideAssignmentId: number) => {
-      return apiRequest(`/api/experience-guides/${guideAssignmentId}/primary`, 'PUT');
+    mutationFn: async (guideAssignment: {experienceId: number, guideId: string}) => {
+      return apiRequest(`/api/experience-guides/${guideAssignment.experienceId}/${guideAssignment.guideId}/primary`, 'PATCH', {
+        isPrimary: true
+      });
     },
     onSuccess: () => {
       toast({
@@ -114,12 +116,18 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     assignGuideMutation.mutate(guideId);
   };
   
-  const handleRemoveGuide = (guideAssignmentId: number) => {
-    removeGuideMutation.mutate(guideAssignmentId);
+  const handleRemoveGuide = (guideAssignment: ExperienceGuide) => {
+    removeGuideMutation.mutate({
+      experienceId: guideAssignment.experienceId,
+      guideId: guideAssignment.guideId
+    });
   };
   
-  const handleSetPrimaryGuide = (guideAssignmentId: number) => {
-    setPrimaryGuideMutation.mutate(guideAssignmentId);
+  const handleSetPrimaryGuide = (guideAssignment: ExperienceGuide) => {
+    setPrimaryGuideMutation.mutate({
+      experienceId: guideAssignment.experienceId,
+      guideId: guideAssignment.guideId
+    });
   };
   
   // Filter out guides that are already assigned
