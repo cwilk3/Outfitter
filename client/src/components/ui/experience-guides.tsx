@@ -165,7 +165,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
         <div className="py-10 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : !experienceGuides || experienceGuides.length === 0 ? (
+      ) : !experienceGuides || !Array.isArray(experienceGuides) || experienceGuides.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-md bg-muted/30">
           <User className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
           <h3 className="text-sm font-medium mb-1">No Guides Assigned</h3>
@@ -183,7 +183,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
         </div>
       ) : (
         <div className="border rounded-md divide-y">
-          {experienceGuides.map((eg: ExperienceGuide) => (
+          {Array.isArray(experienceGuides) && experienceGuides.map((eg: ExperienceGuide) => (
             <div key={eg.id} className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -219,7 +219,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
                       variant="ghost"
                       size="sm"
                       className="text-muted-foreground hover:text-primary"
-                      onClick={() => handleSetPrimaryGuide(eg.id)}
+                      onClick={() => handleSetPrimaryGuide(eg)}
                     >
                       <Shield className="h-4 w-4 mr-1" />
                       Make Primary
@@ -229,7 +229,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
                     variant="ghost"
                     size="icon"
                     className="text-muted-foreground hover:text-destructive h-8 w-8"
-                    onClick={() => handleRemoveGuide(eg.id)}
+                    onClick={() => handleRemoveGuide(eg)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
