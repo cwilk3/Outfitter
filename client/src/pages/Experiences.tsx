@@ -833,7 +833,7 @@ export default function Experiences() {
               await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
                 name: addon.name,
                 description: addon.description,
-                price: addon.price,
+                price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
                 isOptional: addon.isOptional
               });
             } else {
@@ -960,7 +960,7 @@ export default function Experiences() {
                   experienceId: result.id,
                   name: addon.name,
                   description: addon.description || '',
-                  price: addon.price,
+                  price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
                   isOptional: addon.isOptional
                 });
               } catch (addonError) {
