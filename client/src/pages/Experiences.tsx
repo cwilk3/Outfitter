@@ -2068,7 +2068,7 @@ export default function Experiences() {
                     </Button>
                   )}
                   
-                  {currentStep < 5 ? (
+                  {currentStep < 6 ? (
                     // Next button for both modes
                     <Button 
                       type="button"
