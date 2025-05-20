@@ -185,9 +185,10 @@ const optimizeImages = async (imageDataUrls: string[]): Promise<string[]> => {
 
 export default function Experiences() {
   const { toast } = useToast();
-  const { isAdmin } = useRole();
+  const { isAdmin, isGuide, userId } = useRole();
   const [isCreating, setIsCreating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showAssignedOnly, setShowAssignedOnly] = useState(isGuide); // Default to true for guides
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -215,9 +216,22 @@ export default function Experiences() {
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
   const [addons, setAddons] = useState<AddonType[]>([]);
 
-  // Fetch experiences
+  // Fetch all experiences
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
     queryKey: ['/api/experiences'],
+  });
+  
+  // Fetch experiences assigned to the current guide (if user is a guide)
+  const { data: assignedExperiences = [] } = useQuery<Experience[]>({
+    queryKey: ['/api/guides', userId, 'experiences'],
+    queryFn: async () => {
+      if (!isGuide || !userId) return [];
+      
+      const response = await fetch(`/api/guides/${userId}/experiences`);
+      if (!response.ok) throw new Error('Failed to fetch assigned experiences');
+      return response.json();
+    },
+    enabled: isGuide && !!userId,
   });
   
   // Fetch all locations for the multi-select
