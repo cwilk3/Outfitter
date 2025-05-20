@@ -978,6 +978,7 @@ export class MemStorage implements IStorage {
     this.experiences = new Map();
     this.experienceLocations = new Map();
     this.experienceAddons = new Map();
+    this.experienceGuides = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -991,6 +992,7 @@ export class MemStorage implements IStorage {
       experience: 1,
       experienceLocation: 1,
       experienceAddon: 1, // Added for add-ons support
+      experienceGuide: 1, // Added for guide assignments
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1592,6 +1594,106 @@ export class MemStorage implements IStorage {
   
   async deleteExperienceAddon(id: number): Promise<void> {
     this.experienceAddons.delete(id);
+  }
+  
+  // Experience Guide operations implementation
+  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
+    const guides = Array.from(this.experienceGuides.values()).filter(
+      (guide) => guide.experienceId === experienceId
+    );
+    return guides;
+  }
+  
+  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
+    const guides = await this.getExperienceGuides(experienceId);
+    const result: (ExperienceGuide & User)[] = [];
+    
+    for (const guide of guides) {
+      const user = await this.getUser(guide.guideId);
+      if (user) {
+        // Combine the guide assignment info with the user details
+        result.push({
+          ...guide,
+          ...user
+        });
+      }
+    }
+    
+    return result;
+  }
+  
+  async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
+    // Check if this guide is already assigned to this experience
+    const existingGuides = await this.getExperienceGuides(guideAssignment.experienceId);
+    const existing = existingGuides.find(g => g.guideId === guideAssignment.guideId);
+    
+    if (existing) {
+      // Update the existing assignment if needed
+      if (existing.isPrimary !== guideAssignment.isPrimary) {
+        return this.setGuidePrimary(guideAssignment.experienceId, guideAssignment.guideId, !!guideAssignment.isPrimary)
+          .then(() => existing);
+      }
+      return existing;
+    }
+    
+    // If setting as primary, set all other guides as not primary
+    if (guideAssignment.isPrimary) {
+      for (const guide of existingGuides) {
+        if (guide.isPrimary) {
+          guide.isPrimary = false;
+          this.experienceGuides.set(guide.id, guide);
+        }
+      }
+    }
+    
+    // Add the new guide assignment
+    const now = new Date();
+    const id = this.currentIds.experienceGuide++;
+    
+    const newGuideAssignment: ExperienceGuide = {
+      id,
+      experienceId: guideAssignment.experienceId,
+      guideId: guideAssignment.guideId,
+      isPrimary: !!guideAssignment.isPrimary,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.experienceGuides.set(id, newGuideAssignment);
+    return newGuideAssignment;
+  }
+  
+  async removeGuideFromExperience(experienceId: number, guideId: string): Promise<void> {
+    // Find and remove the guide assignment
+    for (const [id, guide] of this.experienceGuides.entries()) {
+      if (guide.experienceId === experienceId && guide.guideId === guideId) {
+        this.experienceGuides.delete(id);
+        break;
+      }
+    }
+  }
+  
+  async setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void> {
+    // If setting a guide as primary, first set all others as not primary
+    if (isPrimary) {
+      for (const guide of await this.getExperienceGuides(experienceId)) {
+        if (guide.guideId !== guideId && guide.isPrimary) {
+          guide.isPrimary = false;
+          guide.updatedAt = new Date();
+          this.experienceGuides.set(guide.id, guide);
+        }
+      }
+    }
+    
+    // Now update the target guide
+    for (const guide of await this.getExperienceGuides(experienceId)) {
+      if (guide.guideId === guideId) {
+        guide.isPrimary = isPrimary;
+        guide.updatedAt = new Date();
+        this.experienceGuides.set(guide.id, guide);
+        break;
+      }
+    }
   }
 
   // Customer operations
