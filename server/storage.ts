@@ -964,6 +964,7 @@ export class MemStorage implements IStorage {
     experience: number;
     experienceLocation: number;
     experienceAddon: number;
+    experienceGuide: number; // Added experience guide ID counter
     customer: number;
     booking: number;
     bookingGuide: number;
