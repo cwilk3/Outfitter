@@ -161,30 +161,20 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Filter out guides that are already assigned
   const getUnassignedGuides = () => {
-    // Debug logging to help trace issue
-    console.log("Available guides:", availableGuides);
-    console.log("Experience guides:", experienceGuides);
-    
-    if (!availableGuides) return [];
+    if (!availableGuides || !Array.isArray(availableGuides)) return [];
     
     // Make sure we're dealing with the correct structure for assigned guides
     const assignedGuideIds = Array.isArray(experienceGuides) 
-      ? experienceGuides.map((eg: any) => eg.guideId || eg.id)
+      ? experienceGuides.map((eg: any) => eg.guideId)
       : [];
-      
-    console.log("Assigned guide IDs:", assignedGuideIds);
     
     // Make sure we properly filter out already assigned guides
-    const unassignedGuides = Array.isArray(availableGuides) 
-      ? availableGuides.filter((guide: any) => 
-          !assignedGuideIds.includes(guide.id) &&
-          (searchQuery === "" || 
-           `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase()))))
-      : [];
-      
-    console.log("Unassigned guides after filtering:", unassignedGuides);
-    return unassignedGuides;
+    return availableGuides.filter((guide: any) => 
+      !assignedGuideIds.includes(guide.id) &&
+      (searchQuery === "" || 
+        `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase())))
+    );
   };
   
   // Format guide name for display

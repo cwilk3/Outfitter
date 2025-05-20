@@ -378,11 +378,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/experience-guides/:experienceId', isAuthenticated, async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
+      console.log('Fetching guides for experience ID:', experienceId);
       
       // Get guides with user details
       const guides = await storage.getExperienceGuidesWithDetails(experienceId);
+      console.log('Found guides for experience:', guides);
       
-      res.json(guides);
+      // Transform the response to ensure guide details are properly nested
+      const formattedGuides = guides.map(guide => {
+        return {
+          id: guide.id,
+          experienceId: guide.experienceId,
+          guideId: guide.guideId,
+          isPrimary: guide.isPrimary,
+          createdAt: guide.createdAt,
+          updatedAt: guide.updatedAt,
+          guide: {
+            id: guide.guideId,
+            firstName: guide.firstName,
+            lastName: guide.lastName,
+            email: guide.email,
+            profileImageUrl: guide.profileImageUrl
+          }
+        };
+      });
+      
+      res.json(formattedGuides);
     } catch (error) {
       console.error('Error fetching experience guides:', error);
       res.status(500).json({ message: 'Failed to fetch guides for this experience' });
@@ -391,11 +412,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/experience-guides', isAuthenticated, async (req, res) => {
     try {
+      console.log('Received assignment request:', req.body);
+      
+      // Ensure experienceId is a number
+      const data = {
+        ...req.body,
+        experienceId: typeof req.body.experienceId === 'string' 
+          ? parseInt(req.body.experienceId) 
+          : req.body.experienceId
+      };
+      
       // Validate the guide assignment data
-      const validatedData = insertExperienceGuideSchema.parse(req.body);
+      const validatedData = insertExperienceGuideSchema.parse(data);
+      console.log('Validated data:', validatedData);
       
       // Assign the guide to the experience
       const assignment = await storage.assignGuideToExperience(validatedData);
+      console.log('Guide assigned successfully:', assignment);
       
       // Log activity
       await storage.createActivity({

@@ -1604,32 +1604,66 @@ export class MemStorage implements IStorage {
   }
   
   async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
+    console.log(`Getting experience guides with details for experience ${experienceId}`);
     const guides = await this.getExperienceGuides(experienceId);
+    console.log(`Found ${guides.length} guides for experience ${experienceId}:`, guides);
+    
     const result: (ExperienceGuide & User)[] = [];
     
     for (const guide of guides) {
+      console.log(`Looking up user details for guide ID: ${guide.guideId}`);
       const user = await this.getUser(guide.guideId);
+      
       if (user) {
+        console.log(`Found user details:`, user);
         // Combine the guide assignment info with the user details
         result.push({
           ...guide,
           ...user
         });
+      } else {
+        console.log(`No user found for guide ID: ${guide.guideId}`);
       }
     }
     
+    console.log(`Returning ${result.length} guides with details`);
     return result;
   }
   
   async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
+    console.log('Assigning guide to experience, received data:', guideAssignment);
+    
+    // Verify the guide exists
+    const guide = await this.getUser(guideAssignment.guideId);
+    if (!guide) {
+      console.error(`Guide with ID ${guideAssignment.guideId} not found`);
+      throw new Error(`Guide with ID ${guideAssignment.guideId} not found`);
+    }
+    
+    // Verify the experience exists
+    const experienceId = typeof guideAssignment.experienceId === 'string' 
+      ? parseInt(guideAssignment.experienceId) 
+      : guideAssignment.experienceId;
+      
+    const experience = await this.getExperience(experienceId);
+    if (!experience) {
+      console.error(`Experience with ID ${experienceId} not found`);
+      throw new Error(`Experience with ID ${experienceId} not found`);
+    }
+    
+    console.log('Guide and experience exist, proceeding with assignment');
+    
     // Check if this guide is already assigned to this experience
-    const existingGuides = await this.getExperienceGuides(guideAssignment.experienceId);
+    const existingGuides = await this.getExperienceGuides(experienceId);
+    console.log('Existing guides for this experience:', existingGuides);
+    
     const existing = existingGuides.find(g => g.guideId === guideAssignment.guideId);
     
     if (existing) {
+      console.log('Guide is already assigned to this experience:', existing);
       // Update the existing assignment if needed
       if (existing.isPrimary !== guideAssignment.isPrimary) {
-        return this.setGuidePrimary(guideAssignment.experienceId, guideAssignment.guideId, !!guideAssignment.isPrimary)
+        return this.setGuidePrimary(experienceId, guideAssignment.guideId, !!guideAssignment.isPrimary)
           .then(() => existing);
       }
       return existing;
@@ -1647,13 +1681,7 @@ export class MemStorage implements IStorage {
     
     // Add the new guide assignment
     const now = new Date();
-    // Let's use the bookingGuide counter as a workaround since experienceGuide doesn't exist
-    const id = ++this.currentIds.bookingGuide; 
-    
-    // Convert experienceId to a number if it's a string to ensure type compatibility
-    const experienceId = typeof guideAssignment.experienceId === 'string' 
-      ? parseInt(guideAssignment.experienceId) 
-      : guideAssignment.experienceId;
+    const id = ++this.currentIds.bookingGuide; // Use booking guide ID counter since we don't have one for experience guides
     
     // Create the new guide assignment
     const newGuideAssignment: ExperienceGuide = {
@@ -1664,6 +1692,8 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     };
+    
+    console.log('Created new guide assignment:', newGuideAssignment);
     
     this.experienceGuides.set(id, newGuideAssignment);
     return newGuideAssignment;
