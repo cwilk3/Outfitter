@@ -811,8 +811,7 @@ function PublicBooking() {
                                     
                                     const maxQuantity = Math.min(
                                       maxPerBooking,
-                                      inventory,
-                                      10 // Default max limit
+                                      inventory
                                     );
                                     
                                     // Get current selected status and quantity
