@@ -62,6 +62,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     error 
   } = useQuery({
     queryKey: ['/api/experience-guides', experienceId],
+    queryFn: () => experienceId ? apiRequest(`/api/experience-guides/${experienceId}`, 'GET') : Promise.resolve([]),
     enabled: !!experienceId,
     retry: 1
   });
