@@ -741,6 +741,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to remove location from experience' });
     }
   });
+  
+  // === EXPERIENCE GUIDE ROUTES ===
+  
+  // Get all guides assigned to an experience
+  app.get('/api/experiences/:experienceId/guides', async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      const guides = await storage.getExperienceGuides(experienceId);
+      res.json(guides);
+    } catch (error) {
+      console.error('Error fetching experience guides:', error);
+      res.status(500).json({ error: 'Failed to fetch experience guides' });
+    }
+  });
+  
+  // Assign a guide to an experience
+  app.post('/api/experiences/:experienceId/guides', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      
+      // Prepare data for validation with guaranteed values
+      const guideData = {
+        experienceId,
+        guideId: req.body.guideId,
+        isPrimary: req.body.isPrimary === true
+      };
+      
+      // Validate data
+      const validatedData = insertExperienceGuideSchema.parse(guideData);
+      
+      // Assign guide to experience
+      const guide = await storage.assignGuideToExperience(validatedData);
+      
+      // Record activity
+      await storage.createActivity({
+        action: 'assign_guide',
+        userId: req.user?.claims?.sub || 'system',
+        details: `Assigned guide ${guide.guideId} to experience ${guide.experienceId}`
+      });
+      
+      res.status(201).json(guide);
+    } catch (error) {
+      console.error('Error assigning guide to experience:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      
+      res.status(500).json({ error: 'Failed to assign guide to experience' });
+    }
+  });
+  
+  // Update a guide assignment
+  app.put('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Prepare data for validation
+      const updateData = {
+        isPrimary: req.body.isPrimary === true
+      };
+      
+      // Update guide assignment
+      const updatedGuide = await storage.updateGuideAssignment(id, updateData);
+      
+      if (!updatedGuide) {
+        return res.status(404).json({ error: 'Guide assignment not found' });
+      }
+      
+      // Record activity
+      await storage.createActivity({
+        action: 'update_guide_assignment',
+        userId: req.user?.claims?.sub || 'system',
+        details: `Updated guide assignment for experience ${updatedGuide.experienceId}`
+      });
+      
+      res.json(updatedGuide);
+    } catch (error) {
+      console.error('Error updating guide assignment:', error);
+      res.status(500).json({ error: 'Failed to update guide assignment' });
+    }
+  });
+  
+  // Remove a guide from an experience
+  app.delete('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Remove guide from experience
+      await storage.removeGuideFromExperience(id);
+      
+      // Record activity
+      await storage.createActivity({
+        action: 'remove_guide',
+        userId: req.user?.claims?.sub || 'system',
+        details: `Removed guide assignment with ID ${id}`
+      });
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing guide from experience:', error);
+      res.status(500).json({ error: 'Failed to remove guide from experience' });
+    }
+  });
+  
+  // Get all experiences assigned to a guide
+  app.get('/api/guides/:guideId/experiences', async (req, res) => {
+    try {
+      const guideId = req.params.guideId;
+      const experiences = await storage.getExperiencesForGuide(guideId);
+      res.json(experiences);
+    } catch (error) {
+      console.error('Error fetching experiences for guide:', error);
+      res.status(500).json({ error: 'Failed to fetch experiences for guide' });
+    }
+  });
 
   // Customer routes
   app.get('/api/customers', isAuthenticated, async (req, res) => {
