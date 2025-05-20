@@ -101,6 +101,16 @@ export const experienceLocations = pgTable("experience_locations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ExperienceGuides junction table for assigning guides to experiences
+export const experienceGuides = pgTable("experience_guides", {
+  id: serial("id").primaryKey(),
+  experienceId: integer("experience_id").notNull().references(() => experiences.id),
+  guideId: varchar("guide_id").notNull().references(() => users.id),
+  isPrimary: boolean("is_primary").default(false), // Whether this is the primary guide for the experience
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Experience Add-ons table
 export const experienceAddons = pgTable("experience_addons", {
   id: serial("id").primaryKey(),
@@ -220,6 +230,7 @@ export const activities = pgTable("activities", {
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   bookingGuides: many(bookingGuides),
+  experienceGuides: many(experienceGuides),
   activities: many(activities),
   documents: many(documents),
 }));
@@ -231,6 +242,7 @@ export const locationsRelations = relations(locations, ({ many }) => ({
 export const experiencesRelations = relations(experiences, ({ many, one }) => ({
   bookings: many(bookings),
   experienceAddons: many(experienceAddons),
+  experienceGuides: many(experienceGuides),
   location: one(locations, {
     fields: [experiences.locationId],
     references: [locations.id],
@@ -289,6 +301,17 @@ export const bookingGuidesRelations = relations(bookingGuides, ({ one }) => ({
   }),
   guide: one(users, {
     fields: [bookingGuides.guideId],
+    references: [users.id],
+  }),
+}));
+
+export const experienceGuidesRelations = relations(experienceGuides, ({ one }) => ({
+  experience: one(experiences, {
+    fields: [experienceGuides.experienceId],
+    references: [experiences.id],
+  }),
+  guide: one(users, {
+    fields: [experienceGuides.guideId],
     references: [users.id],
   }),
 }));
@@ -415,6 +438,13 @@ export const insertExperienceLocationSchema = createInsertSchema(experienceLocat
   createdAt: true
 });
 
+// Insert experience guides schema
+export const insertExperienceGuideSchema = createInsertSchema(experienceGuides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
 // Insert experience addons schema
 export const insertExperienceAddonSchema = createInsertSchema(experienceAddons).omit({
   id: true,
@@ -442,6 +472,9 @@ export type InsertExperience = z.infer<typeof insertExperienceSchema>;
 
 export type ExperienceLocation = typeof experienceLocations.$inferSelect;
 export type InsertExperienceLocation = z.infer<typeof insertExperienceLocationSchema>;
+
+export type ExperienceGuide = typeof experienceGuides.$inferSelect;
+export type InsertExperienceGuide = z.infer<typeof insertExperienceGuideSchema>;
 
 export type ExperienceAddon = typeof experienceAddons.$inferSelect;
 export type InsertExperienceAddon = z.infer<typeof insertExperienceAddonSchema>;
