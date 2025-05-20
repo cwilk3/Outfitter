@@ -64,6 +64,7 @@ import { Steps } from "@/components/ui/steps";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { DateAvailability } from "@/components/ui/date-availability";
 import { ExperienceAddons, Addon } from "@/components/ui/experience-addons";
+import { ExperienceGuides } from "@/components/ui/experience-guides";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
