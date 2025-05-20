@@ -1552,13 +1552,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           state: associatedLocation.state
         }] : [];
         
-        // Format add-ons for the frontend
+        // Format add-ons for the frontend with inventory and maxPerBooking fields
         const formattedAddons = addons.map(addon => ({
           id: addon.id,
           name: addon.name, 
           description: addon.description || '',
           price: Number(addon.price),
-          isOptional: addon.isOptional
+          isOptional: addon.isOptional,
+          inventory: addon.inventory,
+          maxPerBooking: addon.maxPerBooking
         }));
         
         return {
