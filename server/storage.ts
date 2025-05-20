@@ -1,11 +1,12 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons, experienceGuides, addonInventoryDates,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
+  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
+  type ExperienceGuide, type InsertExperienceGuide
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -422,6 +423,95 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(experienceAddons)
       .where(eq(experienceAddons.id, id));
+  }
+  
+  // Experience Guide operations
+  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
+    return db
+      .select()
+      .from(experienceGuides)
+      .where(eq(experienceGuides.experienceId, experienceId));
+  }
+  
+  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
+    // Join with users table to get guide details
+    return db
+      .select({
+        ...experienceGuides,
+        ...users
+      })
+      .from(experienceGuides)
+      .innerJoin(users, eq(experienceGuides.guideId, users.id))
+      .where(eq(experienceGuides.experienceId, experienceId));
+  }
+  
+  async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
+    // First check if this guide is already assigned to this experience
+    const existing = await db
+      .select()
+      .from(experienceGuides)
+      .where(
+        and(
+          eq(experienceGuides.experienceId, guideAssignment.experienceId),
+          eq(experienceGuides.guideId, guideAssignment.guideId)
+        )
+      );
+    
+    // If already exists, just return that
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    
+    // If making this guide primary, first ensure no other guides are primary
+    if (guideAssignment.isPrimary) {
+      await db
+        .update(experienceGuides)
+        .set({ isPrimary: false })
+        .where(eq(experienceGuides.experienceId, guideAssignment.experienceId));
+    }
+    
+    // Add the new guide assignment
+    const [result] = await db
+      .insert(experienceGuides)
+      .values(guideAssignment)
+      .returning();
+    
+    return result;
+  }
+  
+  async removeGuideFromExperience(experienceId: number, guideId: string): Promise<void> {
+    await db
+      .delete(experienceGuides)
+      .where(
+        and(
+          eq(experienceGuides.experienceId, experienceId),
+          eq(experienceGuides.guideId, guideId)
+        )
+      );
+  }
+  
+  async setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void> {
+    // If setting a guide as primary, first set all others as not primary
+    if (isPrimary) {
+      await db
+        .update(experienceGuides)
+        .set({ isPrimary: false })
+        .where(eq(experienceGuides.experienceId, experienceId));
+    }
+    
+    // Update the specified guide
+    await db
+      .update(experienceGuides)
+      .set({ 
+        isPrimary,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(experienceGuides.experienceId, experienceId),
+          eq(experienceGuides.guideId, guideId)
+        )
+      );
   }
   
   // ADDON INVENTORY PER-DAY TRACKING
