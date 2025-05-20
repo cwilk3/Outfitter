@@ -18,6 +18,8 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -1246,6 +1248,21 @@ export default function Experiences() {
             <div>
               <h3 className="text-xl font-semibold text-gray-800">Experiences by Location</h3>
               <p className="text-sm text-gray-600">Manage hunting and fishing offerings at each lodge</p>
+              
+              {isGuide && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="assigned-filter"
+                      checked={showAssignedOnly}
+                      onCheckedChange={setShowAssignedOnly}
+                    />
+                    <Label htmlFor="assigned-filter" className="cursor-pointer text-sm">
+                      Show only my assigned experiences
+                    </Label>
+                  </div>
+                </div>
+              )}
             </div>
             {isAdmin && (
               <Button onClick={openCreateDialog} className="bg-primary hover:bg-primary/90">
@@ -1258,10 +1275,18 @@ export default function Experiences() {
             <div className="space-y-10">
               {/* Group experiences by location */}
               {locations.map((location) => {
-                // Filter experiences for this location
-                const locationExperiences = experiences.filter(
+                // Get experiences for this location
+                let locationExperiences = experiences.filter(
                   (exp) => exp.locationId === location.id
                 );
+                
+                // Further filter by guide assignment if toggle is on
+                if (isGuide && showAssignedOnly && assignedExperiences.length > 0) {
+                  const assignedExperienceIds = assignedExperiences.map(exp => exp.id);
+                  locationExperiences = locationExperiences.filter(exp => 
+                    assignedExperienceIds.includes(exp.id)
+                  );
+                }
                 
                 // Skip locations with no experiences
                 if (locationExperiences.length === 0) return null;
