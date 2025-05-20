@@ -1,12 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons, experienceGuides, addonInventoryDates,
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, experienceLocations, experienceAddons,
   type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
-  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
-  type ExperienceGuide, type InsertExperienceGuide
+  type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -45,13 +44,6 @@ export interface IStorage {
   createExperienceAddon(addon: InsertExperienceAddon): Promise<ExperienceAddon>;
   updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
   deleteExperienceAddon(id: number): Promise<void>;
-  
-  // Experience Guide operations
-  getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;
-  getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]>;
-  assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide>;
-  removeGuideFromExperience(experienceId: number, guideId: string): Promise<void>;
-  setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void>;
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
@@ -128,8 +120,7 @@ export class DatabaseStorage implements IStorage {
 
   async listUsers(role?: string): Promise<User[]> {
     if (role) {
-      // Use type-safe SQL for role filtering
-      return db.select().from(users).where(sql`${users.role}::text = ${role}`);
+      return db.select().from(users).where(eq(users.role, role));
     }
     return db.select().from(users);
   }
@@ -431,105 +422,6 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(experienceAddons)
       .where(eq(experienceAddons.id, id));
-  }
-  
-  // Experience Guide operations
-  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
-    return db
-      .select()
-      .from(experienceGuides)
-      .where(eq(experienceGuides.experienceId, experienceId));
-  }
-  
-  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
-    // Join with users table to get guide details
-    const results = await db
-      .select({
-        // Select specific fields instead of using spread to avoid type errors
-        // ExperienceGuide fields
-        id: experienceGuides.id,
-        experienceId: experienceGuides.experienceId,
-        guideId: experienceGuides.guideId,
-        isPrimary: experienceGuides.isPrimary,
-        createdAt: experienceGuides.createdAt,
-        updatedAt: experienceGuides.updatedAt,
-        // User fields
-        guide: users
-      })
-      .from(experienceGuides)
-      .innerJoin(users, eq(experienceGuides.guideId, users.id))
-      .where(eq(experienceGuides.experienceId, experienceId));
-      
-    return results as unknown as (ExperienceGuide & User)[];
-  }
-  
-  async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
-    // First check if this guide is already assigned to this experience
-    const existing = await db
-      .select()
-      .from(experienceGuides)
-      .where(
-        and(
-          eq(experienceGuides.experienceId, guideAssignment.experienceId),
-          eq(experienceGuides.guideId, guideAssignment.guideId)
-        )
-      );
-    
-    // If already exists, just return that
-    if (existing.length > 0) {
-      return existing[0];
-    }
-    
-    // If making this guide primary, first ensure no other guides are primary
-    if (guideAssignment.isPrimary) {
-      await db
-        .update(experienceGuides)
-        .set({ isPrimary: false })
-        .where(eq(experienceGuides.experienceId, guideAssignment.experienceId));
-    }
-    
-    // Add the new guide assignment
-    const [result] = await db
-      .insert(experienceGuides)
-      .values(guideAssignment)
-      .returning();
-    
-    return result;
-  }
-  
-  async removeGuideFromExperience(experienceId: number, guideId: string): Promise<void> {
-    await db
-      .delete(experienceGuides)
-      .where(
-        and(
-          eq(experienceGuides.experienceId, experienceId),
-          eq(experienceGuides.guideId, guideId)
-        )
-      );
-  }
-  
-  async setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void> {
-    // If setting a guide as primary, first set all others as not primary
-    if (isPrimary) {
-      await db
-        .update(experienceGuides)
-        .set({ isPrimary: false })
-        .where(eq(experienceGuides.experienceId, experienceId));
-    }
-    
-    // Update the specified guide
-    await db
-      .update(experienceGuides)
-      .set({ 
-        isPrimary,
-        updatedAt: new Date()
-      })
-      .where(
-        and(
-          eq(experienceGuides.experienceId, experienceId),
-          eq(experienceGuides.guideId, guideId)
-        )
-      );
   }
   
   // ADDON INVENTORY PER-DAY TRACKING
@@ -949,7 +841,6 @@ export class MemStorage implements IStorage {
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
   private experienceAddons: Map<number, ExperienceAddon>; // Added for add-ons support
-  private experienceGuides: Map<number, ExperienceGuide>; // Added for guide assignments
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -964,7 +855,6 @@ export class MemStorage implements IStorage {
     experience: number;
     experienceLocation: number;
     experienceAddon: number;
-    experienceGuide: number; // Added experience guide ID counter
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -979,7 +869,6 @@ export class MemStorage implements IStorage {
     this.experiences = new Map();
     this.experienceLocations = new Map();
     this.experienceAddons = new Map();
-    this.experienceGuides = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -993,7 +882,6 @@ export class MemStorage implements IStorage {
       experience: 1,
       experienceLocation: 1,
       experienceAddon: 1, // Added for add-ons support
-      experienceGuide: 1, // Added for guide assignments
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1595,171 +1483,6 @@ export class MemStorage implements IStorage {
   
   async deleteExperienceAddon(id: number): Promise<void> {
     this.experienceAddons.delete(id);
-  }
-  
-  // Experience Guide operations implementation
-  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
-    const guides = Array.from(this.experienceGuides.values()).filter(
-      (guide) => guide.experienceId === experienceId
-    );
-    return guides;
-  }
-  
-  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
-    console.log(`Getting experience guides with details for experience ${experienceId}`);
-    const guides = await this.getExperienceGuides(experienceId);
-    console.log(`Found ${guides.length} guides for experience ${experienceId}:`, guides);
-    
-    const result: (ExperienceGuide & User)[] = [];
-    
-    for (const guide of guides) {
-      console.log(`Looking up user details for guide ID: ${guide.guideId}`);
-      const user = await this.getUser(guide.guideId);
-      
-      if (user) {
-        console.log(`Found user details:`, user);
-        // Combine the guide assignment info with the user details
-        result.push({
-          ...guide,
-          ...user
-        });
-      } else {
-        console.log(`No user found for guide ID: ${guide.guideId}`);
-      }
-    }
-    
-    console.log(`Returning ${result.length} guides with details`);
-    return result;
-  }
-  
-  async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
-    console.log('Assigning guide to experience, received data:', guideAssignment);
-    
-    // Ensure guideId is a string (users.id is varchar in the schema)
-    const guideId = String(guideAssignment.guideId);
-    
-    // Verify the guide exists
-    const guide = await this.getUser(guideId);
-    if (!guide) {
-      console.error(`Guide with ID ${guideId} not found`);
-      throw new Error(`Guide with ID ${guideId} not found`);
-    }
-    
-    // Ensure experienceId is a number (experiences.id is serial in the schema)
-    const experienceId = typeof guideAssignment.experienceId === 'string' 
-      ? parseInt(guideAssignment.experienceId) 
-      : guideAssignment.experienceId;
-      
-    const experience = await this.getExperience(experienceId);
-    if (!experience) {
-      console.error(`Experience with ID ${experienceId} not found`);
-      throw new Error(`Experience with ID ${experienceId} not found`);
-    }
-    
-    console.log('Guide and experience exist, proceeding with assignment');
-    
-    // Check if this guide is already assigned to this experience
-    const existingGuides = await this.getExperienceGuides(experienceId);
-    console.log('Existing guides for this experience:', existingGuides);
-    
-    // Convert guideId to string for comparison
-    const guideIdStr = String(guideAssignment.guideId);
-    const existing = existingGuides.find(g => String(g.guideId) === guideIdStr);
-    
-    if (existing) {
-      console.log('Guide is already assigned to this experience:', existing);
-      // Update the existing assignment if needed
-      if (existing.isPrimary !== guideAssignment.isPrimary) {
-        return this.setGuidePrimary(experienceId, guideIdStr, !!guideAssignment.isPrimary)
-          .then(() => existing);
-      }
-      return existing;
-    }
-    
-    // If setting as primary, set all other guides as not primary
-    if (guideAssignment.isPrimary) {
-      for (const guide of existingGuides) {
-        if (guide.isPrimary) {
-          guide.isPrimary = false;
-          this.experienceGuides.set(guide.id, guide);
-        }
-      }
-    }
-    
-    // Add the new guide assignment
-    const now = new Date();
-    const id = ++this.currentIds.experienceGuide; // Use the proper ID counter for experience guides
-    
-    // Create the new guide assignment
-    const newGuideAssignment: ExperienceGuide = {
-      id,
-      experienceId,
-      guideId: String(guideAssignment.guideId),  // Ensure guideId is a string
-      isPrimary: !!guideAssignment.isPrimary,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    console.log('Created new guide assignment:', newGuideAssignment);
-    
-    this.experienceGuides.set(id, newGuideAssignment);
-    return newGuideAssignment;
-  }
-  
-  async removeGuideFromExperience(experienceId: number, guideId: string): Promise<void> {
-    console.log(`Removing guide ${guideId} from experience ${experienceId}`);
-    // Ensure guideId is a string for comparison
-    const guideIdStr = String(guideId);
-    
-    // Find and remove the guide assignment
-    let found = false;
-    for (const [id, guide] of this.experienceGuides.entries()) {
-      if (guide.experienceId === experienceId && String(guide.guideId) === guideIdStr) {
-        console.log(`Found guide assignment to remove: ${id}`);
-        this.experienceGuides.delete(id);
-        found = true;
-        break;
-      }
-    }
-    
-    if (!found) {
-      console.log(`No guide assignment found for guide ${guideId} and experience ${experienceId}`);
-    }
-  }
-  
-  async setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void> {
-    console.log(`Setting guide ${guideId} as primary=${isPrimary} for experience ${experienceId}`);
-    // Ensure guideId is a string for comparison
-    const guideIdStr = String(guideId);
-    
-    // If setting a guide as primary, first set all others as not primary
-    if (isPrimary) {
-      for (const guide of await this.getExperienceGuides(experienceId)) {
-        if (String(guide.guideId) !== guideIdStr && guide.isPrimary) {
-          console.log(`Unsetting primary for guide ${guide.guideId}`);
-          guide.isPrimary = false;
-          guide.updatedAt = new Date();
-          this.experienceGuides.set(guide.id, guide);
-        }
-      }
-    }
-    
-    // Now update the target guide
-    let foundGuide = false;
-    for (const guide of await this.getExperienceGuides(experienceId)) {
-      if (String(guide.guideId) === guideIdStr) {
-        console.log(`Updating guide ${guide.guideId} isPrimary=${isPrimary}`);
-        guide.isPrimary = isPrimary;
-        guide.updatedAt = new Date();
-        this.experienceGuides.set(guide.id, guide);
-        foundGuide = true;
-        break;
-      }
-    }
-    
-    if (!foundGuide) {
-      console.error(`Guide ${guideId} not found in experience ${experienceId} to set primary status`);
-    }
   }
 
   // Customer operations
