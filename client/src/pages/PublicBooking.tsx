@@ -187,7 +187,7 @@ function PublicBooking() {
   const calculateSummary = (formValues: BookingFormValues) => {
     if (!selectedExperience) return null;
     
-    const { dateRange, guests } = formValues;
+    const { dateRange, guests, addons = [] } = formValues;
     
     // Add null checks for dateRange
     if (!dateRange || !dateRange.from || !dateRange.to) {
@@ -200,15 +200,25 @@ function PublicBooking() {
     // Calculate nights
     const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate total (simple calculation for now)
+    // Calculate base price
     const basePrice = parseFloat(selectedExperience.price) * guests;
-    const total = basePrice;
+    
+    // Calculate addon prices
+    const addonItems = addons.filter(addon => addon.quantity > 0);
+    const addonTotal = addonItems.reduce((sum, addon) => {
+      return sum + (addon.price * addon.quantity);
+    }, 0);
+    
+    // Calculate total
+    const total = basePrice + addonTotal;
     
     return {
       startDate,
       endDate,
       nights,
       basePrice,
+      addonItems,
+      addonTotal,
       total,
       guests,
     };
@@ -236,8 +246,16 @@ function PublicBooking() {
           guests: data.guests,
           notes: data.notes || '',
         },
+        addons: data.addons.filter(addon => addon.quantity > 0).map(addon => ({
+          id: addon.id,
+          name: addon.name,
+          price: addon.price,
+          quantity: addon.quantity
+        })),
         payment: {
           totalAmount: summary.total.toString(),
+          baseAmount: summary.basePrice.toString(),
+          addonAmount: summary.addonTotal.toString()
         }
       };
       
@@ -1087,7 +1105,24 @@ function PublicBooking() {
                 <p>Experience: {bookingConfirmation.experienceName}</p>
                 <p>Dates: {bookingConfirmation.startDate} - {bookingConfirmation.endDate}</p>
                 <p>Guests: {bookingConfirmation.guests}</p>
-                <p>Total: {formatPrice(bookingConfirmation.totalAmount)}</p>
+                
+                {/* Show add-ons if any */}
+                {bookingConfirmation.addons && bookingConfirmation.addons.length > 0 && (
+                  <div className="mt-1 pt-1 border-t border-green-200">
+                    <p className="font-medium">Add-ons:</p>
+                    <ul className="list-disc list-inside pl-2">
+                      {bookingConfirmation.addons.map((addon: any, idx: number) => (
+                        <li key={idx}>
+                          {addon.name} × {addon.quantity} ({formatPrice(String(addon.price * addon.quantity))})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                <p className="mt-1 pt-1 border-t border-green-200 font-medium">
+                  Total: {formatPrice(bookingConfirmation.totalAmount)}
+                </p>
               </div>
             </div>
           )}
