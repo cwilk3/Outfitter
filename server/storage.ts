@@ -1647,11 +1647,18 @@ export class MemStorage implements IStorage {
     
     // Add the new guide assignment
     const now = new Date();
-    const id = ++this.currentIds.experience; // Using experience ID as a temporary solution
+    // Let's use the bookingGuide counter as a workaround since experienceGuide doesn't exist
+    const id = ++this.currentIds.bookingGuide; 
     
+    // Convert experienceId to a number if it's a string to ensure type compatibility
+    const experienceId = typeof guideAssignment.experienceId === 'string' 
+      ? parseInt(guideAssignment.experienceId) 
+      : guideAssignment.experienceId;
+    
+    // Create the new guide assignment
     const newGuideAssignment: ExperienceGuide = {
       id,
-      experienceId: guideAssignment.experienceId,
+      experienceId,
       guideId: guideAssignment.guideId,
       isPrimary: !!guideAssignment.isPrimary,
       createdAt: now,

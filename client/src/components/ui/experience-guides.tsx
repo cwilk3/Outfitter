@@ -70,12 +70,15 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Assign guide mutation
   const assignGuideMutation = useMutation({
     mutationFn: async (guideId: string) => {
+      console.log("Assigning guide:", { experienceId, guideId });
       return apiRequest('/api/experience-guides', 'POST', {
-        experienceId,
+        experienceId: parseInt(experienceId.toString()), // Ensure experienceId is a number
         guideId,
+        isPrimary: false // Default to not primary, can be updated later
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Guide assignment successful:", data);
       toast({
         title: "Guide assigned",
         description: "Guide has been assigned to this experience",
@@ -85,6 +88,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
       setMenuOpen(false);
     },
     onError: (error) => {
+      console.error("Guide assignment error:", error);
       toast({
         title: "Error",
         description: "Failed to assign guide to experience",
