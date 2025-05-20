@@ -804,9 +804,14 @@ function PublicBooking() {
                                 <div className="space-y-4">
                                   {selectedExperience.addons.map((addon, index) => {
                                     // Calculate max quantity based on the minimum of inventory and maxPerBooking
+                                    // Using zero values would cause Math.min to incorrectly return 0
+                                    // when inventory or maxPerBooking is 0, which would prevent selection
+                                    const maxPerBooking = addon.maxPerBooking ? addon.maxPerBooking : Number.MAX_SAFE_INTEGER;
+                                    const inventory = addon.inventory ? addon.inventory : Number.MAX_SAFE_INTEGER;
+                                    
                                     const maxQuantity = Math.min(
-                                      addon.maxPerBooking || Number.MAX_SAFE_INTEGER,
-                                      addon.inventory || Number.MAX_SAFE_INTEGER,
+                                      maxPerBooking,
+                                      inventory,
                                       10 // Default max limit
                                     );
                                     
