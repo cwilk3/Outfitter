@@ -272,7 +272,11 @@ export default function Experiences() {
         amenities: amenities,
         tripIncludes: tripIncludes,
         images: data.images,
-        availableDates: data.availableDates
+        availableDates: data.availableDates,
+        guideAssignments: selectedGuideIds.map(guideId => ({
+          guideId,
+          isPrimary: guideId === primaryGuideId
+        }))
       };
       
       // Log the exact payload being sent with emphasized locationId
