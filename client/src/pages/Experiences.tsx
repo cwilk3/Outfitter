@@ -600,16 +600,54 @@ export default function Experiences() {
     setAmenities(experience.amenities || []);
     setTripIncludes(experience.tripIncludes || []);
     
-    // Set addons if available
-    if (experience.addons) {
-      setAddons(experience.addons.map(addon => ({
-        name: addon.name,
-        description: addon.description || '',
-        price: addon.price,
-        isOptional: addon.isOptional
-      })));
-    } else {
-      setAddons([]);
+    // Fetch the latest add-ons data directly from the API
+    try {
+      console.log(`Fetching fresh add-ons data for experience ${experience.id}`);
+      const addonResponse = await fetch(`/api/experience-addons/${experience.id}`);
+      if (addonResponse.ok) {
+        const freshAddons = await addonResponse.json();
+        console.log(`Fetched ${freshAddons.length} add-ons for experience ${experience.id}`, freshAddons);
+        
+        // Update the addons state with the fresh data
+        setAddons(freshAddons.map((addon: any) => ({
+          id: addon.id, // Preserve the ID for updates
+          name: addon.name,
+          description: addon.description || '',
+          price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
+          isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+          // Include any other fields needed
+          inventory: addon.inventory,
+          maxPerBooking: addon.maxPerBooking
+        })));
+      } else {
+        console.error(`Failed to fetch add-ons: ${addonResponse.status}`);
+        // Fallback to using the add-ons data from the experience object
+        if (experience.addons) {
+          setAddons(experience.addons.map(addon => ({
+            id: addon.id, // Make sure to include ID if available
+            name: addon.name,
+            description: addon.description || '',
+            price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
+            isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+          })));
+        } else {
+          setAddons([]);
+        }
+      }
+    } catch (addonError) {
+      console.error("Error fetching add-ons:", addonError);
+      // Fallback to the add-ons in the experience object
+      if (experience.addons) {
+        setAddons(experience.addons.map(addon => ({
+          id: addon.id,
+          name: addon.name,
+          description: addon.description || '',
+          price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price,
+          isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+        })));
+      } else {
+        setAddons([]);
+      }
     }
     
     // Reset the form with all the experience data to ensure it's correctly loaded
@@ -626,7 +664,8 @@ export default function Experiences() {
       rules: experience.rules || [],
       amenities: experience.amenities || [],
       tripIncludes: experience.tripIncludes || [],
-      addons: experience.addons || [],
+      // Use the fresh add-ons data in the form
+      addons: addons,
     });
     
     // Set to whatever step the user wants to start editing from (default to basic info)
