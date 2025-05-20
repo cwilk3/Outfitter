@@ -54,16 +54,34 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [menuOpen, setMenuOpen] = React.useState(false);
   
-  // Fetch experience guides
-  const { data: experienceGuides, isLoading } = useQuery({
+  // Fetch experience guides with proper typing
+  const { 
+    data: experienceGuides, 
+    isLoading, 
+    isError, 
+    error 
+  } = useQuery({
     queryKey: ['/api/experience-guides', experienceId],
-    enabled: !!experienceId
+    enabled: !!experienceId,
+    retry: 1
   });
   
   // Fetch available guides - ensuring we get all guides with the 'guide' role
-  const { data: availableGuides, isLoading: loadingGuides } = useQuery({
+  const { 
+    data: availableGuides, 
+    isLoading: loadingGuides, 
+    isError: guidesError 
+  } = useQuery({
     queryKey: ['/api/users'],
-    select: (data) => data.filter((user: any) => user.role === 'guide'),
+    select: (data: any) => {
+      console.log('All users data:', data);
+      // Make sure data is an array before filtering
+      if (Array.isArray(data)) {
+        return data.filter((user: any) => user && user.role === 'guide');
+      }
+      console.error('Users data is not an array:', data);
+      return [];
+    },
     enabled: true
   });
   

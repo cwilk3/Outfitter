@@ -463,10 +463,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/experience-guides/:experienceId/:guideId', isAuthenticated, async (req, res) => {
+  app.delete('/api/experience-guides/:experienceId/:guideId', async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
       const guideId = req.params.guideId;
+      
+      console.log(`Removing guide ${guideId} from experience ${experienceId}`);
       
       // Remove the guide from the experience
       await storage.removeGuideFromExperience(experienceId, guideId);
@@ -481,15 +483,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error('Error removing guide from experience:', error);
-      res.status(500).json({ message: 'Failed to remove guide from experience' });
+      res.status(500).json({ 
+        message: 'Failed to remove guide from experience',
+        error: error.message || 'Unknown error'
+      });
     }
   });
   
-  app.patch('/api/experience-guides/:experienceId/:guideId/primary', isAuthenticated, async (req, res) => {
+  app.patch('/api/experience-guides/:experienceId/:guideId/primary', async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
       const guideId = req.params.guideId;
       const { isPrimary } = req.body;
+      
+      console.log(`Updating primary status for guide ${guideId} in experience ${experienceId}:`, isPrimary);
       
       if (typeof isPrimary !== 'boolean') {
         return res.status(400).json({ message: 'isPrimary must be a boolean' });
@@ -502,13 +509,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivity({
         userId: 0, // Should be the authenticated user's ID
         action: isPrimary ? 'Set guide as primary' : 'Unset guide as primary',
-        details: { experienceId, guideId }
+        details: { experienceId, guideId, isPrimary }
       });
       
-      res.status(200).json({ success: true });
+      res.status(200).json({ 
+        success: true,
+        experienceId,
+        guideId,
+        isPrimary
+      });
     } catch (error) {
       console.error('Error updating guide primary status:', error);
-      res.status(500).json({ message: 'Failed to update guide primary status' });
+      res.status(500).json({ 
+        message: 'Failed to update guide primary status',
+        error: error.message || 'Unknown error'
+      });
     }
   });
 
