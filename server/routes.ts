@@ -829,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const experienceId = parseInt(req.params.experienceId);
       
       // Get guide assignments for this experience
-      const guides = await storage.getGuideAssignmentsByExperienceId(experienceId);
+      const guides = await storage.getExperienceGuides(experienceId);
       
       res.json(guides);
     } catch (error) {
@@ -1031,6 +1031,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertBookingSchema.parse(req.body);
       const booking = await storage.createBooking(validatedData);
+      
+      // Get guides assigned to this experience and link them to the booking
+      const guides = await storage.getExperienceGuides(booking.experienceId);
+      if (guides && guides.length > 0) {
+        console.log(`Assigning ${guides.length} guides to booking ${booking.id}`);
+        
+        for (const guide of guides) {
+          try {
+            await storage.assignGuideToBooking({
+              bookingId: booking.id,
+              guideId: guide.guideId
+            });
+            console.log(`Assigned guide ${guide.guideId} to booking ${booking.id}`);
+          } catch (guideError) {
+            console.error(`Error assigning guide ${guide.guideId} to booking:`, guideError);
+            // Continue with other guides if one fails
+          }
+        }
+      }
       
       // Log activity
       await storage.createActivity({

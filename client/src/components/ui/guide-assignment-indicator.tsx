@@ -13,13 +13,19 @@ interface GuideAssignmentIndicatorProps {
 
 export function GuideAssignmentIndicator({ experienceId, showEmpty = false }: GuideAssignmentIndicatorProps) {
   // Fetch guide assignments for this experience
-  const { data: guideAssignments = [], isLoading } = useQuery<ExperienceGuide[]>({
+  const { data: guideAssignments = [], isLoading, isError } = useQuery<ExperienceGuide[]>({
     queryKey: ['/api/experiences', experienceId, 'guides'],
     queryFn: async () => {
-      const response = await fetch(`/api/experiences/${experienceId}/guides`);
-      if (!response.ok) throw new Error('Failed to fetch guide assignments');
-      return response.json();
+      try {
+        const response = await fetch(`/api/experiences/${experienceId}/guides`);
+        if (!response.ok) return [];
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching guide assignments:', error);
+        return [];
+      }
     },
+    retry: false,
   });
 
   // Show nothing if no guides assigned and showEmpty is false
