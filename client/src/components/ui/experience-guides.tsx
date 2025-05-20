@@ -267,8 +267,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
                   getUnassignedGuides().map((guide: any) => (
                     <div
                       key={guide.id}
-                      className="flex items-center justify-between p-3 rounded-md hover:bg-muted cursor-pointer"
-                      onClick={() => handleAssignGuide(guide.id)}
+                      className="flex items-center justify-between p-3 rounded-md hover:bg-muted"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -288,8 +287,16 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
                         </div>
                       </div>
                       
-                      <Button size="sm" variant="ghost">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAssignGuide(guide.id);
+                        }}
+                      >
                         <UserPlus className="h-4 w-4" />
+                        Assign
                       </Button>
                     </div>
                   ))
