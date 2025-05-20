@@ -382,7 +382,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Experience not found' });
       }
       
-      res.json(experience);
+      // Get add-ons for this experience
+      const addons = await storage.getExperienceAddons(id);
+      
+      // Send experience with add-ons included
+      res.json({
+        ...experience,
+        addons: addons
+      });
     } catch (error) {
       console.error('Error fetching experience:', error);
       res.status(500).json({ message: 'Failed to fetch experience' });
@@ -1258,12 +1265,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all active locations
       const locations = await storage.listLocations(true); 
       
-      // Enrich experiences with their location info
-      const enrichedExperiences = experiences.map(experience => {
+      // Enrich experiences with their location info and add-ons
+      const enrichedExperiences = await Promise.all(experiences.map(async (experience) => {
         // Find the associated location for this experience
         const associatedLocation = locations.find(location => 
           location.id === experience.locationId
         );
+        
+        // Get add-ons for this experience
+        const addons = await storage.getExperienceAddons(experience.id);
         
         // Create location info in the same format as before for backward compatibility
         const locationInfo = associatedLocation ? [{
@@ -1273,11 +1283,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           state: associatedLocation.state
         }] : [];
         
+        // Format add-ons for the frontend
+        const formattedAddons = addons.map(addon => ({
+          id: addon.id,
+          name: addon.name, 
+          description: addon.description || '',
+          price: Number(addon.price),
+          isOptional: addon.isOptional
+        }));
+        
         return {
           ...experience,
-          locations: locationInfo
+          locations: locationInfo,
+          addons: formattedAddons
         };
-      });
+      }));
       
       res.json(enrichedExperiences);
     } catch (error) {
