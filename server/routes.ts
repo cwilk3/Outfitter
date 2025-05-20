@@ -773,7 +773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get full experience details for each assigned experience
       const assignedExperiences = await Promise.all(
-        experienceIds.map(id => storage.getExperienceById(id))
+        experienceIds.map(id => storage.getExperience(id))
       );
       
       // Filter out any null results (in case an experience was deleted)

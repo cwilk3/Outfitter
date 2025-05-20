@@ -265,6 +265,8 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+
+
   async deleteExperience(id: number): Promise<void> {
     await db.delete(experiences).where(eq(experiences.id, id));
   }
