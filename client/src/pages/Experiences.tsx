@@ -197,10 +197,13 @@ export default function Experiences() {
   const [selectedDuplicateLocationId, setSelectedDuplicateLocationId] = useState<number | null>(null);
   
   type AddonType = {
+    id?: number;
     name: string;
     description: string;
     price: number;
     isOptional: boolean;
+    inventory?: number;
+    maxPerBooking?: number;
   };
   
   // State for new form fields
@@ -830,11 +833,13 @@ export default function Experiences() {
             if (addon.id) {
               // Update existing addon
               console.log("Updating addon:", addon);
+              // Only include fields that match the database schema
               await apiRequest('PATCH', `/api/experience-addons/${addon.id}`, {
                 name: addon.name,
                 description: addon.description,
                 price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
                 isOptional: addon.isOptional
+                // Explicitly omitting inventory and maxPerBooking as they're not in the schema
               });
             } else {
               // Create new addon
@@ -956,12 +961,14 @@ export default function Experiences() {
             for (const addon of addons) {
               try {
                 console.log("Creating addon:", addon);
-                await apiRequest('POST', '/api/experience-addons', {
+                // Only include fields that match the database schema
+              await apiRequest('POST', '/api/experience-addons', {
                   experienceId: result.id,
                   name: addon.name,
                   description: addon.description || '',
                   price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
                   isOptional: addon.isOptional
+                  // Explicitly omitting inventory and maxPerBooking as they're not in the schema
                 });
               } catch (addonError) {
                 console.error("Error creating add-on:", addonError);
