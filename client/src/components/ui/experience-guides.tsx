@@ -57,9 +57,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Fetch experience guides
   const { data: experienceGuides, isLoading } = useQuery({
     queryKey: ['/api/experience-guides', experienceId],
-    enabled: !!experienceId,
-    staleTime: 0, // Don't cache at all, always refetch
-    refetchOnWindowFocus: true
+    enabled: !!experienceId
   });
   
   // Fetch available guides - ensuring we get all guides with the 'guide' role
@@ -72,28 +70,21 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Assign guide mutation
   const assignGuideMutation = useMutation({
     mutationFn: async (guideId: string) => {
-      const response = await apiRequest('/api/experience-guides', 'POST', {
+      return apiRequest('/api/experience-guides', 'POST', {
         experienceId,
         guideId,
       });
-      console.log("Guide assignment response:", response);
-      return response;
     },
-    onSuccess: (data) => {
-      console.log("Guide assignment successful:", data);
+    onSuccess: () => {
       toast({
         title: "Guide assigned",
         description: "Guide has been assigned to this experience",
       });
-      
-      // Force refetch the guide data to ensure we get the latest
+      // Don't close the dialog so multiple guides can be added
       queryClient.invalidateQueries({ queryKey: ['/api/experience-guides', experienceId] });
-      queryClient.refetchQueries({ queryKey: ['/api/experience-guides', experienceId] });
-      
       setMenuOpen(false);
     },
     onError: (error) => {
-      console.error("Guide assignment error:", error);
       toast({
         title: "Error",
         description: "Failed to assign guide to experience",
@@ -237,21 +228,15 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
               <CardContent className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    {eg.guide && eg.guide.avatarUrl ? (
-                      <AvatarImage src={eg.guide.avatarUrl} alt={eg.guide ? formatGuideName(eg.guide) : 'Guide'} />
+                    {eg.guide.avatarUrl ? (
+                      <AvatarImage src={eg.guide.avatarUrl} alt={formatGuideName(eg.guide)} />
                     ) : (
-                      <AvatarFallback>
-                        {eg.guide ? getInitials(eg.guide.firstName, eg.guide.lastName) : 'GD'}
-                      </AvatarFallback>
+                      <AvatarFallback>{getInitials(eg.guide.firstName, eg.guide.lastName)}</AvatarFallback>
                     )}
                   </Avatar>
                   <div>
-                    <div className="font-medium">
-                      {eg.guide ? formatGuideName(eg.guide) : `Guide ${eg.guideId}`}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {eg.guide ? eg.guide.email : ''}
-                    </div>
+                    <div className="font-medium">{formatGuideName(eg.guide)}</div>
+                    <div className="text-xs text-muted-foreground">{eg.guide.email}</div>
                   </div>
                   {eg.isPrimary && (
                     <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">

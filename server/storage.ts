@@ -1603,23 +1603,17 @@ export class MemStorage implements IStorage {
     return guides;
   }
   
-  async getExperienceGuidesWithDetails(experienceId: number): Promise<any[]> {
+  async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
     const guides = await this.getExperienceGuides(experienceId);
-    const result = [];
+    const result: (ExperienceGuide & User)[] = [];
     
     for (const guide of guides) {
       const user = await this.getUser(guide.guideId);
       if (user) {
-        // Format the data as expected by the frontend component
+        // Combine the guide assignment info with the user details
         result.push({
           ...guide,
-          guide: {
-            id: user.id,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-            avatarUrl: user.profileImageUrl
-          }
+          ...user
         });
       }
     }
@@ -1664,7 +1658,6 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     
-    // Save the new guide assignment to the map
     this.experienceGuides.set(id, newGuideAssignment);
     return newGuideAssignment;
   }
