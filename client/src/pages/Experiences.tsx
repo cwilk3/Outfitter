@@ -767,6 +767,7 @@ export default function Experiences() {
   const onSubmit = async (data: ExperienceFormValues) => {
     try {
       console.log("Form submission started...", { isEditing: !!selectedExperience });
+      console.log("Current addons state:", addons);
       
       // Show loading toast
       toast({
