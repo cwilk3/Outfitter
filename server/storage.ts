@@ -1635,14 +1635,17 @@ export class MemStorage implements IStorage {
   async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
     console.log('Assigning guide to experience, received data:', guideAssignment);
     
+    // Ensure guideId is a string (users.id is varchar in the schema)
+    const guideId = String(guideAssignment.guideId);
+    
     // Verify the guide exists
-    const guide = await this.getUser(guideAssignment.guideId);
+    const guide = await this.getUser(guideId);
     if (!guide) {
-      console.error(`Guide with ID ${guideAssignment.guideId} not found`);
-      throw new Error(`Guide with ID ${guideAssignment.guideId} not found`);
+      console.error(`Guide with ID ${guideId} not found`);
+      throw new Error(`Guide with ID ${guideId} not found`);
     }
     
-    // Verify the experience exists
+    // Ensure experienceId is a number (experiences.id is serial in the schema)
     const experienceId = typeof guideAssignment.experienceId === 'string' 
       ? parseInt(guideAssignment.experienceId) 
       : guideAssignment.experienceId;
@@ -1659,13 +1662,15 @@ export class MemStorage implements IStorage {
     const existingGuides = await this.getExperienceGuides(experienceId);
     console.log('Existing guides for this experience:', existingGuides);
     
-    const existing = existingGuides.find(g => g.guideId === guideAssignment.guideId);
+    // Convert guideId to string for comparison
+    const guideIdStr = String(guideAssignment.guideId);
+    const existing = existingGuides.find(g => String(g.guideId) === guideIdStr);
     
     if (existing) {
       console.log('Guide is already assigned to this experience:', existing);
       // Update the existing assignment if needed
       if (existing.isPrimary !== guideAssignment.isPrimary) {
-        return this.setGuidePrimary(experienceId, guideAssignment.guideId, !!guideAssignment.isPrimary)
+        return this.setGuidePrimary(experienceId, guideIdStr, !!guideAssignment.isPrimary)
           .then(() => existing);
       }
       return existing;
@@ -1689,7 +1694,7 @@ export class MemStorage implements IStorage {
     const newGuideAssignment: ExperienceGuide = {
       id,
       experienceId,
-      guideId: guideAssignment.guideId,
+      guideId: String(guideAssignment.guideId),  // Ensure guideId is a string
       isPrimary: !!guideAssignment.isPrimary,
       createdAt: now,
       updatedAt: now
@@ -1702,20 +1707,36 @@ export class MemStorage implements IStorage {
   }
   
   async removeGuideFromExperience(experienceId: number, guideId: string): Promise<void> {
+    console.log(`Removing guide ${guideId} from experience ${experienceId}`);
+    // Ensure guideId is a string for comparison
+    const guideIdStr = String(guideId);
+    
     // Find and remove the guide assignment
+    let found = false;
     for (const [id, guide] of this.experienceGuides.entries()) {
-      if (guide.experienceId === experienceId && guide.guideId === guideId) {
+      if (guide.experienceId === experienceId && String(guide.guideId) === guideIdStr) {
+        console.log(`Found guide assignment to remove: ${id}`);
         this.experienceGuides.delete(id);
+        found = true;
         break;
       }
+    }
+    
+    if (!found) {
+      console.log(`No guide assignment found for guide ${guideId} and experience ${experienceId}`);
     }
   }
   
   async setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void> {
+    console.log(`Setting guide ${guideId} as primary=${isPrimary} for experience ${experienceId}`);
+    // Ensure guideId is a string for comparison
+    const guideIdStr = String(guideId);
+    
     // If setting a guide as primary, first set all others as not primary
     if (isPrimary) {
       for (const guide of await this.getExperienceGuides(experienceId)) {
-        if (guide.guideId !== guideId && guide.isPrimary) {
+        if (String(guide.guideId) !== guideIdStr && guide.isPrimary) {
+          console.log(`Unsetting primary for guide ${guide.guideId}`);
           guide.isPrimary = false;
           guide.updatedAt = new Date();
           this.experienceGuides.set(guide.id, guide);
@@ -1724,13 +1745,20 @@ export class MemStorage implements IStorage {
     }
     
     // Now update the target guide
+    let foundGuide = false;
     for (const guide of await this.getExperienceGuides(experienceId)) {
-      if (guide.guideId === guideId) {
+      if (String(guide.guideId) === guideIdStr) {
+        console.log(`Updating guide ${guide.guideId} isPrimary=${isPrimary}`);
         guide.isPrimary = isPrimary;
         guide.updatedAt = new Date();
         this.experienceGuides.set(guide.id, guide);
+        foundGuide = true;
         break;
       }
+    }
+    
+    if (!foundGuide) {
+      console.error(`Guide ${guideId} not found in experience ${experienceId} to set primary status`);
     }
   }
 

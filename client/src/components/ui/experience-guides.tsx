@@ -64,6 +64,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const fetchExperienceGuides = async (): Promise<any[]> => {
     if (!experienceId) return [];
     try {
+      console.log(`Fetching guides for experience ID: ${experienceId}`);
       const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
       console.log('Fetched guides for experience:', response);
       return Array.isArray(response) ? response : [];
