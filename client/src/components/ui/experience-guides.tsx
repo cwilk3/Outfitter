@@ -2,13 +2,34 @@ import * as React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, User, Shield, UserCheck, Trash2 } from "lucide-react";
+import { 
+  Loader2, 
+  UserPlus, 
+  User, 
+  Shield, 
+  UserCheck, 
+  Trash2,
+  Star,
+  X,
+  Plus,
+  ChevronDown 
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { 
+  Card, 
+  CardContent 
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command";
 
 interface ExperienceGuide {
   id: number;
@@ -30,7 +51,8 @@ interface ExperienceGuidesProps {
 
 export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const { toast } = useToast();
-  const [showAddGuideDialog, setShowAddGuideDialog] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [menuOpen, setMenuOpen] = React.useState(false);
   
   // Fetch experience guides
   const { data: experienceGuides, isLoading } = useQuery({
@@ -58,6 +80,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
       });
       // Don't close the dialog so multiple guides can be added
       queryClient.invalidateQueries({ queryKey: ['/api/experience-guides', experienceId] });
+      setMenuOpen(false);
     },
     onError: (error) => {
       toast({
@@ -116,17 +139,17 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     assignGuideMutation.mutate(guideId);
   };
   
-  const handleRemoveGuide = (guideAssignment: ExperienceGuide) => {
+  const handleRemoveGuide = (guideId: string) => {
     removeGuideMutation.mutate({
-      experienceId: guideAssignment.experienceId,
-      guideId: guideAssignment.guideId
+      experienceId: experienceId,
+      guideId: guideId
     });
   };
   
-  const handleSetPrimaryGuide = (guideAssignment: ExperienceGuide) => {
+  const handleSetPrimaryGuide = (guideId: string) => {
     setPrimaryGuideMutation.mutate({
-      experienceId: guideAssignment.experienceId,
-      guideId: guideAssignment.guideId
+      experienceId: experienceId,
+      guideId: guideId
     });
   };
   
@@ -137,175 +160,158 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     const assignedGuideIds = Array.isArray(experienceGuides) 
       ? experienceGuides.map((eg: ExperienceGuide) => eg.guideId)
       : [];
+      
     return Array.isArray(availableGuides) 
-      ? availableGuides.filter((guide: any) => !assignedGuideIds.includes(guide.id))
+      ? availableGuides.filter((guide: any) => 
+          !assignedGuideIds.includes(guide.id) &&
+          (searchQuery === "" || 
+           `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase()))))
       : [];
   };
   
+  // Format guide name for display
+  const formatGuideName = (guide: any) => {
+    if (guide.firstName && guide.lastName) {
+      return `${guide.firstName} ${guide.lastName}`;
+    } else if (guide.firstName) {
+      return guide.firstName;
+    } else if (guide.email) {
+      return guide.email;
+    }
+    return "Unknown Guide";
+  };
+  
+  // Get guide initials for avatar fallback
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName && !lastName) return "GD";
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
   };
+
+  // Check if there's a primary guide
+  const getPrimaryGuideId = () => {
+    if (!experienceGuides || !Array.isArray(experienceGuides)) return null;
+    const primaryGuide = experienceGuides.find(guide => guide.isPrimary);
+    return primaryGuide ? primaryGuide.guideId : null;
+  };
+  
+  const primaryGuideId = getPrimaryGuideId();
   
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Assigned Guides</h3>
-        <Button
-          onClick={() => setShowAddGuideDialog(true)}
-          size="sm"
-          disabled={isLoading || loadingGuides}
-        >
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          Assign Guide
-        </Button>
-      </div>
-      
-      {isLoading ? (
-        <div className="py-10 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : !experienceGuides || !Array.isArray(experienceGuides) || experienceGuides.length === 0 ? (
-        <div className="text-center py-8 border border-dashed rounded-md bg-muted/30">
-          <User className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-          <h3 className="text-sm font-medium mb-1">No Guides Assigned</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Assign guides who will lead this experience
-          </p>
-          <Button
-            onClick={() => setShowAddGuideDialog(true)}
-            variant="outline"
-            size="sm"
-          >
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Assign Guide
-          </Button>
-        </div>
-      ) : (
-        <div className="border rounded-md divide-y">
-          {Array.isArray(experienceGuides) && experienceGuides.map((eg: ExperienceGuide) => (
-            <div key={eg.id} className="p-4">
-              <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      {/* Already selected guides */}
+      <div className="space-y-2">
+        {isLoading ? (
+          <div className="py-10 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : !experienceGuides || !Array.isArray(experienceGuides) || experienceGuides.length === 0 ? (
+          <div className="text-sm text-muted-foreground mt-2">
+            No guides assigned yet. Assign at least one guide to lead this experience.
+          </div>
+        ) : (
+          experienceGuides.map((eg: ExperienceGuide) => (
+            <Card key={eg.id} className={`${eg.isPrimary ? 'border-primary' : ''}`}>
+              <CardContent className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={eg.guide.avatarUrl} />
-                    <AvatarFallback className={cn(
-                      eg.isPrimary ? "bg-primary text-primary-foreground" : "bg-muted"
-                    )}>
-                      {getInitials(eg.guide.firstName, eg.guide.lastName)}
-                    </AvatarFallback>
+                  <Avatar className="h-8 w-8">
+                    {eg.guide.avatarUrl ? (
+                      <AvatarImage src={eg.guide.avatarUrl} alt={formatGuideName(eg.guide)} />
+                    ) : (
+                      <AvatarFallback>{getInitials(eg.guide.firstName, eg.guide.lastName)}</AvatarFallback>
+                    )}
                   </Avatar>
-                  
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">
-                        {eg.guide.firstName} {eg.guide.lastName}
-                      </h4>
-                      {eg.isPrimary && (
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-                          Primary
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {eg.guide.email}
-                    </p>
+                    <div className="font-medium">{formatGuideName(eg.guide)}</div>
+                    <div className="text-xs text-muted-foreground">{eg.guide.email}</div>
                   </div>
+                  {eg.isPrimary && (
+                    <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                      <Star className="h-3 w-3 mr-1" />
+                      Primary
+                    </Badge>
+                  )}
                 </div>
-                
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   {!eg.isPrimary && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-primary"
-                      onClick={() => handleSetPrimaryGuide(eg)}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleSetPrimaryGuide(eg.guideId)}
+                      title="Set as primary guide"
                     >
-                      <Shield className="h-4 w-4 mr-1" />
-                      Make Primary
+                      <Star className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive h-8 w-8"
-                    onClick={() => handleRemoveGuide(eg)}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleRemoveGuide(eg.guideId)}
+                    title="Remove guide"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <X className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Guide selector dropdown */}
+      <div className="mt-4">
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Add Guide</span>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Add Guide Dialog */}
-      <Dialog open={showAddGuideDialog} onOpenChange={setShowAddGuideDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Assign Guide to Experience</DialogTitle>
-            <DialogDescription>
-              Select a guide to assign to this experience. They will be responsible for leading the experience.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            {loadingGuides ? (
-              <div className="py-10 flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {getUnassignedGuides().length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground">
-                      All available guides are already assigned to this experience.
-                    </p>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[300px]" align="start">
+            <Command>
+              <CommandInput 
+                placeholder="Search guides..." 
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+              />
+              <CommandList>
+                <div className="py-2 px-2 text-sm text-muted-foreground">
+                  Available Guides
+                </div>
+                {loadingGuides ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    Loading guides...
+                  </div>
+                ) : getUnassignedGuides().length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {searchQuery ? "No guides match your search" : "No available guides"}
                   </div>
                 ) : (
                   getUnassignedGuides().map((guide: any) => (
-                    <div
+                    <CommandItem
                       key={guide.id}
-                      className="flex items-center justify-between p-3 rounded-md hover:bg-muted"
+                      onSelect={() => handleAssignGuide(guide.id)}
+                      className="flex items-center gap-2 cursor-pointer"
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={guide.avatarUrl} />
-                          <AvatarFallback className="bg-muted">
-                            {getInitials(guide.firstName, guide.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div>
-                          <h4 className="font-medium">
-                            {guide.firstName} {guide.lastName}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {guide.email}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAssignGuide(guide.id);
-                        }}
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        Assign
-                      </Button>
-                    </div>
+                      <Avatar className="h-6 w-6">
+                        {guide.avatarUrl ? (
+                          <AvatarImage src={guide.avatarUrl} alt={formatGuideName(guide)} />
+                        ) : (
+                          <AvatarFallback>{getInitials(guide.firstName, guide.lastName)}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span>{formatGuideName(guide)}</span>
+                    </CommandItem>
                   ))
                 )}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              </CommandList>
+            </Command>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
