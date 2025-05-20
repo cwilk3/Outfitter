@@ -109,9 +109,15 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const assignGuideMutation = useMutation({
     mutationFn: async (guideId: string) => {
       console.log("Assigning guide:", { experienceId, guideId });
+      // Ensure guideId is a string and experienceId is a number
+      const stringGuideId = String(guideId);
+      const numericExperienceId = Number(experienceId);
+      
+      console.log(`Sending assignment request with guideId=${stringGuideId} (type: ${typeof stringGuideId}) and experienceId=${numericExperienceId} (type: ${typeof numericExperienceId})`);
+      
       return apiRequest('/api/experience-guides', 'POST', {
-        experienceId: parseInt(experienceId.toString()), // Ensure experienceId is a number
-        guideId,
+        experienceId: numericExperienceId,
+        guideId: stringGuideId,
         isPrimary: false // Default to not primary, can be updated later
       });
     },
@@ -138,7 +144,13 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Remove guide mutation
   const removeGuideMutation = useMutation({
     mutationFn: async (guideAssignment: {experienceId: number, guideId: string}) => {
-      return apiRequest(`/api/experience-guides/${guideAssignment.experienceId}/${guideAssignment.guideId}`, 'DELETE');
+      // Ensure proper type conversions
+      const numericExperienceId = Number(guideAssignment.experienceId);
+      const stringGuideId = String(guideAssignment.guideId);
+      
+      console.log(`Removing guide ${stringGuideId} from experience ${numericExperienceId}`);
+      
+      return apiRequest(`/api/experience-guides/${numericExperienceId}/${stringGuideId}`, 'DELETE');
     },
     onSuccess: () => {
       toast({
@@ -148,6 +160,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/experience-guides', experienceId] });
     },
     onError: (error) => {
+      console.error("Error removing guide:", error);
       toast({
         title: "Error",
         description: "Failed to remove guide from experience",
@@ -159,8 +172,13 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Set primary guide mutation
   const setPrimaryGuideMutation = useMutation({
     mutationFn: async (guideAssignment: {experienceId: number, guideId: string}) => {
-      console.log("Setting primary guide:", guideAssignment);
-      return apiRequest(`/api/experience-guides/${guideAssignment.experienceId}/${guideAssignment.guideId}/primary`, 'PATCH', {
+      // Ensure proper type conversions
+      const numericExperienceId = Number(guideAssignment.experienceId);
+      const stringGuideId = String(guideAssignment.guideId);
+      
+      console.log(`Setting guide ${stringGuideId} as primary for experience ${numericExperienceId}`);
+      
+      return apiRequest(`/api/experience-guides/${numericExperienceId}/${stringGuideId}/primary`, 'PATCH', {
         isPrimary: true
       });
     },
@@ -191,20 +209,23 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   });
   
   const handleAssignGuide = (guideId: string) => {
-    assignGuideMutation.mutate(guideId);
+    console.log(`Handling request to assign guide ${guideId} to experience ${experienceId}`);
+    assignGuideMutation.mutate(String(guideId)); // Ensure guideId is a string
   };
   
   const handleRemoveGuide = (guideId: string) => {
+    console.log(`Handling request to remove guide ${guideId} from experience ${experienceId}`);
     removeGuideMutation.mutate({
       experienceId: experienceId,
-      guideId: guideId
+      guideId: String(guideId) // Ensure guideId is a string
     });
   };
   
   const handleSetPrimaryGuide = (guideId: string) => {
+    console.log(`Handling request to set guide ${guideId} as primary for experience ${experienceId}`);
     setPrimaryGuideMutation.mutate({
       experienceId: experienceId,
-      guideId: guideId
+      guideId: String(guideId) // Ensure guideId is a string
     });
   };
   
