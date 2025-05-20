@@ -1,11 +1,30 @@
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Loader2, UserPlus, User, UserCheck, Trash2 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Card, 
+  CardContent 
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command";
+import { 
+  ChevronDown, 
+  User, 
+  X, 
+  UserCheck, 
+  Shield, 
+  Star, 
+  Plus 
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface Guide {
   id: string;
@@ -28,231 +47,203 @@ interface ExperienceGuideSelectorProps {
 }
 
 export function ExperienceGuideSelector({ 
-  selectedGuideIds,
-  onChange,
+  selectedGuideIds, 
+  onChange, 
   primaryGuideId,
   onPrimaryChange
 }: ExperienceGuideSelectorProps) {
-  const [showAddGuideDialog, setShowAddGuideDialog] = React.useState(false);
-  
-  // Fetch available guides
-  const { data: availableGuides, isLoading: loadingGuides } = useQuery({
-    queryKey: ['/api/users', { role: 'guide' }]
+  const [searchQuery, setSearchQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Fetch available guides with the guide role
+  const { data: availableGuides = [], isLoading } = useQuery({
+    queryKey: ['/api/users', { role: 'guide' }],
   });
-  
-  const handleAssignGuide = (guideId: string) => {
-    // Add the guide ID to the selected guides list
-    if (!selectedGuideIds.includes(guideId)) {
-      const newSelectedGuideIds = [...selectedGuideIds, guideId];
-      onChange(newSelectedGuideIds);
-      
-      // If this is the first guide, make them primary
-      if (newSelectedGuideIds.length === 1 && !primaryGuideId) {
-        onPrimaryChange(guideId);
-      }
-      
-      setShowAddGuideDialog(false);
-    }
-  };
-  
-  const handleRemoveGuide = (guideId: string) => {
-    // Remove the guide ID from the selected guides list
-    const newSelectedGuideIds = selectedGuideIds.filter(id => id !== guideId);
-    onChange(newSelectedGuideIds);
-    
-    // If removing the primary guide, set a new one if available
-    if (primaryGuideId === guideId && newSelectedGuideIds.length > 0) {
-      onPrimaryChange(newSelectedGuideIds[0]);
-    } else if (primaryGuideId === guideId) {
-      onPrimaryChange("");
-    }
-  };
-  
-  const handleSetPrimaryGuide = (guideId: string) => {
-    onPrimaryChange(guideId);
-  };
-  
-  // Filter out guides that are already assigned
+
+  // Get unassigned guides (those not already selected)
   const getUnassignedGuides = () => {
     if (!availableGuides) return [];
     
-    return Array.isArray(availableGuides) 
-      ? availableGuides.filter((guide: Guide) => !selectedGuideIds.includes(guide.id))
-      : [];
+    return availableGuides.filter((guide: Guide) => 
+      !selectedGuideIds.includes(guide.id) &&
+      (searchQuery === "" || 
+       `${guide.firstName || ""} ${guide.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       (guide.email && guide.email.toLowerCase().includes(searchQuery.toLowerCase())))
+    );
   };
-  
-  const getInitials = (firstName?: string | null, lastName?: string | null) => {
-    if (!firstName && !lastName) return "GD";
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
-  };
-  
-  // Get selected guide details from the available guides
-  const getSelectedGuideDetails = (): Guide[] => {
-    if (!availableGuides || !Array.isArray(availableGuides)) return [];
+
+  // Get details of currently selected guides
+  const getSelectedGuideDetails = () => {
+    if (!availableGuides) return [];
     
     return availableGuides.filter((guide: Guide) => 
       selectedGuideIds.includes(guide.id)
     );
   };
-  
+
+  // Handle adding a guide to the experience
+  const handleAddGuide = (guideId: string) => {
+    onChange([...selectedGuideIds, guideId]);
+    
+    // If this is the first guide added, automatically make them primary
+    if (selectedGuideIds.length === 0 || primaryGuideId === null) {
+      onPrimaryChange(guideId);
+    }
+    
+    setMenuOpen(false);
+  };
+
+  // Handle removing a guide from the experience
+  const handleRemoveGuide = (guideId: string) => {
+    onChange(selectedGuideIds.filter(id => id !== guideId));
+    
+    // If the primary guide is removed, set a new primary guide if possible
+    if (guideId === primaryGuideId && selectedGuideIds.length > 1) {
+      const newPrimaryGuideId = selectedGuideIds.find(id => id !== guideId);
+      if (newPrimaryGuideId) {
+        onPrimaryChange(newPrimaryGuideId);
+      }
+    } else if (guideId === primaryGuideId) {
+      // If we're removing the last primary guide
+      onPrimaryChange("");
+    }
+  };
+
+  // Format guide name for display
+  const formatGuideName = (guide: Guide) => {
+    if (guide.firstName && guide.lastName) {
+      return `${guide.firstName} ${guide.lastName}`;
+    } else if (guide.firstName) {
+      return guide.firstName;
+    } else if (guide.email) {
+      return guide.email;
+    }
+    return "Unknown Guide";
+  };
+
+  // Get guide initials for avatar fallback
+  const getGuideInitials = (guide: Guide) => {
+    if (guide.firstName && guide.lastName) {
+      return `${guide.firstName[0]}${guide.lastName[0]}`.toUpperCase();
+    } else if (guide.firstName) {
+      return guide.firstName[0].toUpperCase();
+    } else if (guide.email) {
+      return guide.email[0].toUpperCase();
+    }
+    return "G";
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Assigned Guides</h3>
-        <Button
-          onClick={() => setShowAddGuideDialog(true)}
-          size="sm"
-          disabled={loadingGuides}
-        >
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          Assign Guide
-        </Button>
-      </div>
-      
-      {loadingGuides ? (
-        <div className="py-10 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      ) : !selectedGuideIds.length ? (
-        <div className="text-center py-8 border border-dashed rounded-md bg-muted/30">
-          <User className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-          <h3 className="text-sm font-medium mb-1">No Guides Assigned</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Assign guides who will lead this experience
-          </p>
-          <Button
-            onClick={() => setShowAddGuideDialog(true)}
-            variant="outline"
-            size="sm"
-          >
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Assign Guide
-          </Button>
-        </div>
-      ) : (
-        <div className="border rounded-md divide-y">
-          {getSelectedGuideDetails().map((guide: Guide) => (
-            <div key={guide.id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={guide.profileImageUrl || undefined} />
-                    <AvatarFallback className={cn(
-                      primaryGuideId === guide.id ? "bg-primary text-primary-foreground" : "bg-muted"
-                    )}>
-                      {getInitials(guide.firstName, guide.lastName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">
-                        {guide.firstName} {guide.lastName}
-                      </h4>
-                      {primaryGuideId === guide.id && (
-                        <Badge variant="secondary" className="text-[10px] h-5 bg-green-100 text-green-800">
-                          PRIMARY
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {guide.email}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  {primaryGuideId !== guide.id && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSetPrimaryGuide(guide.id)}
-                      className="text-xs h-8 px-2 text-amber-700 border-amber-100 hover:bg-amber-50"
-                    >
-                      <UserCheck className="h-3.5 w-3.5 mr-1" />
-                      Set Primary
-                    </Button>
+    <div className="space-y-4">
+      {/* Already selected guides */}
+      <div className="space-y-2">
+        {getSelectedGuideDetails().map((guide: Guide) => (
+          <Card key={guide.id} className={`${primaryGuideId === guide.id ? 'border-primary' : ''}`}>
+            <CardContent className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  {guide.profileImageUrl ? (
+                    <AvatarImage src={guide.profileImageUrl} alt={formatGuideName(guide)} />
+                  ) : (
+                    <AvatarFallback>{getGuideInitials(guide)}</AvatarFallback>
                   )}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRemoveGuide(guide.id)}
-                    className="text-xs h-8 px-2 text-destructive border-destructive/20 hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{formatGuideName(guide)}</div>
+                  <div className="text-xs text-muted-foreground">{guide.email}</div>
                 </div>
+                {primaryGuideId === guide.id && (
+                  <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                    <Star className="h-3 w-3 mr-1" />
+                    Primary
+                  </Badge>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Dialog for adding guides */}
-      <Dialog open={showAddGuideDialog} onOpenChange={setShowAddGuideDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Assign Guide to Experience</DialogTitle>
-            <DialogDescription>
-              Select a guide to assign to this experience. They will be responsible for leading the experience.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            {loadingGuides ? (
-              <div className="py-10 flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="flex items-center gap-2">
+                {primaryGuideId !== guide.id && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onPrimaryChange(guide.id)}
+                    title="Set as primary guide"
+                  >
+                    <Star className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => handleRemoveGuide(guide.id)}
+                  title="Remove guide"
+                >
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-1">
-                {getUnassignedGuides().length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground">
-                      All available guides are already assigned to this experience.
-                    </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Guide selector dropdown */}
+      <div className="mt-4">
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                <span>Add Guide</span>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-[300px]" align="start">
+            <Command>
+              <CommandInput 
+                placeholder="Search guides..." 
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+              />
+              <CommandList>
+                <div className="py-2 px-2 text-sm text-muted-foreground">
+                  Available Guides
+                </div>
+                {isLoading ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    Loading guides...
+                  </div>
+                ) : getUnassignedGuides().length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {searchQuery ? "No guides match your search" : "No available guides"}
                   </div>
                 ) : (
                   getUnassignedGuides().map((guide: Guide) => (
-                    <div
+                    <CommandItem
                       key={guide.id}
-                      className="flex items-center justify-between p-3 rounded-md hover:bg-muted cursor-pointer"
-                      onClick={() => handleAssignGuide(guide.id)}
+                      onSelect={() => handleAddGuide(guide.id)}
+                      className="flex items-center gap-2 cursor-pointer"
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={guide.profileImageUrl || undefined} />
-                          <AvatarFallback className="bg-muted">
-                            {getInitials(guide.firstName, guide.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div>
-                          <h4 className="font-medium">
-                            {guide.firstName} {guide.lastName}
-                          </h4>
-                          <p className="text-sm text-muted-foreground">
-                            {guide.email}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-8"
-                      >
-                        <UserPlus className="h-3.5 w-3.5 mr-1" />
-                        Select
-                      </Button>
-                    </div>
+                      <Avatar className="h-6 w-6">
+                        {guide.profileImageUrl ? (
+                          <AvatarImage src={guide.profileImageUrl} alt={formatGuideName(guide)} />
+                        ) : (
+                          <AvatarFallback>{getGuideInitials(guide)}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span>{formatGuideName(guide)}</span>
+                    </CommandItem>
                   ))
                 )}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+              </CommandList>
+            </Command>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {selectedGuideIds.length === 0 && (
+        <div className="text-sm text-muted-foreground mt-2">
+          No guides assigned yet. Assign at least one guide to lead this experience.
+        </div>
+      )}
     </div>
   );
 }

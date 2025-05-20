@@ -573,6 +573,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No add-ons to create for this new experience");
       }
       
+      // HANDLE GUIDE ASSIGNMENTS FOR NEW EXPERIENCE
+      const guideAssignments = req.body.guideAssignments || [];
+      if (guideAssignments.length > 0 && experience && experience.id) {
+        console.log(`Processing ${guideAssignments.length} guide assignments for new experience ID ${experience.id}`);
+        
+        try {
+          // Process each guide assignment in the request
+          for (const assignment of guideAssignments) {
+            console.log(`Assigning guide ${assignment.guideId} to experience ${experience.id}`);
+            await storage.assignGuideToExperience({
+              experienceId: experience.id,
+              guideId: assignment.guideId,
+              isPrimary: assignment.isPrimary || false
+            });
+          }
+          console.log("Guide assignments for new experience created successfully");
+        } catch (guidesError) {
+          console.error("Error assigning guides to new experience:", guidesError);
+          // We don't want to fail the entire experience creation if guide assignment fails
+          // So we'll just log the error and continue
+        }
+      } else {
+        console.log("No guides to assign to this new experience");
+      }
+      
       // Log activity
       await storage.createActivity({
         userId: 1, // Should be the authenticated user's ID
