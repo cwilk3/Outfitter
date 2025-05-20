@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
 import { Experience, Location, ExperienceLocation, ExperienceAddon } from "@/types";
 import { ExperienceGuides } from "@/components/ui/experience-guides";
+import { GuideAssignmentIndicator } from "@/components/ui/guide-assignment-indicator";
 // Import Image processing utility
 import imageCompression from 'browser-image-compression';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1329,6 +1330,11 @@ export default function Experiences() {
                                     currency: 'USD'
                                   }).format(experience.price)}
                                 </span>
+                              </div>
+                              
+                              {/* Guide assignment indicator */}
+                              <div className="col-span-2 mt-1">
+                                <GuideAssignmentIndicator experienceId={experience.id} />
                               </div>
                             </div>
                           </CardContent>

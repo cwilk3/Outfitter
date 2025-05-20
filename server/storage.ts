@@ -1056,6 +1056,17 @@ export class MemStorage implements IStorage {
     return result;
   }
   
+  async getGuideAssignmentsByExperienceId(experienceId: number): Promise<ExperienceGuide[]> {
+    const result: ExperienceGuide[] = [];
+    for (const guide of this.experienceGuides.values()) {
+      if (guide.experienceId === experienceId) {
+        result.push(guide);
+      }
+    }
+    // Sort by isPrimary (true first)
+    return result.sort((a, b) => (b.isPrimary === true ? 1 : 0) - (a.isPrimary === true ? 1 : 0));
+  }
+  
   async updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined> {
     const guide = this.experienceGuides.get(id);
     if (!guide) return undefined;
