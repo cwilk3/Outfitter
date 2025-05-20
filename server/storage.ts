@@ -993,6 +993,7 @@ export class MemStorage implements IStorage {
       experience: 1,
       experienceLocation: 1,
       experienceAddon: 1, // Added for add-ons support
+      experienceGuide: 1, // Added for guide assignments
       customer: 1,
       booking: 1,
       bookingGuide: 1,
@@ -1682,7 +1683,7 @@ export class MemStorage implements IStorage {
     
     // Add the new guide assignment
     const now = new Date();
-    const id = ++this.currentIds.bookingGuide; // Use booking guide ID counter since we don't have one for experience guides
+    const id = ++this.currentIds.experienceGuide; // Use the proper ID counter for experience guides
     
     // Create the new guide assignment
     const newGuideAssignment: ExperienceGuide = {
