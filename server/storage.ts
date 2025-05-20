@@ -746,6 +746,7 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
+  private experienceAddons: Map<number, ExperienceAddon>; // Added for add-ons support
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
@@ -772,6 +773,7 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
+    this.experienceAddons = new Map(); // Added for add-ons support
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -784,6 +786,7 @@ export class MemStorage implements IStorage {
       location: 1,
       experience: 1,
       experienceLocation: 1,
+      experienceAddon: 1, // Added for add-ons support
       customer: 1,
       booking: 1,
       bookingGuide: 1,
