@@ -167,6 +167,17 @@ export interface DashboardStats {
   completedTrips: number;
 }
 
+// Guide assignment types
+export interface ExperienceGuide {
+  id: number;
+  experienceId: number;
+  guideId: string;
+  isPrimary: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  profileImageUrl?: string;
+}
+
 // Form input types
 export interface ExperienceInput {
   name: string;

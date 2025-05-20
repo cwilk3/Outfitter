@@ -823,6 +823,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get guides assigned to an experience
+  app.get('/api/experiences/:experienceId/guides', async (req, res) => {
+    try {
+      const experienceId = parseInt(req.params.experienceId);
+      
+      // Get guide assignments for this experience
+      const guides = await storage.getGuideAssignmentsByExperienceId(experienceId);
+      
+      res.json(guides);
+    } catch (error) {
+      console.error('Error getting guides for experience:', error);
+      res.status(500).json({ error: 'Failed to retrieve guide assignments' });
+    }
+  });
+  
   // Update a guide assignment
   app.put('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
