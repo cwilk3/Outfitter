@@ -760,6 +760,7 @@ export class MemStorage implements IStorage {
     location: number;
     experience: number;
     experienceLocation: number;
+    experienceAddon: number;
     customer: number;
     booking: number;
     bookingGuide: number;
@@ -773,7 +774,7 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.experiences = new Map();
     this.experienceLocations = new Map();
-    this.experienceAddons = new Map(); // Added for add-ons support
+    this.experienceAddons = new Map();
     this.customers = new Map();
     this.bookings = new Map();
     this.bookingGuides = new Map();
@@ -1294,6 +1295,54 @@ export class MemStorage implements IStorage {
     if (toRemove) {
       this.experienceLocations.delete(toRemove[0]);
     }
+  }
+
+  // Experience Add-on operations
+  async getExperienceAddons(experienceId: number): Promise<ExperienceAddon[]> {
+    // Return all add-ons for this experience
+    return Array.from(this.experienceAddons.values())
+      .filter(addon => addon.experienceId === experienceId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  async getExperienceAddon(id: number): Promise<ExperienceAddon | undefined> {
+    return this.experienceAddons.get(id);
+  }
+  
+  async createExperienceAddon(addonData: InsertExperienceAddon): Promise<ExperienceAddon> {
+    const id = this.currentIds.experienceAddon++;
+    const now = new Date();
+    
+    const addon: ExperienceAddon = { 
+      ...addonData, 
+      id, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    
+    this.experienceAddons.set(id, addon);
+    return addon;
+  }
+  
+  async updateExperienceAddon(id: number, addonData: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined> {
+    const addon = this.experienceAddons.get(id);
+    
+    if (!addon) {
+      return undefined;
+    }
+    
+    const updatedAddon: ExperienceAddon = { 
+      ...addon, 
+      ...addonData, 
+      updatedAt: new Date() 
+    };
+    
+    this.experienceAddons.set(id, updatedAddon);
+    return updatedAddon;
+  }
+  
+  async deleteExperienceAddon(id: number): Promise<void> {
+    this.experienceAddons.delete(id);
   }
 
   // Customer operations
