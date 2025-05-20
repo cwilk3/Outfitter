@@ -999,6 +999,7 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.activities = new Map();
     
+    // Initialize currentIds
     this.currentIds = {
       location: 1,
       experience: 1,
@@ -1013,6 +1014,7 @@ export class MemStorage implements IStorage {
       activity: 1,
     };
     
+    // Add sample data
     this.seedData();
   }
   
@@ -1126,63 +1128,7 @@ export class MemStorage implements IStorage {
     
     return result;
   }
-  private users: Map<string, User>;
-  private locations: Map<number, Location>;
-  private experiences: Map<number, Experience>;
-  private experienceLocations: Map<number, ExperienceLocation>;
-  private experienceAddons: Map<number, ExperienceAddon>; // Added for add-ons support
-  private customers: Map<number, Customer>;
-  private bookings: Map<number, Booking>;
-  private bookingGuides: Map<number, BookingGuide>;
-  private documents: Map<number, Document>;
-  private payments: Map<number, Payment>;
-  private settings: Settings | undefined;
-  private activities: Map<number, Activity>;
-  
-  private currentIds: {
-    user: number;
-    location: number;
-    experience: number;
-    experienceLocation: number;
-    experienceAddon: number;
-    customer: number;
-    booking: number;
-    bookingGuide: number;
-    document: number;
-    payment: number;
-    activity: number;
-  };
 
-  constructor() {
-    this.users = new Map();
-    this.locations = new Map();
-    this.experiences = new Map();
-    this.experienceLocations = new Map();
-    this.experienceAddons = new Map();
-    this.customers = new Map();
-    this.bookings = new Map();
-    this.bookingGuides = new Map();
-    this.documents = new Map();
-    this.payments = new Map();
-    this.activities = new Map();
-    
-    this.currentIds = {
-      user: 1,
-      location: 1,
-      experience: 1,
-      experienceLocation: 1,
-      experienceAddon: 1, // Added for add-ons support
-      customer: 1,
-      booking: 1,
-      bookingGuide: 1,
-      document: 1,
-      payment: 1,
-      activity: 1
-    };
-    
-    // Add some initial data for demonstration
-    this.seedData();
-  }
 
   private seedData() {
     // Add an admin user
