@@ -40,7 +40,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Fetch available guides
   const { data: availableGuides, isLoading: loadingGuides } = useQuery({
-    queryKey: ['/api/guides']
+    queryKey: ['/api/users', { role: 'guide' }]
   });
   
   // Assign guide mutation
