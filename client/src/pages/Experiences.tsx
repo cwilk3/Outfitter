@@ -1071,21 +1071,40 @@ export default function Experiences() {
                   if (!response.ok) {
                     const errorText = await response.text();
                     console.error(`Error creating add-on: Server responded with ${response.status}`, errorText);
+                    // Show error toast but continue with other add-ons
+                    toast({
+                      title: "Add-on Error",
+                      description: `Failed to create add-on "${addon.name}": ${response.status} ${errorText}`,
+                      variant: "destructive"
+                    });
                   } else {
                     const addonResult = await response.json();
                     console.log("Add-on created successfully:", addonResult);
                   }
                 } catch (addonError) {
                   console.error("Error creating add-on:", addonError);
-                  // Continue with the other add-ons even if one fails
+                  // Show error toast but continue with other add-ons
+                  toast({
+                    title: "Add-on Error",
+                    description: `Error creating add-on "${addon.name}": ${addonError.message}`,
+                    variant: "destructive"
+                  });
                 }
               }
+              
+              // Invalidate add-ons query to ensure we get fresh data
+              queryClient.invalidateQueries({ queryKey: [`/api/experience-addons/${result.id}`] });
             } else {
               console.log("No add-ons to create for this experience");
             }
           } catch (addonsError) {
             console.error("Error handling add-ons for new experience:", addonsError);
-            // Don't throw - we still want to complete the experience creation
+            // Show error toast but don't throw - we still want to complete the experience creation
+            toast({
+              title: "Add-ons Error",
+              description: `Problem processing add-ons: ${addonsError.message}`,
+              variant: "destructive"
+            });
           }
           
           // Invalidate data
