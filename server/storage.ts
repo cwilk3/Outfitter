@@ -46,6 +46,13 @@ export interface IStorage {
   updateExperienceAddon(id: number, addon: Partial<InsertExperienceAddon>): Promise<ExperienceAddon | undefined>;
   deleteExperienceAddon(id: number): Promise<void>;
   
+  // Experience Guide operations
+  getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;
+  getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]>;
+  assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide>;
+  removeGuideFromExperience(experienceId: number, guideId: string): Promise<void>;
+  setGuidePrimary(experienceId: number, guideId: string, isPrimary: boolean): Promise<void>;
+  
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
@@ -121,7 +128,8 @@ export class DatabaseStorage implements IStorage {
 
   async listUsers(role?: string): Promise<User[]> {
     if (role) {
-      return db.select().from(users).where(eq(users.role, role));
+      // Use type-safe SQL for role filtering
+      return db.select().from(users).where(sql`${users.role}::text = ${role}`);
     }
     return db.select().from(users);
   }
@@ -941,6 +949,7 @@ export class MemStorage implements IStorage {
   private experiences: Map<number, Experience>;
   private experienceLocations: Map<number, ExperienceLocation>;
   private experienceAddons: Map<number, ExperienceAddon>; // Added for add-ons support
+  private experienceGuides: Map<number, ExperienceGuide>; // Added for guide assignments
   private customers: Map<number, Customer>;
   private bookings: Map<number, Booking>;
   private bookingGuides: Map<number, BookingGuide>;
