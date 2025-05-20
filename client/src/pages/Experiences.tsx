@@ -1105,53 +1105,63 @@ export default function Experiences() {
             }
           }
           
-          // Step 2: Save the add-ons for the new experience
+          // Step 2: Check if add-ons were already created by the server
           try {
             if (addons && addons.length > 0 && result && result.id) {
-              console.log(`Creating ${addons.length} add-ons for the new experience:`, addons);
+              console.log(`Checking existing add-ons for the new experience ID ${result.id}`);
               
-              // Create each add-on individually
-              for (const addon of addons) {
-                try {
-                  console.log("Creating addon:", addon);
-                  // Only include fields that match the database schema
-                  const response = await fetch('/api/experience-addons', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      experienceId: result.id,
-                      name: addon.name,
-                      description: addon.description || '',
-                      price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                      isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
-                      inventory: addon.inventory !== undefined ? addon.inventory : 0,
-                      maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
-                    })
-                  });
-                  
-                  if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`Error creating add-on: Server responded with ${response.status}`, errorText);
+              // First check if add-ons were already created by the server
+              const checkResponse = await fetch(`/api/experience-addons/${result.id}`);
+              const existingAddons = await checkResponse.json();
+              
+              if (existingAddons && existingAddons.length > 0) {
+                console.log(`Server already created ${existingAddons.length} add-ons, skipping client-side creation`);
+              } else {
+                console.log(`No existing add-ons found, creating ${addons.length} add-ons for the new experience:`, addons);
+                
+                // Create each add-on individually if they weren't already created by the server
+                for (const addon of addons) {
+                  try {
+                    console.log("Creating addon:", addon);
+                    // Only include fields that match the database schema
+                    const response = await fetch('/api/experience-addons', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        experienceId: result.id,
+                        name: addon.name,
+                        description: addon.description || '',
+                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+                        inventory: addon.inventory !== undefined ? addon.inventory : 0,
+                        maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
+                      })
+                    });
+                    
+                    if (!response.ok) {
+                      const errorText = await response.text();
+                      console.error(`Error creating add-on: Server responded with ${response.status}`, errorText);
+                      // Show error toast but continue with other add-ons
+                      toast({
+                        title: "Add-on Error",
+                        description: `Failed to create add-on "${addon.name}": ${response.status} ${errorText}`,
+                        variant: "destructive"
+                      });
+                    } else {
+                      const addonResult = await response.json();
+                      console.log("Add-on created successfully:", addonResult);
+                    }
+                  } catch (addonError) {
+                    console.error("Error creating add-on:", addonError);
                     // Show error toast but continue with other add-ons
                     toast({
                       title: "Add-on Error",
-                      description: `Failed to create add-on "${addon.name}": ${response.status} ${errorText}`,
+                      description: `Error creating add-on "${addon.name}": ${addonError.message}`,
                       variant: "destructive"
                     });
-                  } else {
-                    const addonResult = await response.json();
-                    console.log("Add-on created successfully:", addonResult);
                   }
-                } catch (addonError) {
-                  console.error("Error creating add-on:", addonError);
-                  // Show error toast but continue with other add-ons
-                  toast({
-                    title: "Add-on Error",
-                    description: `Error creating add-on "${addon.name}": ${addonError.message}`,
-                    variant: "destructive"
-                  });
                 }
               }
               
