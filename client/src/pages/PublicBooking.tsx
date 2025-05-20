@@ -803,8 +803,12 @@ function PublicBooking() {
                                 
                                 <div className="space-y-4">
                                   {selectedExperience.addons.map((addon, index) => {
-                                    // Calculate max quantity based on inventory or maxPerBooking
-                                    const maxQuantity = addon.maxPerBooking || addon.inventory || 10;
+                                    // Calculate max quantity based on the minimum of inventory and maxPerBooking
+                                    const maxQuantity = Math.min(
+                                      addon.maxPerBooking || Number.MAX_SAFE_INTEGER,
+                                      addon.inventory || Number.MAX_SAFE_INTEGER,
+                                      10 // Default max limit
+                                    );
                                     
                                     // Get current selected status and quantity
                                     const currentAddons = form.getValues().selectedAddons || [];
