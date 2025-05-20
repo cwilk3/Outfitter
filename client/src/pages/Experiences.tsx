@@ -65,6 +65,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { DateAvailability } from "@/components/ui/date-availability";
 import { ExperienceAddons, Addon } from "@/components/ui/experience-addons";
 import { ExperienceGuides } from "@/components/ui/experience-guides";
+import { ExperienceGuideSelector } from "@/components/ui/experience-guide-selector";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
@@ -228,6 +229,10 @@ export default function Experiences() {
   // State for tracking selected locations and experience-location mappings
   const [selectedLocIds, setSelectedLocIds] = useState<number[]>([]);
   const [experienceLocations, setExperienceLocations] = useState<{ [experienceId: number]: number[] }>({});
+  
+  // State for guide selection during creation
+  const [selectedGuideIds, setSelectedGuideIds] = useState<string[]>([]);
+  const [primaryGuideId, setPrimaryGuideId] = useState<string | null>(null);
 
   // Form handling
   const form = useForm<ExperienceFormValues>({
@@ -1882,9 +1887,12 @@ export default function Experiences() {
                     {selectedExperience ? (
                       <ExperienceGuides experienceId={selectedExperience.id} />
                     ) : (
-                      <div className="p-4 text-sm text-amber-600 bg-amber-50 rounded-md border border-amber-200">
-                        Save the basic experience details first before assigning guides.
-                      </div>
+                      <ExperienceGuideSelector
+                        selectedGuideIds={selectedGuideIds}
+                        onChange={setSelectedGuideIds}
+                        primaryGuideId={primaryGuideId}
+                        onPrimaryChange={setPrimaryGuideId}
+                      />
                     )}
                   </div>
                 </div>
