@@ -1406,7 +1406,7 @@ export default function Experiences() {
             ) : (
               <Steps 
                 currentStep={currentStep} 
-                steps={["Basic Info", "Details", "Media", "Features", "Add-ons"]} 
+                steps={["Basic Info", "Details", "Media", "Features", "Add-ons", "Guides"]} 
               />
             )}
           </div>
