@@ -32,16 +32,22 @@ import {
 import { Command, CommandInput, CommandList, CommandItem } from "@/components/ui/command";
 
 interface ExperienceGuide {
-  id: number;
+  id: number | string;
   experienceId: number;
   guideId: string;
-  guide: {
+  guide?: {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
     avatarUrl?: string;
   };
+  // These properties might be directly on the guide or in the nested guide object
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  profileImageUrl?: string;
+  avatarUrl?: string;
   isPrimary: boolean;
 }
 
@@ -54,6 +60,14 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [menuOpen, setMenuOpen] = React.useState(false);
   
+  // Define the fetch function before using it
+  const fetchExperienceGuides = async (): Promise<any[]> => {
+    if (!experienceId) return [];
+    const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
+    console.log('Fetched guides for experience:', response);
+    return response || [];
+  };
+  
   // Fetch experience guides with proper typing
   const { 
     data: experienceGuides, 
@@ -62,7 +76,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
     error 
   } = useQuery({
     queryKey: ['/api/experience-guides', experienceId],
-    queryFn: () => experienceId ? apiRequest(`/api/experience-guides/${experienceId}`, 'GET') : Promise.resolve([]),
+    queryFn: fetchExperienceGuides,
     enabled: !!experienceId,
     retry: 1
   });
@@ -218,20 +232,36 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   
   // Format guide name for display
   const formatGuideName = (guide: any) => {
-    if (guide.firstName && guide.lastName) {
-      return `${guide.firstName} ${guide.lastName}`;
-    } else if (guide.firstName) {
-      return guide.firstName;
-    } else if (guide.email) {
-      return guide.email;
+    // Handle if we get guide info directly or nested
+    const firstName = guide.firstName || (guide.guide && guide.guide.firstName);
+    const lastName = guide.lastName || (guide.guide && guide.guide.lastName);
+    const email = guide.email || (guide.guide && guide.guide.email);
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (email) {
+      return email;
     }
     return "Unknown Guide";
   };
   
   // Get guide initials for avatar fallback
-  const getInitials = (firstName?: string, lastName?: string) => {
+  const getInitials = (guide: any) => {
+    const firstName = guide.firstName || (guide.guide && guide.guide.firstName);
+    const lastName = guide.lastName || (guide.guide && guide.guide.lastName);
+    
     if (!firstName && !lastName) return "GD";
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
+  };
+
+  // Fix queryFn return type to avoid TypeScript errors
+  const fetchExperienceGuides = async (): Promise<any[]> => {
+    if (!experienceId) return [];
+    const response = await apiRequest(`/api/experience-guides/${experienceId}`, 'GET');
+    console.log('Fetched guides for experience:', response);
+    return response || [];
   };
 
   // Check if there's a primary guide
@@ -261,15 +291,17 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
               <CardContent className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    {eg.guide.avatarUrl ? (
-                      <AvatarImage src={eg.guide.avatarUrl} alt={formatGuideName(eg.guide)} />
+                    {eg.guide && eg.guide.avatarUrl ? (
+                      <AvatarImage src={eg.guide.avatarUrl} alt={formatGuideName(eg)} />
                     ) : (
-                      <AvatarFallback>{getInitials(eg.guide.firstName, eg.guide.lastName)}</AvatarFallback>
+                      <AvatarFallback>{getInitials(eg)}</AvatarFallback>
                     )}
                   </Avatar>
                   <div>
-                    <div className="font-medium">{formatGuideName(eg.guide)}</div>
-                    <div className="text-xs text-muted-foreground">{eg.guide.email}</div>
+                    <div className="font-medium">{formatGuideName(eg)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {eg.email || (eg.guide && eg.guide.email) || ""}
+                    </div>
                   </div>
                   {eg.isPrimary && (
                     <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
