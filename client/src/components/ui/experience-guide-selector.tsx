@@ -104,8 +104,8 @@ export function ExperienceGuideSelector({
         onPrimaryChange(newPrimaryGuideId);
       }
     } else if (guideId === primaryGuideId) {
-      // If we're removing the last primary guide
-      onPrimaryChange("");
+      // If we're removing the last primary guide, set to null instead of empty string
+      onPrimaryChange(null);
     }
   };
 
