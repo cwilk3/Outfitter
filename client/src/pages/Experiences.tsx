@@ -735,7 +735,7 @@ export default function Experiences() {
     }
     
     // If we've reached here, go to the next step
-    setCurrentStep(prev => Math.min(prev + 1, 5));
+    setCurrentStep(prev => Math.min(prev + 1, 6));
   };
   
   // Go to previous step
@@ -1923,6 +1923,26 @@ export default function Experiences() {
                         </Badge>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Step 6: Guide Assignment */}
+              {currentStep === 6 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-medium mb-1">Guide Assignment</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Assign guides who will lead this experience
+                    </p>
+                    
+                    {selectedExperience ? (
+                      <ExperienceGuides experienceId={selectedExperience.id} />
+                    ) : (
+                      <div className="p-4 text-sm text-amber-600 bg-amber-50 rounded-md border border-amber-200">
+                        Save the basic experience details first before assigning guides.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

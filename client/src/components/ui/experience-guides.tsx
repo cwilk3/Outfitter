@@ -46,12 +46,9 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Assign guide mutation
   const assignGuideMutation = useMutation({
     mutationFn: async (guideId: string) => {
-      return apiRequest('/api/experience-guides', {
-        method: 'POST',
-        body: JSON.stringify({
-          experienceId,
-          guideId,
-        }),
+      return apiRequest('/api/experience-guides', 'POST', {
+        experienceId,
+        guideId,
       });
     },
     onSuccess: () => {
@@ -74,9 +71,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
   // Remove guide mutation
   const removeGuideMutation = useMutation({
     mutationFn: async (guideAssignmentId: number) => {
-      return apiRequest(`/api/experience-guides/${guideAssignmentId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest(`/api/experience-guides/${guideAssignmentId}`, 'DELETE');
     },
     onSuccess: () => {
       toast({
