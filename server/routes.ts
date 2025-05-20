@@ -606,7 +606,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: addon.name,
                 description: addon.description || '',
                 price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
+                // Include inventory fields when creating
+                inventory: addon.inventory !== undefined ? addon.inventory : 0,
+                maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
               });
             }
           }
