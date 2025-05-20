@@ -435,14 +435,24 @@ export class DatabaseStorage implements IStorage {
   
   async getExperienceGuidesWithDetails(experienceId: number): Promise<(ExperienceGuide & User)[]> {
     // Join with users table to get guide details
-    return db
+    const results = await db
       .select({
-        ...experienceGuides,
-        ...users
+        // Select specific fields instead of using spread to avoid type errors
+        // ExperienceGuide fields
+        id: experienceGuides.id,
+        experienceId: experienceGuides.experienceId,
+        guideId: experienceGuides.guideId,
+        isPrimary: experienceGuides.isPrimary,
+        createdAt: experienceGuides.createdAt,
+        updatedAt: experienceGuides.updatedAt,
+        // User fields
+        guide: users
       })
       .from(experienceGuides)
       .innerJoin(users, eq(experienceGuides.guideId, users.id))
       .where(eq(experienceGuides.experienceId, experienceId));
+      
+    return results as unknown as (ExperienceGuide & User)[];
   }
   
   async assignGuideToExperience(guideAssignment: InsertExperienceGuide): Promise<ExperienceGuide> {
