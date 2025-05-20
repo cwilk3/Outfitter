@@ -19,6 +19,13 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   listUsers(role?: string): Promise<User[]>;
+  
+  // Experience Guide operations
+  getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;
+  assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide>;
+  updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined>;
+  removeGuideFromExperience(id: number): Promise<void>;
+  getExperiencesForGuide(guideId: string): Promise<Experience[]>;
 
   // Location operations
   getLocation(id: number): Promise<Location | undefined>;
@@ -424,6 +431,118 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(experienceAddons)
       .where(eq(experienceAddons.id, id));
+  }
+  
+  // EXPERIENCE GUIDE MANAGEMENT
+  
+  // Get all guides assigned to an experience
+  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
+    return await db
+      .select()
+      .from(experienceGuides)
+      .where(eq(experienceGuides.experienceId, experienceId))
+      .orderBy(experienceGuides.isPrimary);
+  }
+
+  // Assign a guide to an experience
+  async assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide> {
+    // If this guide is being set as primary, ensure no other guide for this experience is primary
+    if (data.isPrimary) {
+      await db
+        .update(experienceGuides)
+        .set({ isPrimary: false })
+        .where(
+          and(
+            eq(experienceGuides.experienceId, data.experienceId),
+            eq(experienceGuides.isPrimary, true)
+          )
+        );
+    }
+    
+    const [guide] = await db
+      .insert(experienceGuides)
+      .values(data)
+      .returning();
+    
+    return guide;
+  }
+
+  // Update a guide assignment
+  async updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined> {
+    // If updating to primary, ensure no other guide for this experience is primary
+    if (data.isPrimary) {
+      // Get the experience ID for this guide assignment
+      const [currentAssignment] = await db
+        .select()
+        .from(experienceGuides)
+        .where(eq(experienceGuides.id, id));
+      
+      if (currentAssignment) {
+        await db
+          .update(experienceGuides)
+          .set({ isPrimary: false })
+          .where(
+            and(
+              eq(experienceGuides.experienceId, currentAssignment.experienceId),
+              eq(experienceGuides.isPrimary, true),
+              sql`${experienceGuides.id} != ${id}`
+            )
+          );
+      }
+    }
+    
+    const [updatedGuide] = await db
+      .update(experienceGuides)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(experienceGuides.id, id))
+      .returning();
+    
+    return updatedGuide;
+  }
+
+  // Remove a guide from an experience
+  async removeGuideFromExperience(id: number): Promise<void> {
+    // Get the assignment before deleting to check if it's primary
+    const [assignment] = await db
+      .select()
+      .from(experienceGuides)
+      .where(eq(experienceGuides.id, id));
+    
+    // Delete the guide assignment
+    await db
+      .delete(experienceGuides)
+      .where(eq(experienceGuides.id, id));
+    
+    // If this was a primary guide, set another guide as primary if available
+    if (assignment && assignment.isPrimary) {
+      const [nextGuide] = await db
+        .select()
+        .from(experienceGuides)
+        .where(eq(experienceGuides.experienceId, assignment.experienceId))
+        .limit(1);
+      
+      if (nextGuide) {
+        await db
+          .update(experienceGuides)
+          .set({ isPrimary: true })
+          .where(eq(experienceGuides.id, nextGuide.id));
+      }
+    }
+  }
+
+  // Get all experiences assigned to a guide
+  async getExperiencesForGuide(guideId: string): Promise<Experience[]> {
+    return await db
+      .select({
+        experience: experiences
+      })
+      .from(experienceGuides)
+      .innerJoin(experiences, eq(experienceGuides.experienceId, experiences.id))
+      .where(eq(experienceGuides.guideId, guideId))
+      .then(rows => rows.map(row => row.experience));
   }
   
   // ADDON INVENTORY PER-DAY TRACKING
@@ -838,6 +957,114 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemStorage implements IStorage {
+  // Experience Guide management methods
+  async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
+    const result: ExperienceGuide[] = [];
+    for (const guide of this.experienceGuides.values()) {
+      if (guide.experienceId === experienceId) {
+        result.push(guide);
+      }
+    }
+    // Sort by isPrimary (true first)
+    return result.sort((a, b) => (b.isPrimary === true ? 1 : 0) - (a.isPrimary === true ? 1 : 0));
+  }
+
+  async assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide> {
+    // If this guide is being set as primary, ensure no other guide is primary
+    if (data.isPrimary) {
+      for (const guide of this.experienceGuides.values()) {
+        if (guide.experienceId === data.experienceId && guide.isPrimary) {
+          guide.isPrimary = false;
+          guide.updatedAt = new Date();
+          this.experienceGuides.set(guide.id, guide);
+        }
+      }
+    }
+    
+    const id = this.currentIds.experienceGuide++;
+    const now = new Date();
+    const guide: ExperienceGuide = { 
+      ...data, 
+      id, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    
+    this.experienceGuides.set(id, guide);
+    return guide;
+  }
+
+  async updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined> {
+    const guide = this.experienceGuides.get(id);
+    if (!guide) return undefined;
+    
+    // If updating to primary, handle other guides
+    if (data.isPrimary) {
+      for (const otherGuide of this.experienceGuides.values()) {
+        if (
+          otherGuide.experienceId === guide.experienceId && 
+          otherGuide.id !== id && 
+          otherGuide.isPrimary
+        ) {
+          otherGuide.isPrimary = false;
+          otherGuide.updatedAt = new Date();
+          this.experienceGuides.set(otherGuide.id, otherGuide);
+        }
+      }
+    }
+    
+    const updatedGuide: ExperienceGuide = {
+      ...guide,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.experienceGuides.set(id, updatedGuide);
+    return updatedGuide;
+  }
+
+  async removeGuideFromExperience(id: number): Promise<void> {
+    const guide = this.experienceGuides.get(id);
+    if (!guide) return;
+    
+    // Delete the guide assignment
+    this.experienceGuides.delete(id);
+    
+    // If this was primary, set another guide as primary
+    if (guide.isPrimary) {
+      // Find another guide for this experience
+      for (const otherGuide of this.experienceGuides.values()) {
+        if (otherGuide.experienceId === guide.experienceId) {
+          otherGuide.isPrimary = true;
+          otherGuide.updatedAt = new Date();
+          this.experienceGuides.set(otherGuide.id, otherGuide);
+          break;
+        }
+      }
+    }
+  }
+
+  async getExperiencesForGuide(guideId: string): Promise<Experience[]> {
+    const experienceIds = new Set<number>();
+    
+    // Collect all experience IDs associated with this guide
+    for (const guide of this.experienceGuides.values()) {
+      if (guide.guideId === guideId) {
+        experienceIds.add(guide.experienceId);
+      }
+    }
+    
+    // Get the corresponding experience objects
+    const result: Experience[] = [];
+    for (const id of experienceIds) {
+      const experience = this.experiences.get(id);
+      if (experience) {
+        result.push(experience);
+      }
+    }
+    
+    return result;
+  }
   private users: Map<string, User>;
   private locations: Map<number, Location>;
   private experiences: Map<number, Experience>;
