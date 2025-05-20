@@ -109,6 +109,9 @@ export const experienceAddons = pgTable("experience_addons", {
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   isOptional: boolean("is_optional").notNull().default(true),
+  // Inventory fields for tracking availability
+  inventory: integer("inventory").default(0), // Total inventory available (default to 0)
+  maxPerBooking: integer("max_per_booking").default(0), // Maximum quantity per booking (default to 0)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -150,6 +153,16 @@ export const bookingGuides = pgTable("booking_guides", {
   bookingId: integer("booking_id").notNull().references(() => bookings.id),
   guideId: integer("guide_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Table to track add-on inventory availability per day (similar to availability in calendar)
+export const addonInventoryDates = pgTable("addon_inventory_dates", {
+  id: serial("id").primaryKey(),
+  addonId: integer("addon_id").notNull().references(() => experienceAddons.id),
+  date: timestamp("date").notNull(), // The specific date
+  usedInventory: integer("used_inventory").notNull().default(0), // How many are booked/used on this date
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Documents table
@@ -235,10 +248,18 @@ export const experienceLocationsRelations = relations(experienceLocations, ({ on
   }),
 }));
 
-export const experienceAddonsRelations = relations(experienceAddons, ({ one }) => ({
+export const experienceAddonsRelations = relations(experienceAddons, ({ one, many }) => ({
   experience: one(experiences, {
     fields: [experienceAddons.experienceId],
     references: [experiences.id],
+  }),
+  inventoryDates: many(addonInventoryDates),  // One add-on can have many inventory date records
+}));
+
+export const addonInventoryDatesRelations = relations(addonInventoryDates, ({ one }) => ({
+  addon: one(experienceAddons, {
+    fields: [addonInventoryDates.addonId],
+    references: [experienceAddons.id],
   }),
 }));
 
