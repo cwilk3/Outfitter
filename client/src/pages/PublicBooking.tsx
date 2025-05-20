@@ -248,6 +248,11 @@ function PublicBooking() {
           endDate: format(summary.endDate, 'yyyy-MM-dd'),
           guests: data.guests,
           notes: data.notes || '',
+          selectedAddons: data.selectedAddons.map(addon => ({
+            addonId: addon.id,
+            quantity: addon.quantity || 1,
+            price: addon.price
+          }))
         },
         payment: {
           totalAmount: summary.total.toString(),
