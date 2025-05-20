@@ -422,6 +422,13 @@ export const insertExperienceAddonSchema = createInsertSchema(experienceAddons).
   updatedAt: true
 });
 
+// Insert addon inventory dates schema
+export const insertAddonInventoryDateSchema = createInsertSchema(addonInventoryDates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

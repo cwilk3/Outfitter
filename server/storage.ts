@@ -378,7 +378,10 @@ export class DatabaseStorage implements IStorage {
     // Preprocess numeric fields
     const processedData = {
       ...addonData,
-      price: typeof addonData.price === 'number' ? addonData.price.toString() : addonData.price
+      price: typeof addonData.price === 'number' ? addonData.price.toString() : addonData.price,
+      // Make sure inventory fields are properly initialized
+      inventory: addonData.inventory || 0,
+      maxPerBooking: addonData.maxPerBooking || 0
     };
     
     const [addon] = await db
