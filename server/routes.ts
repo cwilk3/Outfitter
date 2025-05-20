@@ -401,6 +401,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log incoming data for debugging
       console.log("Incoming experience data:", req.body);
       
+      // Extract add-ons data before validation (to handle separately)
+      const addonsData = req.body.addons || [];
+      console.log(`Processing ${addonsData.length} add-ons for new experience`);
+      
       // CRITICAL FIX: Force a locationId value if it's missing or invalid
       if (req.body.locationId === undefined || req.body.locationId === null) {
         console.log("⚠️ locationId was missing, forcing default value 1");
@@ -447,6 +451,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const experience = await storage.createExperience(validatedData);
       
+      // HANDLE ADD-ONS PROCESSING FOR NEW EXPERIENCE
+      if (addonsData && addonsData.length > 0 && experience && experience.id) {
+        console.log(`Creating ${addonsData.length} add-ons for new experience ID ${experience.id}`);
+        
+        try {
+          // Process each addon in the request
+          for (const addon of addonsData) {
+            console.log(`Creating new addon for experience ${experience.id}: ${addon.name}`);
+            await storage.createExperienceAddon({
+              experienceId: experience.id,
+              name: addon.name,
+              description: addon.description || '',
+              price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+              isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+            });
+          }
+          console.log("Add-ons for new experience created successfully");
+        } catch (addonsError) {
+          console.error("Error creating add-ons for new experience:", addonsError);
+          // We don't want to fail the entire experience creation if add-on processing fails
+          // So we'll just log the error and continue
+        }
+      } else {
+        console.log("No add-ons to create for this new experience");
+      }
+      
       // Log activity
       await storage.createActivity({
         userId: 1, // Should be the authenticated user's ID
@@ -474,6 +504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`===== EXPERIENCE UPDATE DEBUG =====`);
       console.log(`Experience ID being updated: ${id}`);
       console.log(`Raw request body:`, JSON.stringify(req.body, null, 2));
+      
+      // Extract add-ons data before validation (to handle separately)
+      const addonsData = req.body.addons || [];
       
       // First, get the current experience to preserve important fields if not provided
       const currentExperience = await storage.getExperience(id);
@@ -535,6 +568,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!updatedExperience) {
         return res.status(404).json({ message: 'Experience not found' });
+      }
+
+      // HANDLE ADD-ONS PROCESSING
+      console.log(`Processing ${addonsData.length} add-ons for experience ID ${id}`);
+
+      try {
+        // Step 1: Get existing addons to determine what needs to be created, updated, or deleted
+        const existingAddons = await storage.getExperienceAddons(id);
+        console.log(`Found ${existingAddons.length} existing add-ons for this experience`);
+
+        // Step 2: Process each addon in the request
+        if (addonsData && addonsData.length > 0) {
+          for (const addon of addonsData) {
+            // Find if this addon already exists (has an ID and exists in the database)
+            const existingAddon = addon.id ? existingAddons.find(ea => ea.id === addon.id) : null;
+
+            // Handle addon based on whether it's new or existing
+            if (existingAddon) {
+              // Update existing addon
+              console.log(`Updating existing addon ${addon.id}: ${addon.name}`);
+              await storage.updateExperienceAddon(addon.id, {
+                name: addon.name,
+                description: addon.description || '',
+                price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+              });
+            } else {
+              // Create new addon
+              console.log(`Creating new addon for experience ${id}: ${addon.name}`);
+              await storage.createExperienceAddon({
+                experienceId: id,
+                name: addon.name,
+                description: addon.description || '',
+                price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
+                isOptional: addon.isOptional !== undefined ? addon.isOptional : true
+              });
+            }
+          }
+        }
+
+        // Step 3: Delete addons that are no longer in the list
+        if (existingAddons.length > 0) {
+          for (const existingAddon of existingAddons) {
+            // If the existing addon is not in the updated list, delete it
+            if (!addonsData.some(a => a.id === existingAddon.id)) {
+              console.log(`Deleting addon ${existingAddon.id}: ${existingAddon.name}`);
+              await storage.deleteExperienceAddon(existingAddon.id);
+            }
+          }
+        }
+        console.log("Add-ons processing completed successfully");
+      } catch (addonsError) {
+        console.error("Error processing add-ons:", addonsError);
+        // We don't want to fail the entire experience update if add-on processing fails
+        // So we'll just log the error and continue
       }
       
       // Log activity
