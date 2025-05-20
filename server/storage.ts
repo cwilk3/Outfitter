@@ -398,6 +398,9 @@ export class DatabaseStorage implements IStorage {
       price: addonData.price !== undefined && typeof addonData.price === 'number' 
         ? addonData.price.toString() 
         : addonData.price,
+      // Handle inventory fields properly
+      inventory: addonData.inventory !== undefined ? addonData.inventory : undefined,
+      maxPerBooking: addonData.maxPerBooking !== undefined ? addonData.maxPerBooking : undefined,
       updatedAt: new Date()
     };
     
@@ -410,9 +413,97 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteExperienceAddon(id: number): Promise<void> {
+    // First delete any associated inventory date records
+    await db
+      .delete(addonInventoryDates)
+      .where(eq(addonInventoryDates.addonId, id));
+      
+    // Then delete the add-on itself
     await db
       .delete(experienceAddons)
       .where(eq(experienceAddons.id, id));
+  }
+  
+  // ADDON INVENTORY PER-DAY TRACKING
+  
+  // Get inventory usage for add-on by date
+  async getAddonInventoryByDate(addonId: number, date: Date): Promise<{addonId: number, date: Date, usedInventory: number} | undefined> {
+    const [inventory] = await db
+      .select()
+      .from(addonInventoryDates)
+      .where(
+        and(
+          eq(addonInventoryDates.addonId, addonId),
+          eq(addonInventoryDates.date, date)
+        )
+      );
+    return inventory;
+  }
+  
+  // Check if add-on has available inventory for a specific date
+  async checkAddonAvailability(addonId: number, date: Date, quantityRequested: number): Promise<boolean> {
+    try {
+      // Get the add-on to check max inventory
+      const addon = await this.getExperienceAddon(addonId);
+      if (!addon || addon.inventory === null || addon.inventory === undefined) {
+        return false; // If add-on doesn't exist or has no inventory, it's not available
+      }
+      
+      // Get current inventory usage for this date
+      const inventoryUsage = await this.getAddonInventoryByDate(addonId, date);
+      const currentlyUsed = inventoryUsage ? inventoryUsage.usedInventory : 0;
+      
+      // Check if there's enough inventory available
+      return (addon.inventory - currentlyUsed) >= quantityRequested;
+    } catch (error) {
+      console.error(`Error checking add-on availability for ${addonId} on ${date}:`, error);
+      return false;
+    }
+  }
+  
+  // Update inventory usage for an add-on on a specific date (when booking/canceling)
+  async updateAddonInventoryUsage(addonId: number, date: Date, quantityChange: number): Promise<boolean> {
+    try {
+      // Check if there's an existing inventory record for this date
+      const inventoryUsage = await this.getAddonInventoryByDate(addonId, date);
+      
+      if (inventoryUsage) {
+        // Update existing record
+        const newUsedInventory = inventoryUsage.usedInventory + quantityChange;
+        
+        // Ensure we don't go below 0
+        const finalQuantity = newUsedInventory < 0 ? 0 : newUsedInventory;
+        
+        await db
+          .update(addonInventoryDates)
+          .set({ 
+            usedInventory: finalQuantity,
+            updatedAt: new Date()
+          })
+          .where(
+            and(
+              eq(addonInventoryDates.addonId, addonId),
+              eq(addonInventoryDates.date, date)
+            )
+          );
+      } else {
+        // Create new record if quantityChange is positive
+        if (quantityChange > 0) {
+          await db
+            .insert(addonInventoryDates)
+            .values({
+              addonId,
+              date,
+              usedInventory: quantityChange,
+            });
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating add-on inventory for ${addonId} on ${date}:`, error);
+      return false;
+    }
   }
 
   // Customer operations
