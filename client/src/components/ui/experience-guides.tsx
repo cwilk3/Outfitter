@@ -56,7 +56,7 @@ export function ExperienceGuides({ experienceId }: ExperienceGuidesProps) {
         title: "Guide assigned",
         description: "Guide has been assigned to this experience",
       });
-      setShowAddGuideDialog(false);
+      // Don't close the dialog so multiple guides can be added
       queryClient.invalidateQueries({ queryKey: ['/api/experience-guides', experienceId] });
     },
     onError: (error) => {
