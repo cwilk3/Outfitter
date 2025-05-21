@@ -19,6 +19,16 @@ export function DateAvailability({
   onChange 
 }: DateAvailabilityProps) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  // Create a working copy of selected dates
+  const [workingDates, setWorkingDates] = React.useState<Date[]>(selectedDates);
+  // Track if we have unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
+  
+  // Update working dates when selectedDates changes (from parent)
+  React.useEffect(() => {
+    setWorkingDates(selectedDates);
+    setHasUnsavedChanges(false);
+  }, [selectedDates]);
   
   // Function to add a range of dates
   const addDateRange = () => {
@@ -31,8 +41,8 @@ export function DateAvailability({
     let currentDate = new Date(dateRange.from);
     
     while (currentDate <= endDate) {
-      // Check if date is not already in selectedDates
-      const exists = selectedDates.some(d => isSameDay(d, currentDate));
+      // Check if date is not already in workingDates
+      const exists = workingDates.some(d => isSameDay(d, currentDate));
       
       if (!exists) {
         newDates.push(new Date(currentDate));
@@ -41,22 +51,38 @@ export function DateAvailability({
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    // Add the new dates to the selection
-    onChange([...selectedDates, ...newDates]);
+    // Add the new dates to the selection (but don't save yet)
+    const updatedDates = [...workingDates, ...newDates];
+    setWorkingDates(updatedDates);
+    setHasUnsavedChanges(true);
     
     // Reset the range
     setDateRange(undefined);
   };
   
-  // Remove a date from selection
+  // Remove a date from selection (but don't save yet)
   const removeDate = (dateToRemove: Date) => {
-    const updatedDates = selectedDates.filter(date => !isSameDay(date, dateToRemove));
-    onChange(updatedDates);
+    const updatedDates = workingDates.filter(date => !isSameDay(date, dateToRemove));
+    setWorkingDates(updatedDates);
+    setHasUnsavedChanges(true);
+  };
+  
+  // Save changes back to parent component
+  const saveChanges = () => {
+    onChange(workingDates);
+    setHasUnsavedChanges(false);
+  };
+  
+  // Cancel changes and revert to original dates
+  const cancelChanges = () => {
+    setWorkingDates(selectedDates);
+    setHasUnsavedChanges(false);
   };
   
   // Clear all selected dates
   const clearAllDates = () => {
-    onChange([]);
+    setWorkingDates([]);
+    setHasUnsavedChanges(true);
   };
   
   // Function to highlight selected dates in the calendar
