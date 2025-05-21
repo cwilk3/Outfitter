@@ -1234,7 +1234,7 @@ function PublicBooking() {
                 <p>Experience: {bookingConfirmation.experienceName || (bookingConfirmation.booking && selectedExperience.name) || selectedExperience.name}</p>
                 <p>Dates: {form.getValues().dateRange?.from ? format(form.getValues().dateRange.from, 'MMM d, yyyy') : ''} - {form.getValues().dateRange?.to ? format(form.getValues().dateRange.to, 'MMM d, yyyy') : ''}</p>
                 <p>Guests: {form.getValues().guests || 0}</p>
-                <p>Total: {formatPrice(summary.total.toString())}</p>
+                <p>Total: {bookingConfirmation.totalAmount ? formatPrice(bookingConfirmation.totalAmount) : formatPrice(form.getValues().payment?.totalAmount || '')}</p>
               </div>
             </div>
           )}
