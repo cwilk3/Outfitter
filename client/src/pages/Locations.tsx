@@ -240,9 +240,11 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      images: [],
       isActive: true,
     });
     setCurrentLocation(null);
+    setSelectedImages([]);
     setIsDialogOpen(true);
   }, [form]);
 
