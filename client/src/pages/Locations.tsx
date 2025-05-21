@@ -401,7 +401,7 @@ export default function Locations() {
       
       {/* Location Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>
               {formMode === 'create' ? 'Create New Location' : 'Edit Location'}
@@ -413,8 +413,9 @@ export default function Locations() {
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="overflow-y-auto pr-1" style={{ maxHeight: "calc(80vh - 180px)" }}>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -576,7 +577,8 @@ export default function Locations() {
               </DialogFooter>
             </form>
           </Form>
-        </DialogContent>
+            </div>
+          </DialogContent>
       </Dialog>
       
       {/* Delete Confirmation Dialog */}
