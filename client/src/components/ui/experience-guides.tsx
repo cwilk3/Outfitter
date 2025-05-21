@@ -160,6 +160,7 @@ export function ExperienceGuides({
   // Remove a guide assignment
   const removeGuideMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log(`Removing guide assignment with ID: ${id}`);
       const response = await fetch(`/api/experience-guides/${id}`, {
         method: 'DELETE',
         headers: {
@@ -168,13 +169,22 @@ export function ExperienceGuides({
       });
       
       if (!response.ok) {
-        throw new Error('Failed to remove guide');
+        const errorText = await response.text();
+        console.error(`Error removing guide: ${response.status} ${errorText}`);
+        throw new Error(`Failed to remove guide: ${errorText || response.statusText}`);
       }
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`Guide assignment ${variables} successfully removed`);
+      
+      // Force invalidate and refetch to ensure UI is updated
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+      
+      // Explicitly refetch to ensure UI is updated immediately
+      refetchAssignedGuides();
+      
       toast({
         title: 'Guide removed',
         description: 'The guide has been removed from this experience.',
@@ -289,7 +299,16 @@ export function ExperienceGuides({
         onChange(updatedDraftGuides);
       }
     } else {
-      // In normal mode, make API call
+      // In normal mode, make API call and handle the UI update
+      console.log(`Removing guide with ID ${id} in normal mode`);
+      
+      // Find the guide being removed from current assignments (for better logging)
+      const guideBeingRemoved = assignedGuides.find(g => g.id === id);
+      if (guideBeingRemoved) {
+        console.log(`Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
+      }
+      
+      // Call the mutation to remove guide on server
       removeGuideMutation.mutate(id);
     }
   };
