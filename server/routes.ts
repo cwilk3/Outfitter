@@ -1868,6 +1868,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch bookings data' });
     }
   });
+  
+  // POST endpoint for creating public bookings - matches frontend's expected endpoint
+  // This handler calls the existing '/api/public/book' implementation logic
+  app.post('/api/public/bookings', async (req, res) => {
+    try {
+      console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
+      
+      const { 
+        experienceId, 
+        customerDetails,
+        bookingDetails,
+        payment
+      } = req.body;
+      
+      // Validate the required fields
+      if (!experienceId || !customerDetails || !bookingDetails) {
+        return res.status(400).json({ message: 'Missing required booking information' });
+      }
+      
+      // Extract data from the frontend format and transform to the format expected by our backend
+      const bookingData = {
+        experienceId: experienceId,
+        locationId: bookingDetails.locationId || experienceId, // Default to experienceId if not specified
+        startDate: bookingDetails.startDate,
+        endDate: bookingDetails.endDate,
+        customerName: `${customerDetails.firstName} ${customerDetails.lastName}`,
+        customerEmail: customerDetails.email,
+        customerPhone: customerDetails.phone,
+        groupSize: bookingDetails.guests,
+        paymentOption: payment?.paymentOption || 'deposit',
+        addons: bookingDetails.selectedAddons || []
+      };
+      
+      console.log('[PUBLIC_BOOKING] Transformed booking data:', JSON.stringify(bookingData, null, 2));
+      
+      // Get experience details to calculate price
+      const experience = await storage.getExperience(parseInt(experienceId));
+      if (!experience) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      // Create or get customer
+      let customer = await storage.listCustomers(customerDetails.email)
+        .then(customers => customers.find(c => c.email === customerDetails.email));
+      
+      if (!customer) {
+        // Create new customer
+        customer = await storage.createCustomer({
+          firstName: customerDetails.firstName, 
+          lastName: customerDetails.lastName,
+          email: customerDetails.email,
+          phone: customerDetails.phone || ''
+        });
+      }
+      
+      // Generate a booking number
+      const bookingNumber = `B-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      
+      // Create booking
+      const booking = await storage.createBooking({
+        bookingNumber,
+        customerId: customer.id,
+        experienceId: parseInt(experienceId),
+        startDate: new Date(bookingDetails.startDate),
+        endDate: new Date(bookingDetails.endDate),
+        status: payment?.paymentOption === 'full' ? 'paid' : 'deposit_paid',
+        totalAmount: payment?.totalAmount || experience.price,
+        notes: bookingDetails.notes || ''
+      });
+      
+      // Get experience details
+      const experienceInfo = await storage.getExperience(parseInt(experienceId));
+      
+      // Log activity
+      await storage.createActivity({
+        userId: 1, // Using admin user ID for system actions
+        action: 'Public booking created',
+        details: {
+          bookingNumber,
+          experienceName: experienceInfo?.name || 'Unknown Experience',
+          customerName: `${customerDetails.firstName} ${customerDetails.lastName}`,
+          customerEmail: customerDetails.email,
+          startDate: bookingDetails.startDate,
+          endDate: bookingDetails.endDate
+        }
+      });
+      
+      // Return success with booking details
+      res.status(201).json({ 
+        success: true, 
+        message: 'Booking created successfully',
+        bookingNumber,
+        experienceName: experienceInfo?.name || 'Unknown Experience',
+        startDate: bookingDetails.startDate,
+        endDate: bookingDetails.endDate,
+        guests: bookingDetails.guests,
+        totalAmount: payment?.totalAmount || experience.price,
+        booking: {
+          ...booking,
+          customer
+        }
+      });
+      
+      // Simulate sending email notification
+      console.log(`Email notification would be sent to ${customerDetails.email} for booking ${bookingNumber}`);
+      
+    } catch (error) {
+      console.error('Error creating public booking:', error);
+      res.status(500).json({ message: 'Failed to create booking' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
