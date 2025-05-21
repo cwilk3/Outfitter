@@ -218,6 +218,7 @@ export default function Experiences() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [tripIncludes, setTripIncludes] = useState<string[]>([]);
   const [addons, setAddons] = useState<AddonType[]>([]);
+  const [draftGuides, setDraftGuides] = useState<any[]>([]);
 
   // Fetch all experiences
   const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
@@ -1929,6 +1930,13 @@ export default function Experiences() {
                     <ExperienceGuides
                       experienceId={selectedExperience?.id || 0}
                       readOnly={false}
+                      draftMode={isCreating}
+                      initialDraftGuides={draftGuides}
+                      onChange={(guides) => {
+                        if (isCreating) {
+                          setDraftGuides(guides);
+                        }
+                      }}
                     />
                   </div>
                 </div>
