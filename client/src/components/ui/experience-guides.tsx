@@ -304,16 +304,36 @@ export function ExperienceGuides({
       }
     } else {
       // In normal mode, make API call and handle the UI update
-      console.log(`Removing guide with ID ${id} in normal mode`);
+      console.log(`[CLIENT] Removing guide with ID ${id} in normal mode`);
       
       // Find the guide being removed from current assignments (for better logging)
       const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
       if (guideBeingRemoved) {
-        console.log(`Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
+        console.log(`[CLIENT] Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
       }
       
+      // Show loading state while deletion is in progress
+      toast({
+        title: 'Removing guide...',
+        description: 'Please wait while we remove the guide assignment.',
+      });
+      
       // Call the mutation to remove guide on server
-      removeGuideMutation.mutate(id);
+      removeGuideMutation.mutate(id, {
+        onSuccess: () => {
+          console.log(`[CLIENT] Guide removal success for ID ${id}`);
+          
+          // Perform an eager update of the UI
+          const updatedGuides = assignedGuides.filter(g => g.id !== id);
+          setAssignedGuides(updatedGuides);
+          
+          // After a short delay, force a complete refresh to ensure sync with server
+          setTimeout(() => {
+            console.log('[CLIENT] Performing forced refetch after guide removal');
+            refetchAssignedGuides();
+          }, 500);
+        }
+      });
     }
   };
 

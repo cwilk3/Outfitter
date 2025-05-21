@@ -518,31 +518,65 @@ export class DatabaseStorage implements IStorage {
 
   // Remove a guide from an experience
   async removeGuideFromExperience(id: number): Promise<void> {
-    // Get the assignment before deleting to check if it's primary
-    const [assignment] = await db
-      .select()
-      .from(experienceGuides)
-      .where(eq(experienceGuides.id, id));
+    console.log(`[DB] Starting removeGuideFromExperience for ID: ${id}`);
     
-    // Delete the guide assignment
-    await db
-      .delete(experienceGuides)
-      .where(eq(experienceGuides.id, id));
-    
-    // If this was a primary guide, set another guide as primary if available
-    if (assignment && assignment.isPrimary) {
-      const [nextGuide] = await db
+    try {
+      // Get the assignment before deleting to check if it's primary
+      const [assignment] = await db
         .select()
         .from(experienceGuides)
-        .where(eq(experienceGuides.experienceId, assignment.experienceId))
-        .limit(1);
+        .where(eq(experienceGuides.id, id));
       
-      if (nextGuide) {
-        await db
-          .update(experienceGuides)
-          .set({ isPrimary: true })
-          .where(eq(experienceGuides.id, nextGuide.id));
+      if (!assignment) {
+        console.log(`[DB] No guide assignment found with ID: ${id}`);
+        return;
       }
+      
+      console.log(`[DB] Found guide assignment to delete:`, assignment);
+      
+      // Use a transaction to ensure all operations are atomic
+      await db.transaction(async (tx) => {
+        // Delete the guide assignment first
+        const deleteResult = await tx
+          .delete(experienceGuides)
+          .where(eq(experienceGuides.id, id))
+          .returning();
+        
+        console.log(`[DB] Delete result:`, deleteResult);
+        
+        // If this was a primary guide, set another guide as primary if available
+        if (assignment.isPrimary) {
+          const [nextGuide] = await tx
+            .select()
+            .from(experienceGuides)
+            .where(eq(experienceGuides.experienceId, assignment.experienceId))
+            .limit(1);
+          
+          if (nextGuide) {
+            console.log(`[DB] Setting new primary guide:`, nextGuide);
+            await tx
+              .update(experienceGuides)
+              .set({ isPrimary: true })
+              .where(eq(experienceGuides.id, nextGuide.id));
+          }
+        }
+      });
+      
+      // Verify deletion was successful
+      const [verifyDeleted] = await db
+        .select()
+        .from(experienceGuides)
+        .where(eq(experienceGuides.id, id));
+      
+      if (verifyDeleted) {
+        console.error(`[DB] !!! DELETION FAILED - Guide assignment still exists after deletion:`, verifyDeleted);
+        throw new Error('Guide assignment deletion failed - record still exists');
+      } else {
+        console.log(`[DB] Guide assignment successfully deleted. Verification passed.`);
+      }
+    } catch (error) {
+      console.error(`[DB] Error in removeGuideFromExperience:`, error);
+      throw error; // Rethrow for proper error handling upstream
     }
   }
 
@@ -1029,6 +1063,10 @@ export class MemStorage implements IStorage {
     // Sort by isPrimary (true first)
     return result.sort((a, b) => (b.isPrimary === true ? 1 : 0) - (a.isPrimary === true ? 1 : 0));
   }
+  
+  async getExperienceGuideById(id: number): Promise<ExperienceGuide | undefined> {
+    return this.experienceGuides.get(id);
+  }
 
   async assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide> {
     // If this guide is being set as primary, ensure no other guide is primary
@@ -1108,23 +1146,48 @@ export class MemStorage implements IStorage {
   }
 
   async removeGuideFromExperience(id: number): Promise<void> {
+    console.log(`[MEM] Starting removeGuideFromExperience for ID: ${id}`);
+    
     const guide = this.experienceGuides.get(id);
-    if (!guide) return;
+    if (!guide) {
+      console.log(`[MEM] No guide assignment found with ID: ${id}`);
+      return;
+    }
+    
+    console.log(`[MEM] Found guide assignment to delete:`, guide);
     
     // Delete the guide assignment
-    this.experienceGuides.delete(id);
+    const deleteResult = this.experienceGuides.delete(id);
+    console.log(`[MEM] Deletion operation result: ${deleteResult}`);
     
     // If this was primary, set another guide as primary
     if (guide.isPrimary) {
+      let foundNewPrimary = false;
+      
       // Find another guide for this experience
       for (const otherGuide of this.experienceGuides.values()) {
         if (otherGuide.experienceId === guide.experienceId) {
+          console.log(`[MEM] Setting new primary guide:`, otherGuide);
           otherGuide.isPrimary = true;
           otherGuide.updatedAt = new Date();
           this.experienceGuides.set(otherGuide.id, otherGuide);
+          foundNewPrimary = true;
           break;
         }
       }
+      
+      if (!foundNewPrimary) {
+        console.log(`[MEM] No other guide found to set as primary for experience: ${guide.experienceId}`);
+      }
+    }
+    
+    // Verify deletion was successful
+    const verifyDeleted = this.experienceGuides.get(id);
+    if (verifyDeleted) {
+      console.error(`[MEM] !!! DELETION FAILED - Guide assignment still exists after deletion:`, verifyDeleted);
+      throw new Error('Guide assignment deletion failed - record still exists');
+    } else {
+      console.log(`[MEM] Guide assignment successfully deleted. Verification passed.`);
     }
   }
 
