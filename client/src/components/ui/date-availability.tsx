@@ -3,8 +3,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format, isSameDay } from "date-fns";
-import { X, CalendarRange, Trash2 } from "lucide-react";
+import { X, CalendarRange, Trash2, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface DateAvailabilityProps {
   selectedDates: Date[];
@@ -19,6 +20,10 @@ export function DateAvailability({
   onChange 
 }: DateAvailabilityProps) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
+  // State to track dates marked for batch removal
+  const [datesMarkedForRemoval, setDatesMarkedForRemoval] = React.useState<Date[]>([]);
+  // State to track if we're in batch removal mode
+  const [batchRemovalMode, setBatchRemovalMode] = React.useState<boolean>(false);
   
   // Function to add a range of dates
   const addDateRange = () => {
@@ -48,20 +53,85 @@ export function DateAvailability({
     setDateRange(undefined);
   };
   
-  // Remove a date from selection
+  // Remove a date from selection (original functionality)
   const removeDate = (dateToRemove: Date) => {
-    const updatedDates = selectedDates.filter(date => !isSameDay(date, dateToRemove));
-    onChange(updatedDates);
+    // If we're in batch removal mode, mark for removal instead of removing immediately
+    if (batchRemovalMode) {
+      toggleDateForRemoval(dateToRemove);
+    } else {
+      // Original immediate removal behavior
+      const updatedDates = selectedDates.filter(date => !isSameDay(date, dateToRemove));
+      onChange(updatedDates);
+    }
   };
   
-  // Clear all selected dates
+  // Toggle a date for batch removal
+  const toggleDateForRemoval = (date: Date) => {
+    // Check if date is already marked
+    const isMarked = datesMarkedForRemoval.some(d => isSameDay(d, date));
+    
+    if (isMarked) {
+      // Remove from marked dates
+      setDatesMarkedForRemoval(prev => 
+        prev.filter(d => !isSameDay(d, date))
+      );
+    } else {
+      // Add to marked dates
+      setDatesMarkedForRemoval(prev => [...prev, date]);
+    }
+  };
+  
+  // Execute batch removal of all marked dates
+  const removeMarkedDates = () => {
+    if (datesMarkedForRemoval.length === 0) return;
+    
+    // Remove all marked dates at once
+    const updatedDates = selectedDates.filter(date => 
+      !datesMarkedForRemoval.some(d => isSameDay(d, date))
+    );
+    
+    // Update parent state
+    onChange(updatedDates);
+    
+    // Reset batch removal state
+    setDatesMarkedForRemoval([]);
+    setBatchRemovalMode(false);
+  };
+  
+  // Toggle batch removal mode
+  const toggleBatchRemovalMode = () => {
+    setBatchRemovalMode(prev => !prev);
+    // Clear any marked dates when toggling mode off
+    if (batchRemovalMode) {
+      setDatesMarkedForRemoval([]);
+    }
+  };
+  
+  // Select all dates for removal
+  const selectAllForRemoval = () => {
+    setDatesMarkedForRemoval([...selectedDates]);
+  };
+  
+  // Clear all dates marked for removal
+  const clearMarkedDates = () => {
+    setDatesMarkedForRemoval([]);
+  };
+  
+  // Clear all selected dates (original functionality)
   const clearAllDates = () => {
     onChange([]);
+    setDatesMarkedForRemoval([]);
+    setBatchRemovalMode(false);
   };
   
   // Function to highlight selected dates in the calendar
   const isDaySelected = (day: Date) => {
     return selectedDates.some(d => isSameDay(d, day));
+  };
+  
+  // Helper to check if a date is marked for removal
+  const isDateMarkedForRemoval = (date: Date) => {
+    return datesMarkedForRemoval.some(d => isSameDay(d, date));
   };
   
   // Sort dates in ascending order
@@ -148,41 +218,106 @@ export function DateAvailability({
         
         <div className="space-y-4 flex-1">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Selected Available Dates</h3>
+            <div className="flex flex-col">
+              <h3 className="text-sm font-medium">Selected Available Dates</h3>
+              
+              {batchRemovalMode && datesMarkedForRemoval.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {datesMarkedForRemoval.length} date{datesMarkedForRemoval.length !== 1 ? 's' : ''} selected for removal
+                </p>
+              )}
+            </div>
             
-            {selectedDates.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                onClick={clearAllDates}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Clear All
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Show different actions based on mode */}
+              {batchRemovalMode ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={toggleBatchRemovalMode}
+                  >
+                    Cancel
+                  </Button>
+                  
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={removeMarkedDates}
+                    disabled={datesMarkedForRemoval.length === 0}
+                  >
+                    Remove Selected 
+                    {datesMarkedForRemoval.length > 0 && ` (${datesMarkedForRemoval.length})`}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {selectedDates.length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={toggleBatchRemovalMode}
+                    >
+                      Batch Remove
+                    </Button>
+                  )}
+                  
+                  {selectedDates.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={clearAllDates}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Clear All
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
           
           <div className="border rounded-md p-4 min-h-[200px]">
             {sortedDates.length > 0 ? (
               <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto p-1">
-                {sortedDates.map((date, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="secondary"
-                    className="flex items-center gap-1 px-2 py-1.5 h-auto"
-                  >
-                    <span className="text-xs">{format(date, 'MMM d, yyyy')}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => removeDate(date)}
+                {sortedDates.map((date, index) => {
+                  const isMarkedForRemoval = isDateMarkedForRemoval(date);
+                  
+                  return (
+                    <Badge 
+                      key={index} 
+                      variant={isMarkedForRemoval ? "destructive" : "secondary"}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1.5 h-auto transition-colors",
+                        batchRemovalMode && "cursor-pointer hover:bg-muted/80",
+                        batchRemovalMode && isMarkedForRemoval && "hover:bg-destructive/80"
+                      )}
+                      onClick={batchRemovalMode ? () => toggleDateForRemoval(date) : undefined}
                     >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                ))}
+                      <span className="text-xs">{format(date, 'MMM d, yyyy')}</span>
+                      
+                      {/* Show different icon based on mode and selection state */}
+                      {batchRemovalMode ? (
+                        isMarkedForRemoval ? (
+                          <Check className="h-3 w-3 ml-1" />
+                        ) : null
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => removeDate(date)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </Badge>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
