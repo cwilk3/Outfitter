@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -64,7 +65,9 @@ import {
   CheckCircle,
   XCircle,
   LoaderIcon,
+  ImageIcon,
 } from 'lucide-react';
+import { ImageUpload } from "@/components/ui/image-upload";
 
 // Create the location form schema
 const locationFormSchema = z.object({
@@ -74,6 +77,7 @@ const locationFormSchema = z.object({
   state: z.string().min(1, 'State is required'),
   zip: z.string().nullable(),
   description: z.string().nullable(),
+  images: z.array(z.string()).optional().default([]),
   isActive: z.boolean().default(true),
 });
 
@@ -90,6 +94,7 @@ export default function Locations() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   
   // Query to fetch all locations
   const { data: locations = [], isLoading } = useQuery<Location[]>({
@@ -106,6 +111,7 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      images: [],
       isActive: true,
     },
   });
@@ -250,9 +256,11 @@ export default function Locations() {
       state: location.state,
       zip: location.zip || '',
       description: location.description || '',
+      images: location.images || [],
       isActive: location.isActive,
     });
     setCurrentLocation(location);
+    setSelectedImages(location.images || []);
     setIsDialogOpen(true);
   }, [form]);
 
@@ -292,6 +300,24 @@ export default function Locations() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {locations.map((location: any) => (
             <Card key={location.id} className="overflow-hidden">
+              {location.images && location.images.length > 0 ? (
+                <div className="relative h-40 w-full">
+                  <img 
+                    src={location.images[0]} 
+                    alt={location.name}
+                    className="h-full w-full object-cover"
+                  />
+                  {location.images.length > 1 && (
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white rounded-full px-2 py-1 text-xs flex items-center">
+                      <ImageIcon className="h-3 w-3 mr-1" /> +{location.images.length - 1}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="h-40 w-full bg-muted flex items-center justify-center">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+              )}
               <CardHeader className="bg-muted/50">
                 <div className="flex justify-between items-start">
                   <CardTitle className="flex-1">{location.name}</CardTitle>
@@ -456,6 +482,32 @@ export default function Locations() {
                         value={field.value || ''} 
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Images</FormLabel>
+                    <FormControl>
+                      <div className="mb-4">
+                        <ImageUpload 
+                          value={selectedImages} 
+                          onChange={(urls) => {
+                            setSelectedImages(urls);
+                            field.onChange(urls);
+                          }}
+                          maxImages={5}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Upload up to 5 images of this location.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
