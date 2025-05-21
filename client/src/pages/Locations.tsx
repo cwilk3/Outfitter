@@ -365,7 +365,7 @@ export default function Locations() {
       
       {/* Location Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {formMode === 'create' ? 'Create New Location' : 'Edit Location'}
