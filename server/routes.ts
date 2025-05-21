@@ -230,6 +230,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Location Image API Endpoints
+  app.post('/api/locations/:id/images', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.id);
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ message: 'Image URL is required' });
+      }
+      
+      const updatedLocation = await storage.addLocationImage(locationId, imageUrl);
+      
+      if (!updatedLocation) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Added location image',
+        details: { locationId, name: updatedLocation.name }
+      });
+      
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error adding location image:', error);
+      res.status(500).json({ message: 'Failed to add location image' });
+    }
+  });
+  
+  app.delete('/api/locations/:id/images', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.id);
+      const { imageUrl } = req.body;
+      
+      if (!imageUrl) {
+        return res.status(400).json({ message: 'Image URL is required' });
+      }
+      
+      const updatedLocation = await storage.removeLocationImage(locationId, imageUrl);
+      
+      if (!updatedLocation) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Removed location image',
+        details: { locationId, name: updatedLocation.name }
+      });
+      
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error removing location image:', error);
+      res.status(500).json({ message: 'Failed to remove location image' });
+    }
+  });
+  
+  app.put('/api/locations/:id/images', isAuthenticated, hasRole('admin'), async (req, res) => {
+    try {
+      const locationId = parseInt(req.params.id);
+      const { images } = req.body;
+      
+      if (!Array.isArray(images)) {
+        return res.status(400).json({ message: 'Images must be an array' });
+      }
+      
+      const updatedLocation = await storage.updateLocationImages(locationId, images);
+      
+      if (!updatedLocation) {
+        return res.status(404).json({ message: 'Location not found' });
+      }
+      
+      // Log activity
+      await storage.createActivity({
+        userId: req.user?.claims?.sub || '0',
+        action: 'Updated location images',
+        details: { locationId, name: updatedLocation.name }
+      });
+      
+      res.json(updatedLocation);
+    } catch (error) {
+      console.error('Error updating location images:', error);
+      res.status(500).json({ message: 'Failed to update location images' });
+    }
+  });
+
   app.delete('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
