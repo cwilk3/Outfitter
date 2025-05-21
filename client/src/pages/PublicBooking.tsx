@@ -132,12 +132,12 @@ function PublicBooking() {
 
   
   // Helper to format prices consistently
-  const formatPrice = (price: string | number) => {
+  const formatPrice = (price: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-    }).format(typeof price === 'string' ? Number(price) : price);
+    }).format(Number(price));
   };
   
   // Handle experience selection
@@ -858,7 +858,7 @@ function PublicBooking() {
                                                   >
                                                     {addon.name}
                                                   </label>
-                                                  <span className="font-bold">{formatPrice(addon.price)}</span>
+                                                  <span className="font-bold">{formatPrice(String(addon.price))}</span>
                                                 </div>
                                                 {addon.description && (
                                                   <p className="text-sm text-gray-500 mt-1">{addon.description}</p>
@@ -1176,7 +1176,7 @@ function PublicBooking() {
                                         </span>
                                       )}
                                     </span>
-                                    <span>{formatPrice(addon.price * (addon.quantity || 1))}</span>
+                                    <span>{formatPrice(String(addon.price * (addon.quantity || 1)))}</span>
                                   </div>
                                 ))}
                               </>
