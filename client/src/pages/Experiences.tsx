@@ -709,6 +709,7 @@ export default function Experiences() {
     setAmenities([]);
     setTripIncludes([]);
     setAddons([]);
+    setDraftGuides([]);
     setCurrentStep(1);
     form.reset();
   };
@@ -1018,6 +1019,93 @@ export default function Experiences() {
             });
           }
           
+          // Process guide assignments if we're updating with draft mode
+          if (isCreating && draftGuides.length > 0 && selectedExperience) {
+            const experienceId = selectedExperience.id;
+            console.log(`Processing ${draftGuides.length} draft guides for existing experience ID ${experienceId}`);
+            
+            try {
+              // First, fetch existing guide assignments to determine what to keep or remove
+              const guidesResponse = await fetch(`/api/experiences/${experienceId}/guides`);
+              if (!guidesResponse.ok) {
+                throw new Error(`Failed to fetch current guides: ${guidesResponse.statusText}`);
+              }
+              
+              const existingGuides = await guidesResponse.json();
+              console.log("Existing guides:", existingGuides);
+              
+              // Remove guides that are no longer assigned
+              for (const existingGuide of existingGuides) {
+                // If an existing guide is not in our draft list, remove it
+                if (!draftGuides.some(g => g.guideId === existingGuide.guideId)) {
+                  console.log(`Removing guide ${existingGuide.guideId} from experience ${experienceId}`);
+                  
+                  const removeResponse = await fetch(`/api/experience-guides/${existingGuide.id}`, {
+                    method: 'DELETE'
+                  });
+                  
+                  if (!removeResponse.ok) {
+                    console.error(`Error removing guide: ${removeResponse.status}`);
+                    throw new Error(`Failed to remove guide: ${removeResponse.statusText}`);
+                  }
+                }
+              }
+              
+              // Add or update guides from draft list
+              for (const guide of draftGuides) {
+                const existingAssignment = existingGuides.find(g => g.guideId === guide.guideId);
+                
+                if (existingAssignment) {
+                  // Update existing assignment if primary status changed
+                  if (existingAssignment.isPrimary !== guide.isPrimary) {
+                    console.log(`Updating guide ${guide.guideId} primary status to ${guide.isPrimary}`);
+                    
+                    const updateResponse = await fetch(`/api/experience-guides/${existingAssignment.id}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ isPrimary: guide.isPrimary })
+                    });
+                    
+                    if (!updateResponse.ok) {
+                      console.error(`Error updating guide: ${updateResponse.status}`);
+                      throw new Error(`Failed to update guide: ${updateResponse.statusText}`);
+                    }
+                  }
+                } else {
+                  // Create new assignment
+                  console.log(`Adding new guide ${guide.guideId} to experience ${experienceId}`);
+                  
+                  const addResponse = await fetch(`/api/experiences/${experienceId}/guides`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      guideId: guide.guideId,
+                      isPrimary: guide.isPrimary
+                    })
+                  });
+                  
+                  if (!addResponse.ok) {
+                    console.error(`Error adding guide: ${addResponse.status}`);
+                    throw new Error(`Failed to add guide: ${addResponse.statusText}`);
+                  }
+                }
+              }
+              
+              console.log("Guide assignments updated successfully");
+            } catch (guidesError) {
+              console.error("Error processing guides:", guidesError);
+              toast({
+                title: "Guide Assignment Error",
+                description: `Problem processing guides: ${guidesError.message}`,
+                variant: "destructive"
+              });
+            }
+          }
+
           toast({
             title: "Success",
             description: "Experience and add-ons updated successfully",
@@ -1029,6 +1117,7 @@ export default function Experiences() {
           queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences', selectedExperience.id, 'guides'] });
           
           // Close dialog
           setIsCreating(false);
