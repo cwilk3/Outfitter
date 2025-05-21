@@ -82,14 +82,52 @@ export function DateAvailability({
             mode="range"
             selected={dateRange}
             onSelect={(range) => {
-              if (range) setDateRange(range);
+              if (range) {
+                setDateRange(range);
+                
+                // Highlight the selected range immediately visually
+                // by showing it differently from already confirmed dates
+                const rangeClass = "bg-primary/40 text-primary-foreground";
+                
+                // Add a custom modifier for the current range
+                const dayElements = document.querySelectorAll('.rdp-day');
+                dayElements.forEach(day => {
+                  // Reset any temporary selection styling
+                  day.classList.remove('temp-selected');
+                });
+                
+                // If we have a valid range, mark days as visually selected
+                if (range.from && range.to) {
+                  const start = range.from.getTime();
+                  const end = range.to.getTime();
+                  
+                  dayElements.forEach(day => {
+                    const dateAttr = day.getAttribute('data-date');
+                    if (dateAttr) {
+                      const dayDate = new Date(dateAttr);
+                      const dayTime = dayDate.getTime();
+                      
+                      if (dayTime >= start && dayTime <= end) {
+                        day.classList.add('temp-selected');
+                      }
+                    }
+                  });
+                }
+              }
             }}
             className="border rounded-md p-3"
             modifiers={{
-              selected: isDaySelected
+              selected: isDaySelected,
+              // Add a modifier for the temporary selection
+              tempSelected: (date) => {
+                if (!dateRange || !dateRange.from) return false;
+                const end = dateRange.to || dateRange.from;
+                return date >= dateRange.from && date <= end;
+              }
             }}
             modifiersClassNames={{
-              selected: "bg-primary text-primary-foreground"
+              selected: "bg-primary text-primary-foreground",
+              tempSelected: "bg-primary/40 text-primary-foreground" // Lighter primary color for temp selection
             }}
             fromDate={new Date()} // Only allow dates from today forward
             disabled={{ before: new Date() }}
