@@ -1106,6 +1106,49 @@ export default function Experiences() {
             }
           }
           
+          // Process draft guides if any exist
+          if (draftGuides.length > 0 && result) {
+            const experienceId = result.id;
+            console.log(`Processing ${draftGuides.length} draft guides for new experience ID ${experienceId}`);
+            
+            // Create each guide assignment
+            for (const guide of draftGuides) {
+              try {
+                console.log(`Assigning guide ${guide.guideId} to experience ${experienceId}, isPrimary: ${guide.isPrimary}`);
+                
+                // Direct fetch for better error visibility
+                const response = await fetch(`/api/experiences/${experienceId}/guides`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    guideId: guide.guideId,
+                    isPrimary: guide.isPrimary
+                  })
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error(`Error assigning guide: ${response.status} ${errorText}`);
+                  throw new Error(`Failed to assign guide: ${errorText}`);
+                }
+                
+                console.log(`Guide ${guide.guideId} assigned successfully`);
+              } catch (err) {
+                console.error("Error assigning guide:", err);
+                toast({
+                  title: "Guide Assignment Error",
+                  description: `Failed to assign guide: ${err.message}`,
+                  variant: "destructive"
+                });
+              }
+            }
+            
+            // Invalidate guides queries
+            queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+          }
+          
           // Step 2: Check if add-ons were already created by the server
           try {
             if (addons && addons.length > 0 && result && result.id) {
