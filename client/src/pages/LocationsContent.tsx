@@ -7,6 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@/types';
+import { ImageUpload } from '@/components/ui/image-upload';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Location form validation schema
@@ -56,6 +57,9 @@ const locationFormSchema = z.object({
   state: z.string().min(2, { message: 'State is required.' }),
   zip: z.string().optional(),
   description: z.string().optional(),
+  imageUrl: z.string().optional().nullable().refine(val => !val || val === "" || val.startsWith('http') || val.startsWith('data:'), {
+    message: 'Image URL must be a valid URL or data URL',
+  }),
   isActive: z.boolean().default(true),
   locationId: z.number().optional(), // For editing existing location
 });

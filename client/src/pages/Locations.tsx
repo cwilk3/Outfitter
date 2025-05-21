@@ -75,7 +75,9 @@ const locationFormSchema = z.object({
   state: z.string().min(1, 'State is required'),
   zip: z.string().nullable(),
   description: z.string().nullable(),
-  imageUrl: z.string().url('Must be a valid image URL').nullable(),
+  imageUrl: z.string().nullable().refine(val => !val || val.startsWith('http') || val.startsWith('data:'), {
+    message: 'Image URL must be a valid URL or data URL',
+  }),
   isActive: z.boolean().default(true),
 });
 
