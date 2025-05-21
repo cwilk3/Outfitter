@@ -1054,12 +1054,34 @@ export class MemStorage implements IStorage {
   
   // Experience Guide management methods
   async getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]> {
+    console.log(`[GUIDE_STORAGE] Fetching guides for experience ${experienceId}`);
+    
+    // Verify the experience exists
+    const experience = this.experiences.get(experienceId);
+    if (!experience) {
+      console.warn(`[GUIDE_STORAGE] Warning: Fetching guides for non-existent experience ID: ${experienceId}`);
+      return [];
+    }
+    
+    // Get all guides assigned to this experience
     const result: ExperienceGuide[] = [];
+    let count = 0;
+    
     for (const guide of this.experienceGuides.values()) {
       if (guide.experienceId === experienceId) {
         result.push(guide);
+        count++;
       }
     }
+    
+    console.log(`[GUIDE_STORAGE] Found ${count} guides assigned to experience ${experienceId} (${experience.name})`);
+    
+    // Debug logging all guides in memory to help diagnose issues
+    console.log(`[GUIDE_STORAGE] All guide assignments in memory (${this.experienceGuides.size} total):`);
+    for (const [id, guide] of this.experienceGuides.entries()) {
+      console.log(`- Guide ID: ${guide.guideId}, Experience ID: ${guide.experienceId}, Assignment ID: ${id}, Primary: ${guide.isPrimary}`);
+    }
+    
     // Sort by isPrimary (true first)
     return result.sort((a, b) => (b.isPrimary === true ? 1 : 0) - (a.isPrimary === true ? 1 : 0));
   }
