@@ -1019,8 +1019,18 @@ export default function Experiences() {
             });
           }
           
-          // Process guide assignments if we're updating with draft mode
-          if (isCreating && draftGuides.length > 0 && selectedExperience) {
+          // Temporary debug logging for guide assignments
+          console.log("DEBUG - Guide Assignment Processing:", {
+            isCreating,
+            hasDraftGuides: draftGuides.length > 0,
+            hasSelectedExperience: !!selectedExperience,
+            draftGuides,
+            experienceId: selectedExperience?.id
+          });
+          
+          // Process guide assignments if we're editing an experience with guides
+          // Removed isCreating check to ensure guides are processed during updates
+          if (draftGuides.length > 0 && selectedExperience) {
             const experienceId = selectedExperience.id;
             console.log(`Processing ${draftGuides.length} draft guides for existing experience ID ${experienceId}`);
             
