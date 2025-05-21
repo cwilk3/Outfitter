@@ -45,8 +45,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle, ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 // Location form validation schema
 const locationFormSchema = z.object({
