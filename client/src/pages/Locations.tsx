@@ -498,7 +498,7 @@ export default function Locations() {
                     <FormControl>
                       <div className="mb-4">
                         <ImageUpload 
-                          value={selectedImages} 
+                          images={selectedImages} 
                           onChange={(urls) => {
                             setSelectedImages(urls);
                             field.onChange(urls);
