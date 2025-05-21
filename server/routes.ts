@@ -1943,7 +1943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: new Date(bookingDetails.startDate),
         endDate: new Date(bookingDetails.endDate),
         status: payment?.paymentOption === 'full' ? 'paid' : 'deposit_paid',
-        totalAmount: payment?.totalAmount || experience.price,
+        totalAmount: payment?.totalAmount || experienceDetails.price,
         notes: bookingDetails.notes || ''
       });
       
@@ -1973,7 +1973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: bookingDetails.startDate,
         endDate: bookingDetails.endDate,
         guests: bookingDetails.guests,
-        totalAmount: payment?.totalAmount || experience.price,
+        totalAmount: payment?.totalAmount || experienceDetails.price,
         booking: {
           ...booking,
           customer
