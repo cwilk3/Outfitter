@@ -74,6 +74,7 @@ const locationFormSchema = z.object({
   state: z.string().min(1, 'State is required'),
   zip: z.string().nullable(),
   description: z.string().nullable(),
+  imageUrl: z.string().url('Must be a valid image URL').nullable(),
   isActive: z.boolean().default(true),
 });
 
@@ -106,6 +107,7 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      imageUrl: '',
       isActive: true,
     },
   });
@@ -234,6 +236,7 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      imageUrl: '',
       isActive: true,
     });
     setCurrentLocation(null);
@@ -250,6 +253,7 @@ export default function Locations() {
       state: location.state,
       zip: location.zip || '',
       description: location.description || '',
+      imageUrl: location.imageUrl || '',
       isActive: location.isActive,
     });
     setCurrentLocation(location);
@@ -292,6 +296,19 @@ export default function Locations() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {locations.map((location: any) => (
             <Card key={location.id} className="overflow-hidden">
+              {location.imageUrl && (
+                <div className="relative w-full h-40 overflow-hidden">
+                  <img 
+                    src={location.imageUrl} 
+                    alt={location.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://placehold.co/600x400?text=No+Image";
+                      e.currentTarget.onerror = null;
+                    }}
+                  />
+                </div>
+              )}
               <CardHeader className="bg-muted/50">
                 <div className="flex justify-between items-start">
                   <CardTitle className="flex-1">{location.name}</CardTitle>
