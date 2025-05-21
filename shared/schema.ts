@@ -69,6 +69,7 @@ export const locations = pgTable("locations", {
   state: text("state").notNull(),
   zip: text("zip"),
   description: text("description"),
+  imageUrl: text("image_url"),  // New field for location images
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
