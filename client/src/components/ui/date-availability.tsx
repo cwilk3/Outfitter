@@ -232,25 +232,54 @@ export function DateAvailability({
               {/* Show different actions based on mode */}
               {batchRemovalMode ? (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={toggleBatchRemovalMode}
-                  >
-                    Cancel
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {selectedDates.length > 0 && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={selectAllForRemoval}
+                          disabled={datesMarkedForRemoval.length === selectedDates.length}
+                        >
+                          Select All
+                        </Button>
+                        
+                        {datesMarkedForRemoval.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={clearMarkedDates}
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                   
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={removeMarkedDates}
-                    disabled={datesMarkedForRemoval.length === 0}
-                  >
-                    Remove Selected 
-                    {datesMarkedForRemoval.length > 0 && ` (${datesMarkedForRemoval.length})`}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={toggleBatchRemovalMode}
+                    >
+                      Cancel
+                    </Button>
+                    
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={removeMarkedDates}
+                      disabled={datesMarkedForRemoval.length === 0}
+                    >
+                      Remove Selected 
+                      {datesMarkedForRemoval.length > 0 && ` (${datesMarkedForRemoval.length})`}
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
