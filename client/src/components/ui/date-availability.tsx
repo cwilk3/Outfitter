@@ -87,11 +87,11 @@ export function DateAvailability({
   
   // Function to highlight selected dates in the calendar
   const isDaySelected = (day: Date) => {
-    return selectedDates.some(d => isSameDay(d, day));
+    return workingDates.some(d => isSameDay(d, day));
   };
   
   // Sort dates in ascending order
-  const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+  const sortedDates = [...workingDates].sort((a, b) => a.getTime() - b.getTime());
   
   return (
     <div className="space-y-6">
@@ -176,17 +176,19 @@ export function DateAvailability({
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium">Selected Available Dates</h3>
             
-            {selectedDates.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                onClick={clearAllDates}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Clear All
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {workingDates.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                  onClick={clearAllDates}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="border rounded-md p-4 min-h-[200px]">
@@ -217,7 +219,29 @@ export function DateAvailability({
             )}
           </div>
           
-          <div className="text-sm text-muted-foreground space-y-2">
+          {/* Save/Cancel buttons */}
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 justify-end mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={cancelChanges}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={saveChanges}
+              >
+                Save Changes
+              </Button>
+            </div>
+          )}
+          
+          <div className="text-sm text-muted-foreground space-y-2 mt-2">
             <p>
               <strong>Note:</strong> Selected dates will be shown as available for booking 
               in the customer booking calendar.
