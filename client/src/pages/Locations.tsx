@@ -7,6 +7,7 @@ import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@shared/schema';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -506,17 +507,27 @@ export default function Locations() {
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/image.jpg" 
-                        {...field} 
-                        value={field.value || ''} 
+                    <FormLabel>Location Image</FormLabel>
+                    <div className="space-y-4">
+                      <ImageUpload 
+                        onImageSelected={(url) => field.onChange(url)}
+                        currentImageUrl={field.value}
+                        maxSizeMB={2}
                       />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter a URL to an image that represents this location
-                    </p>
+                      <div className="pt-2">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Or enter an image URL manually:
+                        </p>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/image.jpg" 
+                            value={field.value || ''} 
+                            onChange={field.onChange}
+                            className="mt-1"
+                          />
+                        </FormControl>
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
