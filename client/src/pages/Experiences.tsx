@@ -586,6 +586,36 @@ export default function Experiences() {
     setSelectedExperience(experience);
     
     // Load all necessary data before showing the dialog to ensure a smooth editing experience
+    console.log("Opening edit dialog for experience:", experience);
+    
+    // Load existing guides for this experience into draftGuides state
+    if (experience.id) {
+      try {
+        console.log(`Loading guides for experience ID ${experience.id}`);
+        const response = await fetch(`/api/experiences/${experience.id}/guides`);
+        
+        if (response.ok) {
+          const guides = await response.json();
+          console.log(`Loaded ${guides.length} guides for experience:`, guides);
+          
+          // Convert API guides to draft guide format
+          const draftGuideData = guides.map(guide => ({
+            tempId: guide.id, // Use the actual ID as tempId for existing guides
+            guideId: guide.guideId,
+            isPrimary: guide.isPrimary
+          }));
+          
+          setDraftGuides(draftGuideData);
+          console.log("Set draft guides for editing:", draftGuideData);
+        } else {
+          console.error("Failed to load guides for experience:", response.statusText);
+          setDraftGuides([]);
+        }
+      } catch (error) {
+        console.error("Error loading guides:", error);
+        setDraftGuides([]);
+      }
+    }
     
     // Set locationId based on the experience's locationId or use experience-locations table for backward compatibility
     if (experience.locationId) {
