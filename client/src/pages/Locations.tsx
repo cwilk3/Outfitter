@@ -7,7 +7,6 @@ import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@shared/schema';
-import { ImageUpload } from '@/components/ui/image-upload';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -75,9 +74,6 @@ const locationFormSchema = z.object({
   state: z.string().min(1, 'State is required'),
   zip: z.string().nullable(),
   description: z.string().nullable(),
-  imageUrl: z.string().nullable().refine(val => !val || val.startsWith('http') || val.startsWith('data:'), {
-    message: 'Image URL must be a valid URL or data URL',
-  }),
   isActive: z.boolean().default(true),
 });
 
@@ -110,7 +106,6 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
-      imageUrl: '',
       isActive: true,
     },
   });
@@ -239,7 +234,6 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
-      imageUrl: '',
       isActive: true,
     });
     setCurrentLocation(null);
@@ -256,7 +250,6 @@ export default function Locations() {
       state: location.state,
       zip: location.zip || '',
       description: location.description || '',
-      imageUrl: location.imageUrl || '',
       isActive: location.isActive,
     });
     setCurrentLocation(location);
@@ -298,32 +291,10 @@ export default function Locations() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {locations.map((location: any) => (
-            <Card key={location.id} className="overflow-hidden flex flex-col h-full">
-              <div className="relative w-full h-40 overflow-hidden bg-muted">
-                {location.imageUrl ? (
-                  <img 
-                    src={location.imageUrl} 
-                    alt={location.name} 
-                    className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.src = "https://placehold.co/600x400?text=No+Image+Available";
-                      e.currentTarget.onerror = null;
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted">
-                    <div className="text-center p-4">
-                      <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground/60" />
-                      <p className="text-sm text-muted-foreground">{location.name}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <CardHeader className="bg-muted/50 pb-3">
+            <Card key={location.id} className="overflow-hidden">
+              <CardHeader className="bg-muted/50">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="flex-1 group">
-                    <span className="transition-colors group-hover:text-primary">{location.name}</span>
-                  </CardTitle>
+                  <CardTitle className="flex-1">{location.name}</CardTitle>
                   <div className="flex items-center space-x-1">
                     {location.isActive ? (
                       <span className="text-xs bg-green-100 text-green-800 rounded-full px-2 py-1 flex items-center">
@@ -336,39 +307,25 @@ export default function Locations() {
                     )}
                   </div>
                 </div>
-                <CardDescription className="flex items-center mt-1">
+                <CardDescription className="flex items-center">
                   <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
                   {location.city}, {location.state}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 pb-5 flex-grow">
+              <CardContent className="p-4">
                 {location.address && (
-                  <div className="flex items-start mb-2">
-                    <p className="text-sm text-muted-foreground">{location.address}</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">{location.address}</p>
                 )}
                 {location.description && (
-                  <div className="mt-2">
-                    <p className="text-sm line-clamp-3">{location.description}</p>
-                  </div>
+                  <p className="text-sm">{location.description}</p>
                 )}
               </CardContent>
               {isAdmin && (
-                <CardFooter className="bg-muted/30 p-4 flex justify-end space-x-2 mt-auto">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="hover:bg-primary hover:text-primary-foreground transition-colors"
-                    onClick={() => openEditDialog(location)}
-                  >
+                <CardFooter className="bg-muted/30 p-4 flex justify-end space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => openEditDialog(location)}>
                     <Pencil className="h-4 w-4 mr-1" /> Edit
                   </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    className="hover:bg-destructive/90 transition-colors" 
-                    onClick={() => openDeleteDialog(location)}
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(location)}>
                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                   </Button>
                 </CardFooter>
@@ -499,37 +456,6 @@ export default function Locations() {
                         value={field.value || ''} 
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location Image</FormLabel>
-                    <div className="space-y-4">
-                      <ImageUpload 
-                        onImageSelected={(url) => field.onChange(url)}
-                        currentImageUrl={field.value}
-                        maxSizeMB={2}
-                      />
-                      <div className="pt-2">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Or enter an image URL manually:
-                        </p>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://example.com/image.jpg" 
-                            value={field.value || ''} 
-                            onChange={field.onChange}
-                            className="mt-1"
-                          />
-                        </FormControl>
-                      </div>
-                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
