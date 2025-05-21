@@ -30,16 +30,35 @@ interface ExperienceGuide {
   updatedAt: Date | null;
 }
 
-interface ExperienceGuidesProps {
-  experienceId: number;
-  onChange?: (guides: ExperienceGuide[]) => void;
-  readOnly?: boolean;
+// For draft mode - temporary guide assignments during creation
+interface DraftGuideAssignment {
+  tempId: number; // Local identifier for draft mode
+  guideId: string;
+  isPrimary: boolean;
 }
 
-export function ExperienceGuides({ experienceId, onChange, readOnly = false }: ExperienceGuidesProps) {
+interface ExperienceGuidesProps {
+  experienceId: number;
+  onChange?: (guides: ExperienceGuide[] | DraftGuideAssignment[]) => void;
+  readOnly?: boolean;
+  draftMode?: boolean; // New prop to indicate we're in creation flow
+  initialDraftGuides?: DraftGuideAssignment[]; // For restoring draft state
+}
+
+export function ExperienceGuides({ 
+  experienceId, 
+  onChange, 
+  readOnly = false, 
+  draftMode = false,
+  initialDraftGuides = []
+}: ExperienceGuidesProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedGuideId, setSelectedGuideId] = useState<string>('');
+  
+  // For draft mode - local state for guide assignments
+  const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides);
+  const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1);
 
   // Fetch available guides with 'guide' role
   const { data: availableGuides = [] } = useQuery({
@@ -52,7 +71,7 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
     enabled: !readOnly,
   });
 
-  // Fetch currently assigned guides for this experience
+  // Fetch currently assigned guides for this experience (only in non-draft mode)
   const { 
     data: assignedGuides = [], 
     isLoading,
@@ -60,8 +79,8 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
   } = useQuery({
     queryKey: ['/api/experiences', experienceId, 'guides'],
     queryFn: async () => {
-      // Handle case for new experiences (no ID yet)
-      if (!experienceId) return [];
+      // Handle case for new experiences (no ID yet) or draft mode
+      if (!experienceId || draftMode) return [];
       
       const response = await fetch(`/api/experiences/${experienceId}/guides`);
       if (!response.ok) throw new Error('Failed to fetch assigned guides');
@@ -175,33 +194,104 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
   const handleAssignGuide = () => {
     if (!selectedGuideId) return;
     
-    // Check if guide is already assigned
-    if (assignedGuides.some((g: ExperienceGuide) => g.guideId === selectedGuideId)) {
-      toast({
-        title: 'Guide already assigned',
-        description: 'This guide is already assigned to this experience.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (draftMode) {
+      // In draft mode, add to local state instead of making API call
+      
+      // Check if guide is already assigned in draft state
+      if (draftGuides.some(g => g.guideId === selectedGuideId)) {
+        toast({
+          title: 'Guide already assigned',
+          description: 'This guide is already assigned to this experience.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Determine if this should be primary (make first guide primary by default)
+      const isPrimary = draftGuides.length === 0;
+      
+      // Create a new draft assignment with a temporary ID
+      const newDraftGuide: DraftGuideAssignment = {
+        tempId: nextTempId,
+        guideId: selectedGuideId,
+        isPrimary
+      };
+      
+      // Update local state
+      const updatedDraftGuides = [...draftGuides, newDraftGuide];
+      setDraftGuides(updatedDraftGuides);
+      setNextTempId(nextTempId + 1);
+      setSelectedGuideId('');
+      
+      // Notify parent component
+      if (onChange) {
+        onChange(updatedDraftGuides);
+      }
+    } else {
+      // In normal mode, make API call
+      
+      // Check if guide is already assigned
+      if (assignedGuides.some((g: ExperienceGuide) => g.guideId === selectedGuideId)) {
+        toast({
+          title: 'Guide already assigned',
+          description: 'This guide is already assigned to this experience.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    // Determine if this should be primary (make first guide primary by default)
-    const isPrimary = assignedGuides.length === 0;
-    
-    assignGuideMutation.mutate({ 
-      guideId: selectedGuideId, 
-      isPrimary 
-    });
+      // Determine if this should be primary (make first guide primary by default)
+      const isPrimary = assignedGuides.length === 0;
+      
+      assignGuideMutation.mutate({ 
+        guideId: selectedGuideId, 
+        isPrimary 
+      });
+    }
   };
 
   // Handle setting a guide as primary
-  const handleSetPrimary = (guideId: number) => {
-    updateGuideMutation.mutate({ id: guideId, isPrimary: true });
+  const handleSetPrimary = (id: number) => {
+    if (draftMode) {
+      // In draft mode, update local state
+      const updatedDraftGuides = draftGuides.map(guide => ({
+        ...guide,
+        isPrimary: guide.tempId === id
+      }));
+      
+      setDraftGuides(updatedDraftGuides);
+      
+      // Notify parent component
+      if (onChange) {
+        onChange(updatedDraftGuides);
+      }
+    } else {
+      // In normal mode, make API call
+      updateGuideMutation.mutate({ id, isPrimary: true });
+    }
   };
 
   // Handle removing a guide
-  const handleRemoveGuide = (guideId: number) => {
-    removeGuideMutation.mutate(guideId);
+  const handleRemoveGuide = (id: number) => {
+    if (draftMode) {
+      // In draft mode, remove from local state
+      const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== id);
+      
+      // If we removed the primary guide, make the first guide primary (if any)
+      if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
+        updatedDraftGuides[0].isPrimary = true;
+      }
+      
+      setDraftGuides(updatedDraftGuides);
+      
+      // Notify parent component
+      if (onChange) {
+        onChange(updatedDraftGuides);
+      }
+    } else {
+      // In normal mode, make API call
+      removeGuideMutation.mutate(id);
+    }
   };
 
   // Get guide name from available guides
@@ -211,16 +301,19 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
     return `${guide.firstName || ''} ${guide.lastName || ''}`.trim() || guide.email || 'No Name';
   };
 
-  // Update parent component when assigned guides change
+  // Update parent component when assigned guides change (in non-draft mode)
   useEffect(() => {
-    if (onChange) {
+    if (onChange && !draftMode) {
       onChange(assignedGuides);
     }
-  }, [assignedGuides, onChange]);
+  }, [assignedGuides, onChange, draftMode]);
 
+  // Determine which guides to display based on mode
+  const guidesToDisplay = draftMode ? draftGuides : assignedGuides;
+  
   // Filter out already assigned guides from the selection dropdown
   const availableForSelection = availableGuides.filter(
-    (guide: Guide) => !assignedGuides.some((g: ExperienceGuide) => g.guideId === guide.id)
+    (guide: Guide) => !guidesToDisplay.some((g: any) => g.guideId === guide.id)
   );
 
   return (
@@ -255,10 +348,10 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
               variant="outline" 
               size="sm" 
               onClick={handleAssignGuide} 
-              disabled={!selectedGuideId || assignGuideMutation.isPending}
+              disabled={!selectedGuideId || (!draftMode && assignGuideMutation.isPending)}
             >
               <PlusCircle className="mr-1 h-4 w-4" />
-              {assignGuideMutation.isPending ? 'Assigning...' : 'Assign'}
+              {(!draftMode && assignGuideMutation.isPending) ? 'Assigning...' : 'Assign'}
             </Button>
           </div>
         )}
@@ -267,14 +360,14 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
       <div className="space-y-2">
         <Label>Assigned Guides</Label>
         
-        {isLoading ? (
+        {(!draftMode && isLoading) ? (
           <div className="py-4 text-center text-muted-foreground">Loading guides...</div>
-        ) : assignedGuides.length === 0 ? (
+        ) : guidesToDisplay.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground">No guides assigned to this experience</div>
         ) : (
           <div className="space-y-2">
-            {assignedGuides.map((assignment: ExperienceGuide) => (
-              <Card key={assignment.id} className="overflow-hidden">
+            {guidesToDisplay.map((assignment: any) => (
+              <Card key={draftMode ? assignment.tempId : assignment.id} className="overflow-hidden">
                 <CardContent className="p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UserCheck className="h-5 w-5 text-green-600" />
@@ -293,8 +386,8 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => handleSetPrimary(assignment.id)}
-                          disabled={updateGuideMutation.isPending}
+                          onClick={() => handleSetPrimary(draftMode ? assignment.tempId : assignment.id)}
+                          disabled={!draftMode && updateGuideMutation.isPending}
                         >
                           <Star className="h-4 w-4 mr-1" />
                           Make Primary
@@ -304,8 +397,8 @@ export function ExperienceGuides({ experienceId, onChange, readOnly = false }: E
                       <Button 
                         variant="destructive" 
                         size="sm" 
-                        onClick={() => handleRemoveGuide(assignment.id)}
-                        disabled={removeGuideMutation.isPending}
+                        onClick={() => handleRemoveGuide(draftMode ? assignment.tempId : assignment.id)}
+                        disabled={!draftMode && removeGuideMutation.isPending}
                       >
                         <X className="h-4 w-4" />
                       </Button>
