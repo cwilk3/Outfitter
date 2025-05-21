@@ -546,6 +546,23 @@ export default function Locations() {
                 )}
               />
               
+              {/* Location Image Upload */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <FormLabel className="text-base">Location Images</FormLabel>
+                  <p className="text-xs text-muted-foreground">Max 5 images</p>
+                </div>
+                <LocationImageUpload 
+                  images={locationImages}
+                  onChange={setLocationImages}
+                  maxImages={5}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Upload images of the location to help customers visualize their experience.
+                  Drag and drop images or click to browse.
+                </p>
+              </div>
+              
               <DialogFooter>
                 <Button 
                   type="submit" 
