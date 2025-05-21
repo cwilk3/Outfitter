@@ -494,7 +494,7 @@ export default function LocationsContent() {
                 <FormLabel>Images</FormLabel>
                 <ImageUpload 
                   images={selectedImages} 
-                  onChange={(images) => setSelectedImages(images)} 
+                  onChange={(images: string[]) => setSelectedImages(images)} 
                   maxImages={5}
                 />
                 <p className="text-sm text-muted-foreground">
