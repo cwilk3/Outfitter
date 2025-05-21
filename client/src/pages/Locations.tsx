@@ -65,6 +65,7 @@ import {
   CheckCircle,
   XCircle,
   LoaderIcon,
+  ImagePlus,
 } from 'lucide-react';
 
 // Create the location form schema
