@@ -1874,6 +1874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/public/bookings', async (req, res) => {
     try {
       console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
+      console.log('[PUBLIC_BOOKING] Request body:', JSON.stringify(req.body, null, 2));
       
       const { 
         experienceId, 
