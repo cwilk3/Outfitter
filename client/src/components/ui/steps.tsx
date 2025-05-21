@@ -13,6 +13,14 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
   // Create array for rendering steps and connector lines
   const items = [];
   
+  // Helper function to scroll dialog content to top whenever step changes
+  const scrollDialogToTop = () => {
+    const dialogContent = document.querySelector('.dialog-content');
+    if (dialogContent) {
+      dialogContent.scrollTop = 0;
+    }
+  };
+  
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
     const isActive = currentStep >= i + 1;
@@ -28,7 +36,10 @@ export function Steps({ steps, currentStep, clickable = false, onStepClick }: St
         )}
         onClick={() => {
           if (clickable && onStepClick) {
+            // Call onStepClick to change the step
             onStepClick(i + 1);
+            // Then scroll to top (use setTimeout to ensure state has updated)
+            setTimeout(scrollDialogToTop, 0);
           }
         }}
       >

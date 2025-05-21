@@ -744,6 +744,15 @@ export default function Experiences() {
     form.reset();
   };
   
+  // Helper function to scroll dialog content to top
+  const scrollDialogToTop = () => {
+    // Find the dialog content element and scroll it to top
+    const dialogContent = document.querySelector('.dialog-content');
+    if (dialogContent) {
+      dialogContent.scrollTop = 0;
+    }
+  };
+  
   // Go to next step
   const goToNextStep = () => {
     // Validate current step before proceeding
@@ -783,13 +792,23 @@ export default function Experiences() {
       }
     }
     
-    // If we've reached here, go to the next step
-    setCurrentStep(prev => Math.min(prev + 1, 6));
+    // If we've reached here, go to the next step and scroll to top
+    setCurrentStep(prev => {
+      const newStep = Math.min(prev + 1, 6);
+      // Use setTimeout to ensure the state update happens first
+      setTimeout(scrollDialogToTop, 0);
+      return newStep;
+    });
   };
   
   // Go to previous step
   const goToPreviousStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep(prev => {
+      const newStep = Math.max(prev - 1, 1);
+      // Use setTimeout to ensure the state update happens first
+      setTimeout(scrollDialogToTop, 0);
+      return newStep;
+    });
   };
 
   // Set a single location selection
@@ -1585,7 +1604,7 @@ export default function Experiences() {
 
       {/* Experience Form Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto dialog-content">
           <DialogHeader>
             <div className="flex justify-between items-center">
               <div>
