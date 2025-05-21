@@ -205,13 +205,19 @@ export default function LocationsContent() {
 
   // Form submission handler
   const onSubmit = async (data: LocationFormValues) => {
+    // Make sure images are included from the state
+    const formData = {
+      ...data,
+      images: selectedImages
+    };
+    
     if (formMode === 'create') {
-      createMutation.mutate(data);
+      createMutation.mutate(formData);
     } else {
       const locationId = data.locationId;
       if (locationId) {
         // Remove locationId from data before updating
-        const { locationId: _, ...updateData } = data;
+        const { locationId: _, ...updateData } = formData;
         updateMutation.mutate({ id: locationId, data: updateData });
       }
     }
@@ -276,6 +282,24 @@ export default function LocationsContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {locations.map((location: Location) => (
             <Card key={location.id} className="shadow-md transition-shadow hover:shadow-lg">
+              {location.images && location.images.length > 0 ? (
+                <div className="relative h-40 w-full overflow-hidden">
+                  <img 
+                    src={location.images[0]} 
+                    alt={location.name} 
+                    className="object-cover w-full h-full"
+                  />
+                  {location.images.length > 1 && (
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs rounded-full px-2 py-1 flex items-center">
+                      <ImageIcon className="h-3 w-3 mr-1" /> +{location.images.length - 1}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="h-40 w-full bg-muted flex items-center justify-center">
+                  <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
+                </div>
+              )}
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-lg font-semibold">{location.name}</CardTitle>
@@ -465,6 +489,18 @@ export default function LocationsContent() {
                   </FormItem>
                 )}
               />
+              
+              <div className="space-y-2">
+                <FormLabel>Images</FormLabel>
+                <ImageUpload 
+                  images={selectedImages} 
+                  onChange={(images) => setSelectedImages(images)} 
+                  maxImages={5}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Upload up to 5 images of this location
+                </p>
+              </div>
 
               <DialogFooter className="mt-4 pt-2 border-t space-x-2 flex-col sm:flex-row">
                 <Button 
