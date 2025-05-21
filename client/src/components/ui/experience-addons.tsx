@@ -110,9 +110,24 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
   return (
     <div className="space-y-6">
       {/* Add-ons Form */}
-      <div className="space-y-4 p-4 border rounded-md bg-muted/20">
-        <h4 className="text-sm font-medium mb-1">
-          {editingAddonIndex !== null ? 'Edit Add-on' : 'Add New Add-on'}
+      <div className={cn(
+        "space-y-4 p-4 border rounded-md transition-colors",
+        editingAddonIndex !== null 
+          ? "bg-blue-50 border-blue-200" 
+          : "bg-muted/20"
+      )}>
+        <h4 className={cn(
+          "font-medium mb-1",
+          editingAddonIndex !== null 
+            ? "text-blue-700 text-base flex items-center" 
+            : "text-sm"
+        )}>
+          {editingAddonIndex !== null ? (
+            <>
+              <Edit className="h-4 w-4 mr-1.5" />
+              Editing: {addons[editingAddonIndex]?.name}
+            </>
+          ) : 'Add New Add-on'}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
