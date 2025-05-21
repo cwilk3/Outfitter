@@ -364,8 +364,19 @@ function PublicBooking() {
                     onClick={() => setSelectedLocation(location)}
                   >
                     {/* Image container with overlay */}
-                    <div className="relative h-56 overflow-hidden bg-gradient-to-br from-primary-700 to-gray-900">
-                      <div className="absolute inset-0 flex items-center justify-center p-6">
+                    <div className="relative h-56 overflow-hidden">
+                      {/* Display location image if available, otherwise use gradient background */}
+                      {location.images && location.images.length > 0 ? (
+                        <img 
+                          src={location.images[0]} 
+                          alt={location.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary-700 to-gray-900"></div>
+                      )}
+                      {/* Overlay with location information */}
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center p-6">
                         <div className="text-center">
                           <h3 className="text-2xl font-bold text-white mb-2">{location.name}</h3>
                           <div className="inline-flex items-center px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium text-white">
