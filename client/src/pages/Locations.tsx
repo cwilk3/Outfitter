@@ -270,6 +270,9 @@ export default function Locations() {
       updateMutation.mutate({ ...data, id: currentLocation.id });
     }
   };
+  
+  // Manage images separately
+  const [imagesDialogOpen, setImagesDialogOpen] = useState(false);
 
   // Parse stored images from location
   const parseLocationImages = useCallback((location: Location): string[] => {
@@ -400,6 +403,33 @@ export default function Locations() {
         </div>
       )}
       
+      {/* Location Images Dialog */}
+      <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle>Location Images</DialogTitle>
+            <DialogDescription>Upload images for this location to help customers visualize their experience.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="overflow-y-auto pr-1" style={{ maxHeight: "calc(85vh - 180px)" }}>
+            <LocationImageUpload 
+              images={locationImages}
+              onChange={setLocationImages}
+              maxImages={5}
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              {locationImages.length} of 5 images selected
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImagesDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Location Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
@@ -526,28 +556,7 @@ export default function Locations() {
                 )}
               />
               
-              {/* Test with a simplified version first */}
-              <div className="mt-6 mb-8 p-4 border-2 border-primary bg-primary/5 rounded-md">
-                <div className="flex justify-between items-center mb-2">
-                  <FormLabel className="text-base font-bold">Location Images</FormLabel>
-                  <p className="text-xs text-muted-foreground">Max 5 images</p>
-                </div>
-                
-                <div className="flex justify-center items-center min-h-[150px] border-2 border-dashed rounded-lg p-4">
-                  <div className="text-center">
-                    <ImagePlus className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium">Click to upload images</p>
-                    <p className="text-xs text-muted-foreground">
-                      {locationImages.length} of 5 images
-                    </p>
-                  </div>
-                </div>
-                
-                <p className="text-xs text-muted-foreground mt-2">
-                  Upload images of the location to help customers visualize their experience.
-                  (Full uploader will be enabled after testing)
-                </p>
-              </div>
+
               
               <FormField
                 control={form.control}
@@ -585,6 +594,20 @@ export default function Locations() {
                   Upload images of the location to help customers visualize their experience.
                   Drag and drop images or click to browse.
                 </p>
+              </div>
+              
+              <div className="flex flex-row gap-2 mb-4">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center" 
+                  onClick={() => setImagesDialogOpen(true)}
+                >
+                  <ImagePlus className="mr-2 h-4 w-4" />
+                  {locationImages.length > 0 ? 
+                    `Manage Images (${locationImages.length})` : 
+                    'Add Images'}
+                </Button>
               </div>
               
               <DialogFooter>

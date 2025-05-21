@@ -1,8 +1,6 @@
-import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ImagePlus, X, ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import { ImagePlus, X, Image as ImageIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface LocationImageUploadProps {
   images: string[];
@@ -10,75 +8,45 @@ interface LocationImageUploadProps {
   maxImages?: number;
 }
 
-export function LocationImageUpload({ 
-  images, 
-  onChange, 
-  maxImages = 5 
-}: LocationImageUploadProps) {
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = React.useState(false);
+// Simple base64 image conversion
+const toBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+export function LocationImageUpload({ images, onChange, maxImages = 5 }: LocationImageUploadProps) {
+  const [dragActive, setDragActive] = useState(false);
   
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(true);
-  };
-  
-  const handleDragLeave = () => {
-    setDragging(false);
-  };
-  
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
+  const handleFileChange = async (files: FileList | null) => {
+    if (!files) return;
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-  
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFiles(e.target.files);
-    }
-  };
-  
-  const handleFiles = (files: FileList) => {
-    if (images.length >= maxImages) {
-      alert(`You can only upload a maximum of ${maxImages} images for this location.`);
+    const newImages = [...images];
+    const availableSlots = maxImages - newImages.length;
+    
+    if (availableSlots <= 0) {
+      alert(`Maximum of ${maxImages} images allowed`);
       return;
     }
     
-    const newImagesCount = Math.min(files.length, maxImages - images.length);
-    const newImages: string[] = [];
+    const filesToProcess = Math.min(availableSlots, files.length);
     
-    // Process images and do basic size validation
-    for (let i = 0; i < newImagesCount; i++) {
+    for (let i = 0; i < filesToProcess; i++) {
       const file = files[i];
-      if (file.type.startsWith('image/')) {
-        // Basic file size validation (limit to 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert(`Image ${file.name} is too large. Please upload images smaller than 5MB.`);
-          continue;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push(e.target.result.toString());
-            
-            // If we've processed all files, update the state
-            if (newImages.length === newImagesCount) {
-              onChange([...images, ...newImages]);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
+      if (!file.type.startsWith('image/')) continue;
+      
+      try {
+        const base64 = await toBase64(file);
+        newImages.push(base64);
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
       }
     }
+    
+    onChange(newImages);
   };
   
   const removeImage = (index: number) => {
@@ -87,72 +55,77 @@ export function LocationImageUpload({
     onChange(newImages);
   };
   
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileChange(e.dataTransfer.files);
+    }
+  };
+  
   return (
-    <div className="space-y-4">
-      {/* Drag and Drop Area */}
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-          dragging ? "border-primary bg-primary/5" : "border-gray-300 bg-gray-50/50",
-          images.length >= maxImages && "opacity-50 pointer-events-none"
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+    <div className="space-y-4 w-full">
+      {/* Upload area */}
+      <div 
+        className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer min-h-[150px] transition-colors ${
+          dragActive ? 'border-primary bg-primary/5' : 'border-border'
+        }`}
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
         onDrop={handleDrop}
-        onClick={handleClick}
+        onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.multiple = true;
+          input.accept = 'image/*';
+          input.onchange = (e) => handleFileChange((e.target as HTMLInputElement).files);
+          input.click();
+        }}
       >
-        <div className="flex flex-col items-center justify-center">
-          <ImagePlus className="h-10 w-10 text-gray-400 mb-2" />
-          <p className="text-sm font-medium mb-1">
-            {images.length >= maxImages ? (
-              <span className="text-muted-foreground">Maximum location images reached</span>
-            ) : (
-              <span>
-                Drag &amp; drop location images here or <span className="text-primary">browse</span>
-              </span>
-            )}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {images.length} of {maxImages} location images
-          </p>
-        </div>
-        <Input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-          disabled={images.length >= maxImages}
-        />
+        <ImagePlus className="h-10 w-10 mb-2 text-muted-foreground" />
+        <p className="text-sm font-medium">Drag images here or click to browse</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {images.length} of {maxImages} images
+        </p>
       </div>
       
-      {/* Image Preview */}
+      {/* Image preview grid */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {images.map((img, index) => (
-            <div 
-              key={index} 
-              className="relative group aspect-square overflow-hidden rounded-md border"
-            >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+          {images.map((image, index) => (
+            <div key={index} className="relative group aspect-square">
               <img 
-                src={img} 
+                src={image} 
                 alt={`Location image ${index + 1}`} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-md" 
               />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-8 w-8 rounded-full bg-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeImage(index);
-                  }}
-                >
-                  <X className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeImage(index);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
             </div>
           ))}
         </div>
