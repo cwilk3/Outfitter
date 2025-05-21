@@ -323,9 +323,9 @@ export function ExperienceGuides({
         onSuccess: () => {
           console.log(`[CLIENT] Guide removal success for ID ${id}`);
           
-          // Perform an eager update of the UI
-          const updatedGuides = assignedGuides.filter(g => g.id !== id);
-          setAssignedGuides(updatedGuides);
+          // Perform an eager update of the UI - just log for now since we rely on refetch
+          console.log(`[CLIENT] Would filter out guide with ID ${id} from current list:`, 
+                      assignedGuides.filter((g: ExperienceGuide) => g.id !== id));
           
           // After a short delay, force a complete refresh to ensure sync with server
           setTimeout(() => {
