@@ -1765,6 +1765,69 @@ export class MemStorage implements IStorage {
     return locations.sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  // Location image operations
+  async addLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined> {
+    const location = this.locations.get(locationId);
+    if (!location) return undefined;
+    
+    // Parse current images or initialize empty array
+    const currentImages = location.images ? JSON.parse(location.images.toString()) : [];
+    
+    // Add the new image if it doesn't already exist
+    if (!currentImages.includes(imageUrl)) {
+      const updatedImages = [...currentImages, imageUrl];
+      
+      // Update the location with the new images array
+      const updatedLocation = {
+        ...location,
+        images: JSON.stringify(updatedImages),
+        updatedAt: new Date()
+      };
+      
+      this.locations.set(locationId, updatedLocation);
+      return updatedLocation;
+    }
+    
+    return location;
+  }
+  
+  async removeLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined> {
+    const location = this.locations.get(locationId);
+    if (!location) return undefined;
+    
+    // Parse current images or return if no images
+    const currentImages = location.images ? JSON.parse(location.images.toString()) : [];
+    if (currentImages.length === 0) return location;
+    
+    // Filter out the image to remove
+    const updatedImages = currentImages.filter((url: string) => url !== imageUrl);
+    
+    // Update the location with the filtered images array
+    const updatedLocation = {
+      ...location,
+      images: JSON.stringify(updatedImages),
+      updatedAt: new Date()
+    };
+    
+    this.locations.set(locationId, updatedLocation);
+    return updatedLocation;
+  }
+  
+  async updateLocationImages(locationId: number, images: string[]): Promise<Location | undefined> {
+    const location = this.locations.get(locationId);
+    if (!location) return undefined;
+    
+    // Update the location with the new images array
+    const updatedLocation = {
+      ...location,
+      images: JSON.stringify(images),
+      updatedAt: new Date()
+    };
+    
+    this.locations.set(locationId, updatedLocation);
+    return updatedLocation;
+  }
+
   // Experience operations
   async getExperience(id: number): Promise<Experience | undefined> {
     return this.experiences.get(id);
