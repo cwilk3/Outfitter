@@ -3,7 +3,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format, isSameDay } from "date-fns";
-import { X, CalendarRange, Trash2, Save, RotateCcw } from "lucide-react";
+import { X, CalendarRange, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface DateAvailabilityProps {
@@ -19,18 +19,6 @@ export function DateAvailability({
   onChange 
 }: DateAvailabilityProps) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
-  // Create a working copy of selected dates - completely separate from parent state
-  const [workingDates, setWorkingDates] = React.useState<Date[]>([]);
-  // Track if we have unsaved changes
-  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-  
-  // Initialize workingDates when component mounts or selectedDates changes
-  React.useEffect(() => {
-    // Deep copy of dates to ensure we're not sharing references
-    const datesCopy = selectedDates.map(date => new Date(date.getTime()));
-    setWorkingDates(datesCopy);
-    setHasUnsavedChanges(false);
-  }, [selectedDates]);
   
   // Function to add a range of dates
   const addDateRange = () => {
@@ -43,8 +31,8 @@ export function DateAvailability({
     let currentDate = new Date(dateRange.from);
     
     while (currentDate <= endDate) {
-      // Check if date is not already in workingDates
-      const exists = workingDates.some(d => isSameDay(d, currentDate));
+      // Check if date is not already in selectedDates
+      const exists = selectedDates.some(d => isSameDay(d, currentDate));
       
       if (!exists) {
         newDates.push(new Date(currentDate));
@@ -53,56 +41,31 @@ export function DateAvailability({
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    // Add the new dates to the selection (but don't save yet)
-    const updatedDates = [...workingDates, ...newDates];
-    setWorkingDates(updatedDates);
-    setHasUnsavedChanges(true);
+    // Add the new dates to the selection
+    onChange([...selectedDates, ...newDates]);
     
     // Reset the range
     setDateRange(undefined);
   };
   
-  // Remove a date from selection (but don't save yet)
+  // Remove a date from selection
   const removeDate = (dateToRemove: Date) => {
-    // Use isSameDay to match dates since times might differ
-    const updatedDates = workingDates.filter(date => !isSameDay(date, dateToRemove));
-    setWorkingDates(updatedDates);
-    setHasUnsavedChanges(true);
-  };
-  
-  // Save changes back to parent component
-  const saveChanges = (e: React.MouseEvent) => {
-    // Stop event propagation to prevent dialog closing
-    e.stopPropagation();
-    onChange(workingDates);
-    setHasUnsavedChanges(false);
-  };
-  
-  // Cancel changes and revert to original dates
-  const cancelChanges = (e: React.MouseEvent) => {
-    // Stop event propagation to prevent dialog closing
-    e.stopPropagation();
-    // Deep copy of dates to ensure we're not sharing references
-    const datesCopy = selectedDates.map(date => new Date(date.getTime()));
-    setWorkingDates(datesCopy);
-    setHasUnsavedChanges(false);
+    const updatedDates = selectedDates.filter(date => !isSameDay(date, dateToRemove));
+    onChange(updatedDates);
   };
   
   // Clear all selected dates
-  const clearAllDates = (e: React.MouseEvent) => {
-    // Stop event propagation to prevent dialog closing
-    e.stopPropagation();
-    setWorkingDates([]);
-    setHasUnsavedChanges(true);
+  const clearAllDates = () => {
+    onChange([]);
   };
   
   // Function to highlight selected dates in the calendar
   const isDaySelected = (day: Date) => {
-    return workingDates.some(d => isSameDay(d, day));
+    return selectedDates.some(d => isSameDay(d, day));
   };
   
   // Sort dates in ascending order
-  const sortedDates = [...workingDates].sort((a, b) => a.getTime() - b.getTime());
+  const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
   
   return (
     <div className="space-y-6">
@@ -185,29 +148,19 @@ export function DateAvailability({
         
         <div className="space-y-4 flex-1">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-              <h3 className="text-sm font-medium">Selected Available Dates</h3>
-              
-              {hasUnsavedChanges && (
-                <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">
-                  MODIFIED
-                </span>
-              )}
-            </div>
+            <h3 className="text-sm font-medium">Selected Available Dates</h3>
             
-            <div className="flex items-center gap-2">
-              {workingDates.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                  onClick={clearAllDates}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Clear All
-                </Button>
-              )}
-            </div>
+            {selectedDates.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                onClick={clearAllDates}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Clear All
+              </Button>
+            )}
           </div>
           
           <div className="border rounded-md p-4 min-h-[200px]">
@@ -238,36 +191,7 @@ export function DateAvailability({
             )}
           </div>
           
-          {/* Save/Cancel buttons */}
-          {hasUnsavedChanges && (
-            <div className="flex items-center gap-2 justify-end mt-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-              <div className="mr-auto text-xs text-blue-700">
-                <span className="font-medium">Unsaved changes.</span> Apply or discard your date changes.
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={cancelChanges}
-                className="bg-white hover:bg-gray-50"
-              >
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                onClick={saveChanges}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Save className="h-3.5 w-3.5 mr-1.5" />
-                Save Changes
-              </Button>
-            </div>
-          )}
-          
-          <div className="text-sm text-muted-foreground space-y-2 mt-2">
+          <div className="text-sm text-muted-foreground space-y-2">
             <p>
               <strong>Note:</strong> Selected dates will be shown as available for booking 
               in the customer booking calendar.
