@@ -21,7 +21,6 @@ export interface Location {
   state: string;
   zip?: string;
   description?: string;
-  imageUrl?: string;  // New field for location images
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
