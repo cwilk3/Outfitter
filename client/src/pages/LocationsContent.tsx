@@ -461,6 +461,37 @@ export default function LocationsContent() {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Image</FormLabel>
+                    <div className="space-y-4">
+                      <ImageUpload 
+                        onImageSelected={(url) => field.onChange(url)}
+                        currentImageUrl={field.value}
+                        maxSizeMB={2}
+                      />
+                      <div className="pt-2">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Or enter an image URL manually:
+                        </p>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/image.jpg" 
+                            value={field.value || ''} 
+                            onChange={field.onChange}
+                            className="mt-1"
+                          />
+                        </FormControl>
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter className="mt-4 pt-2 border-t space-x-2 flex-col sm:flex-row">
                 <Button 
