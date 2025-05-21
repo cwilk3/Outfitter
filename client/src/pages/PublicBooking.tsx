@@ -1230,11 +1230,11 @@ function PublicBooking() {
             <div className="p-4 bg-green-50 rounded-md my-4">
               <h4 className="font-medium text-green-800">Booking Details</h4>
               <div className="mt-2 text-sm text-green-700 space-y-1">
-                <p>Booking Number: <span className="font-mono">{bookingConfirmation.bookingNumber}</span></p>
-                <p>Experience: {bookingConfirmation.experienceName}</p>
-                <p>Dates: {bookingConfirmation.startDate} - {bookingConfirmation.endDate}</p>
-                <p>Guests: {bookingConfirmation.guests}</p>
-                <p>Total: {formatPrice(bookingConfirmation.totalAmount)}</p>
+                <p>Booking Number: <span className="font-mono">{bookingConfirmation.bookingNumber || (bookingConfirmation.booking && bookingConfirmation.booking.bookingNumber) || 'N/A'}</span></p>
+                <p>Experience: {bookingConfirmation.experienceName || (bookingConfirmation.booking && selectedExperience.name) || selectedExperience.name}</p>
+                <p>Dates: {form.getValues().dateRange?.from ? format(form.getValues().dateRange.from, 'MMM d, yyyy') : ''} - {form.getValues().dateRange?.to ? format(form.getValues().dateRange.to, 'MMM d, yyyy') : ''}</p>
+                <p>Guests: {form.getValues().guests || 0}</p>
+                <p>Total: {formatPrice(summary.total.toString())}</p>
               </div>
             </div>
           )}
