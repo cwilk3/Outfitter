@@ -401,7 +401,7 @@ export default function Locations() {
       
       {/* Location Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {formMode === 'create' ? 'Create New Location' : 'Edit Location'}
@@ -413,9 +413,8 @@ export default function Locations() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="overflow-y-auto pr-1" style={{ maxHeight: "calc(80vh - 180px)" }}>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(90vh - 180px)" }}>
               <FormField
                 control={form.control}
                 name="name"
@@ -526,20 +525,26 @@ export default function Locations() {
                 )}
               />
               
-              {/* Location Image Upload - Repositioned After Description */}
-              <div className="space-y-2 border-2 border-red-500 bg-red-50 p-4 my-6 rounded-md">
-                <div className="flex justify-between items-center">
+              {/* Test with a simplified version first */}
+              <div className="mt-6 mb-8 p-4 border-2 border-primary bg-primary/5 rounded-md">
+                <div className="flex justify-between items-center mb-2">
                   <FormLabel className="text-base font-bold">Location Images</FormLabel>
                   <p className="text-xs text-muted-foreground">Max 5 images</p>
                 </div>
-                <LocationImageUpload 
-                  images={locationImages}
-                  onChange={setLocationImages}
-                  maxImages={5}
-                />
+                
+                <div className="flex justify-center items-center min-h-[150px] border-2 border-dashed rounded-lg p-4">
+                  <div className="text-center">
+                    <ImagePlus className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium">Click to upload images</p>
+                    <p className="text-xs text-muted-foreground">
+                      {locationImages.length} of 5 images
+                    </p>
+                  </div>
+                </div>
+                
                 <p className="text-xs text-muted-foreground mt-2">
                   Upload images of the location to help customers visualize their experience.
-                  Drag and drop images or click to browse.
+                  (Full uploader will be enabled after testing)
                 </p>
               </div>
               
