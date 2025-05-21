@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,7 @@ import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@shared/schema';
+import { LocationImageUpload } from '@/components/ui/location-image-upload';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -90,6 +91,7 @@ export default function Locations() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
+  const [locationImages, setLocationImages] = useState<string[]>([]);
   
   // Query to fetch all locations
   const { data: locations = [], isLoading } = useQuery<Location[]>({
@@ -113,6 +115,7 @@ export default function Locations() {
   // Create location mutation
   const createMutation = useMutation({
     mutationFn: async (data: LocationFormValues) => {
+      // First create the location
       const response = await fetch('/api/locations', {
         method: 'POST',
         headers: {
@@ -126,7 +129,28 @@ export default function Locations() {
         throw new ApiError(error.message, error);
       }
       
-      return await response.json();
+      const newLocation = await response.json();
+      
+      // Then upload images if there are any
+      if (locationImages.length > 0) {
+        const imagesResponse = await fetch(`/api/locations/${newLocation.id}/images`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ images: locationImages }),
+        });
+        
+        if (!imagesResponse.ok) {
+          toast({
+            title: 'Warning',
+            description: 'Location created, but failed to upload images.',
+            variant: 'destructive',
+          });
+        }
+      }
+      
+      return newLocation;
     },
     onSuccess: () => {
       toast({
@@ -136,6 +160,7 @@ export default function Locations() {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
       setIsDialogOpen(false);
       form.reset();
+      setLocationImages([]);
     },
     onError: (error: Error) => {
       toast({
@@ -150,6 +175,8 @@ export default function Locations() {
   const updateMutation = useMutation({
     mutationFn: async (data: LocationFormValues & { id: number }) => {
       const { id, ...locationData } = data;
+      
+      // First update the location details
       const response = await fetch(`/api/locations/${id}`, {
         method: 'PATCH',
         headers: {
@@ -163,7 +190,26 @@ export default function Locations() {
         throw new ApiError(error.message, error);
       }
       
-      return await response.json();
+      const updatedLocation = await response.json();
+      
+      // Then update images if there are any changes
+      const imagesResponse = await fetch(`/api/locations/${id}/images`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ images: locationImages }),
+      });
+      
+      if (!imagesResponse.ok) {
+        toast({
+          title: 'Warning',
+          description: 'Location updated, but failed to update images.',
+          variant: 'destructive',
+        });
+      }
+      
+      return updatedLocation;
     },
     onSuccess: () => {
       toast({
@@ -224,6 +270,18 @@ export default function Locations() {
     }
   };
 
+  // Parse stored images from location
+  const parseLocationImages = useCallback((location: Location): string[] => {
+    if (!location.images) return [];
+    try {
+      const images = JSON.parse(location.images.toString());
+      return Array.isArray(images) ? images : [];
+    } catch (e) {
+      console.error("Error parsing location images:", e);
+      return [];
+    }
+  }, []);
+
   // Open dialog for creating a new location
   const openCreateDialog = useCallback(() => {
     setFormMode('create');
@@ -236,6 +294,7 @@ export default function Locations() {
       description: '',
       isActive: true,
     });
+    setLocationImages([]);
     setCurrentLocation(null);
     setIsDialogOpen(true);
   }, [form]);
@@ -252,9 +311,14 @@ export default function Locations() {
       description: location.description || '',
       isActive: location.isActive,
     });
+    
+    // Parse and load existing images
+    const existingImages = parseLocationImages(location);
+    setLocationImages(existingImages);
+    
     setCurrentLocation(location);
     setIsDialogOpen(true);
-  }, [form]);
+  }, [form, parseLocationImages]);
 
   // Open delete confirmation dialog
   const openDeleteDialog = useCallback((location: Location) => {
