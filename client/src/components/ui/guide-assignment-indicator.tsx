@@ -1,7 +1,6 @@
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { User, BadgeCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { User, BadgeCheck, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ExperienceGuide } from "@/types";
@@ -9,24 +8,85 @@ import { ExperienceGuide } from "@/types";
 interface GuideAssignmentIndicatorProps {
   experienceId: number;
   showEmpty?: boolean;
+  experienceName?: string;
 }
 
-export function GuideAssignmentIndicator({ experienceId, showEmpty = false }: GuideAssignmentIndicatorProps) {
-  // Fetch guide assignments for this experience
-  const { data: guideAssignments = [], isLoading, isError } = useQuery<ExperienceGuide[]>({
+export function GuideAssignmentIndicator({ 
+  experienceId, 
+  showEmpty = false,
+  experienceName 
+}: GuideAssignmentIndicatorProps) {
+  const queryClient = useQueryClient();
+  const [retryCount, setRetryCount] = useState(0);
+  const [manualRefresh, setManualRefresh] = useState(false);
+  
+  // Enhanced query with more aggressive retry logic for in-memory storage
+  const { 
+    data: guideAssignments = [], 
+    isLoading, 
+    isError,
+    refetch,
+    error
+  } = useQuery<ExperienceGuide[]>({
     queryKey: ['/api/experiences', experienceId, 'guides'],
     queryFn: async () => {
+      console.log(`[GUIDE_INDICATOR] Fetching guides for experience ${experienceId}${experienceName ? ` (${experienceName})` : ''}`);
       try {
         const response = await fetch(`/api/experiences/${experienceId}/guides`);
-        if (!response.ok) return [];
-        return response.json();
+        if (!response.ok) {
+          console.warn(`[GUIDE_INDICATOR] Guide fetch failed with status: ${response.status}`);
+          return [];
+        }
+        const guides = await response.json();
+        console.log(`[GUIDE_INDICATOR] Fetched ${guides.length} guides for experience ${experienceId}`, guides);
+        return guides;
       } catch (error) {
-        console.error('Error fetching guide assignments:', error);
+        console.error(`[GUIDE_INDICATOR] Error fetching guide assignments for experience ${experienceId}:`, error);
         return [];
       }
     },
-    retry: false,
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 10000, // Shorter stale time to ensure fresher data
   });
+
+  // For in-memory storage, we'll implement a more aggressive refetch strategy
+  useEffect(() => {
+    // When the component mounts or experienceId changes, try to fetch multiple times
+    // This helps with in-memory storage inconsistencies
+    let timeoutId: NodeJS.Timeout;
+    
+    const performRefetch = () => {
+      if (retryCount < 3) {
+        timeoutId = setTimeout(() => {
+          console.log(`[GUIDE_INDICATOR] Auto-refetching guides attempt ${retryCount + 1}`);
+          refetch();
+          setRetryCount(prev => prev + 1);
+        }, 500 * (retryCount + 1)); // Increasing backoff
+      }
+    };
+    
+    if (retryCount === 0 || manualRefresh) {
+      performRefetch();
+      setManualRefresh(false);
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [experienceId, retryCount, refetch, manualRefresh]);
+
+  // Manual refresh handler
+  const handleManualRefresh = () => {
+    console.log(`[GUIDE_INDICATOR] Manual refresh triggered for experience ${experienceId}`);
+    setRetryCount(0);
+    setManualRefresh(true);
+    
+    // Also invalidate all related queries to force fresh data
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId] });
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+  };
 
   // Show nothing if no guides assigned and showEmpty is false
   if (guideAssignments.length === 0 && !showEmpty) {
@@ -78,15 +138,50 @@ export function GuideAssignmentIndicator({ experienceId, showEmpty = false }: Gu
         <span className="text-xs text-gray-500 ml-1">
           {guideAssignments.length} {guideAssignments.length === 1 ? 'guide' : 'guides'} assigned
         </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button 
+                onClick={handleManualRefresh} 
+                className="ml-1 p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <RefreshCw className="h-3 w-3 text-gray-400" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              <p>Refresh guide assignments</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }
 
-  // Show empty state
+  // Show empty state with refresh button
   return (
     <div className="flex items-center mt-2">
       <User className="h-3.5 w-3.5 text-gray-300 mr-1.5" />
       <span className="text-xs text-gray-300">No guides assigned</span>
+      {isError && (
+        <span className="text-xs text-red-400 ml-1">
+          (Error loading)
+        </span>
+      )}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={handleManualRefresh} 
+              className="ml-1 p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <RefreshCw className="h-3 w-3 text-gray-400" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            <p>Refresh guide assignments</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }
