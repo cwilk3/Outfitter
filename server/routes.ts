@@ -1887,10 +1887,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required booking information' });
       }
       
+      // Get experience details to calculate price and locationId
+      const experienceDetails = await storage.getExperience(parseInt(experienceId));
+      if (!experienceDetails) {
+        return res.status(404).json({ message: 'Experience not found' });
+      }
+      
+      // Get the locationId from the experience
+      let locationId = experienceDetails.locationId;
+      
+      console.log('[PUBLIC_BOOKING] Retrieved experience:', JSON.stringify({
+        id: experienceDetails.id,
+        name: experienceDetails.name,
+        locationId: locationId
+      }, null, 2));
+      
       // Extract data from the frontend format and transform to the format expected by our backend
       const bookingData = {
         experienceId: experienceId,
-        locationId: bookingDetails.locationId || experienceId, // Default to experienceId if not specified
+        locationId: locationId, // Use the locationId from the experience
         startDate: bookingDetails.startDate,
         endDate: bookingDetails.endDate,
         customerName: `${customerDetails.firstName} ${customerDetails.lastName}`,
@@ -1902,12 +1917,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       console.log('[PUBLIC_BOOKING] Transformed booking data:', JSON.stringify(bookingData, null, 2));
-      
-      // Get experience details to calculate price
-      const experience = await storage.getExperience(parseInt(experienceId));
-      if (!experience) {
-        return res.status(404).json({ message: 'Experience not found' });
-      }
       
       // Create or get customer
       let customer = await storage.listCustomers(customerDetails.email)
