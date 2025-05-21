@@ -21,6 +21,7 @@ export interface Location {
   state: string;
   zip?: string;
   description?: string;
+  images?: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

@@ -57,6 +57,7 @@ const locationFormSchema = z.object({
   state: z.string().min(2, { message: 'State is required.' }),
   zip: z.string().optional(),
   description: z.string().optional(),
+  images: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
   locationId: z.number().optional(), // For editing existing location
 });
@@ -71,6 +72,7 @@ export default function LocationsContent() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   // Fetch locations
   const { data: locations = [], isLoading, error } = useQuery<Location[]>({
@@ -87,6 +89,7 @@ export default function LocationsContent() {
       state: '',
       zip: '',
       description: '',
+      images: [],
       isActive: true,
     },
   });
@@ -169,8 +172,10 @@ export default function LocationsContent() {
       state: '',
       zip: '',
       description: '',
+      images: [],
       isActive: true,
     });
+    setSelectedImages([]);
     setIsDialogOpen(true);
   };
 
@@ -184,9 +189,11 @@ export default function LocationsContent() {
       state: location.state,
       zip: location.zip || '',
       description: location.description || '',
+      images: location.images || [],
       isActive: location.isActive,
       locationId: location.id,
     });
+    setSelectedImages(location.images || []);
     setIsDialogOpen(true);
   };
 
