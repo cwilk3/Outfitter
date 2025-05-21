@@ -177,8 +177,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/locations', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
+      console.log('[LOCATION_CREATE] Request body:', JSON.stringify(req.body, null, 2));
+      
+      // Check if images is an array
+      if (req.body.images && !Array.isArray(req.body.images)) {
+        console.log('[LOCATION_CREATE] Images is not an array, converting:', req.body.images);
+        // Try to parse it if it's a string
+        try {
+          req.body.images = JSON.parse(req.body.images);
+        } catch (e) {
+          console.log('[LOCATION_CREATE] Failed to parse images:', e);
+          // If cannot parse, default to empty array
+          req.body.images = [];
+        }
+      }
+      
       const validatedData = insertLocationSchema.parse(req.body);
+      
+      console.log('[LOCATION_CREATE] Validated data:', JSON.stringify(validatedData, null, 2));
+      
       const location = await storage.createLocation(validatedData);
+      
+      console.log('[LOCATION_CREATE] Created location:', JSON.stringify(location, null, 2));
       
       // Log activity
       await storage.createActivity({
@@ -202,14 +222,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      console.log('[LOCATION_UPDATE] Request body:', JSON.stringify(req.body, null, 2));
+      
+      // Check if images is an array
+      if (req.body.images && !Array.isArray(req.body.images)) {
+        console.log('[LOCATION_UPDATE] Images is not an array, converting:', req.body.images);
+        // Try to parse it if it's a string
+        try {
+          req.body.images = JSON.parse(req.body.images);
+        } catch (e) {
+          console.log('[LOCATION_UPDATE] Failed to parse images:', e);
+          // If cannot parse, default to empty array
+          req.body.images = [];
+        }
+      }
+      
       // Allowing partial updates
       const validatedData = insertLocationSchema.partial().parse(req.body);
+      
+      console.log('[LOCATION_UPDATE] Validated data:', JSON.stringify(validatedData, null, 2));
       
       const updatedLocation = await storage.updateLocation(id, validatedData);
       
       if (!updatedLocation) {
         return res.status(404).json({ message: 'Location not found' });
       }
+      
+      console.log('[LOCATION_UPDATE] Updated location:', JSON.stringify(updatedLocation, null, 2));
       
       // Log activity
       await storage.createActivity({
