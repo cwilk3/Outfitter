@@ -259,7 +259,7 @@ function PublicBooking() {
         }
       };
       
-      const response = await apiRequest('/api/public/bookings', 'POST', bookingData);
+      const response = await apiRequest('POST', '/api/public/bookings', bookingData);
       
       if (response.ok) {
         const bookingConfirmation = await response.json();
