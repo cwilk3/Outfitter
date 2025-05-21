@@ -50,6 +50,14 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
     setInventory(addon.inventory || 0);
     setMaxPerBooking(addon.maxPerBooking || 1);
     setEditingAddonIndex(index);
+    
+    // Scroll to the top of the dialog content to show the form
+    setTimeout(() => {
+      const dialogContent = document.querySelector('.dialog-content');
+      if (dialogContent) {
+        dialogContent.scrollTop = 0;
+      }
+    }, 0);
   };
   
   const updateAddon = () => {
