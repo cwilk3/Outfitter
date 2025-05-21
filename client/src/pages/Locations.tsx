@@ -547,10 +547,10 @@ export default function Locations() {
                 )}
               />
               
-              {/* Location Image Upload */}
-              <div className="space-y-2">
+              {/* Location Image Upload - DEBUG VERSION */}
+              <div className="space-y-2 border-2 border-red-500 bg-red-50 p-4 my-6 rounded-md">
                 <div className="flex justify-between items-center">
-                  <FormLabel className="text-base">Location Images</FormLabel>
+                  <FormLabel className="text-base font-bold">LOCATION IMAGES - DEBUG</FormLabel>
                   <p className="text-xs text-muted-foreground">Max 5 images</p>
                 </div>
                 <LocationImageUpload 
