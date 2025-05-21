@@ -753,7 +753,7 @@ export default function Experiences() {
     }
     
     // If we've reached here, go to the next step
-    setCurrentStep(prev => Math.min(prev + 1, 5));
+    setCurrentStep(prev => Math.min(prev + 1, 6));
   };
   
   // Go to previous step
