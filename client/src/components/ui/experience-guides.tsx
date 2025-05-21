@@ -174,16 +174,20 @@ export function ExperienceGuides({
         throw new Error(`Failed to remove guide: ${errorText || response.statusText}`);
       }
       
-      return response.json();
+      // Success - return the ID that was deleted since the endpoint returns 204 No Content
+      return id;
     },
-    onSuccess: (data, variables) => {
-      console.log(`Guide assignment ${variables} successfully removed`);
+    onSuccess: (deletedId) => {
+      console.log(`Guide assignment ${deletedId} successfully removed`);
       
-      // Force invalidate and refetch to ensure UI is updated
+      // Force invalidate all related queries to ensure UI consistency
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
       
-      // Explicitly refetch to ensure UI is updated immediately
-      refetchAssignedGuides();
+      // Wait a moment then explicitly refetch to ensure UI is updated immediately
+      setTimeout(() => {
+        refetchAssignedGuides();
+      }, 100);
       
       toast({
         title: 'Guide removed',
@@ -303,7 +307,7 @@ export function ExperienceGuides({
       console.log(`Removing guide with ID ${id} in normal mode`);
       
       // Find the guide being removed from current assignments (for better logging)
-      const guideBeingRemoved = assignedGuides.find(g => g.id === id);
+      const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
       if (guideBeingRemoved) {
         console.log(`Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
       }
