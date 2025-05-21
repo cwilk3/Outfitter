@@ -108,7 +108,7 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dialog-content">
       {/* Add-ons Form */}
       <div className={cn(
         "space-y-4 p-4 border rounded-md transition-colors",
@@ -311,7 +311,13 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
                     variant="ghost" 
                     size="icon"
                     className="text-muted-foreground hover:text-blue-600 h-8 w-8"
-                    onClick={() => startEditingAddon(index)}
+                    onClick={(e) => {
+                      // Prevent event bubbling to parent elements
+                      e.stopPropagation();
+                      e.preventDefault();
+                      startEditingAddon(index);
+                    }}
+                    type="button"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -319,7 +325,13 @@ export function ExperienceAddons({ addons = [], onChange }: ExperienceAddonsProp
                     variant="ghost" 
                     size="icon"
                     className="text-muted-foreground hover:text-destructive h-8 w-8"
-                    onClick={() => removeAddon(index)}
+                    onClick={(e) => {
+                      // Prevent event bubbling to parent elements
+                      e.stopPropagation();
+                      e.preventDefault();
+                      removeAddon(index);
+                    }}
+                    type="button"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
