@@ -1232,9 +1232,25 @@ function PublicBooking() {
               <div className="mt-2 text-sm text-green-700 space-y-1">
                 <p>Booking Number: <span className="font-mono">{bookingConfirmation.bookingNumber || (bookingConfirmation.booking && bookingConfirmation.booking.bookingNumber) || 'N/A'}</span></p>
                 <p>Experience: {bookingConfirmation.experienceName || (bookingConfirmation.booking && selectedExperience.name) || selectedExperience.name}</p>
+                <p>Location: {selectedLocation ? `${selectedLocation.name}, ${selectedLocation.city}, ${selectedLocation.state}` : (selectedExperience.locations && selectedExperience.locations.length > 0 ? `${selectedExperience.locations[0].name}, ${selectedExperience.locations[0].city}` : 'Not specified')}</p>
                 <p>Dates: {form.getValues().dateRange?.from ? format(form.getValues().dateRange.from, 'MMM d, yyyy') : ''} - {form.getValues().dateRange?.to ? format(form.getValues().dateRange.to, 'MMM d, yyyy') : ''}</p>
                 <p>Guests: {form.getValues().guests || 0}</p>
-                <p>Total: {bookingConfirmation.totalAmount ? formatPrice(bookingConfirmation.totalAmount) : formatPrice(form.getValues().payment?.totalAmount || '')}</p>
+                
+                {/* Add-ons section */}
+                {form.getValues().selectedAddons && form.getValues().selectedAddons.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium border-t border-green-200 pt-1">Add-ons:</p>
+                    <ul className="list-disc pl-5 text-xs">
+                      {form.getValues().selectedAddons.map((addon, index) => (
+                        <li key={index}>
+                          {addon.name} - {addon.quantity}x ({formatPrice(String(addon.price * addon.quantity))})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                <p className="font-semibold border-t border-green-200 mt-2 pt-1">Total: {bookingConfirmation.totalAmount ? formatPrice(bookingConfirmation.totalAmount) : formatPrice(form.getValues().payment?.totalAmount || '')}</p>
               </div>
             </div>
           )}
