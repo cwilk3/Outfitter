@@ -669,30 +669,6 @@ export default function Experiences() {
       }
     }
     
-    // Fetch guides assigned to this experience
-    try {
-      const guidesResponse = await fetch(`/api/experiences/${experience.id}/guides`);
-      if (guidesResponse.ok) {
-        const guideAssignments = await guidesResponse.json();
-        console.log(`Fetched ${guideAssignments.length} guides for experience ${experience.id}`, guideAssignments);
-        
-        // Convert guide assignments to draft format
-        const formattedGuides = guideAssignments.map((guide: any, index: number) => ({
-          tempId: index + 1,
-          guideId: guide.guideId,
-          isPrimary: guide.isPrimary
-        }));
-        
-        setDraftGuides(formattedGuides);
-      } else {
-        console.error(`Failed to fetch guides: ${guidesResponse.status}`);
-        setDraftGuides([]);
-      }
-    } catch (guidesError) {
-      console.error("Error fetching guides:", guidesError);
-      setDraftGuides([]);
-    }
-    
     // Reset the form with all the experience data to ensure it's correctly loaded
     form.reset({
       name: experience.name,
@@ -1043,8 +1019,8 @@ export default function Experiences() {
             });
           }
           
-          // Process guide assignments for the experience
-          if (draftGuides.length > 0 && selectedExperience) {
+          // Process guide assignments if we're updating with draft mode
+          if (isCreating && draftGuides.length > 0 && selectedExperience) {
             const experienceId = selectedExperience.id;
             console.log(`Processing ${draftGuides.length} draft guides for existing experience ID ${experienceId}`);
             
