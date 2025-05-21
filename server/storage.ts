@@ -34,6 +34,11 @@ export interface IStorage {
   updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
   deleteLocation(id: number): Promise<void>;
   listLocations(activeOnly?: boolean): Promise<Location[]>;
+  
+  // Location image operations
+  addLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined>;
+  removeLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined>;
+  updateLocationImages(locationId: number, images: string[]): Promise<Location | undefined>;
 
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
@@ -173,6 +178,53 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await query.orderBy(locations.name);
+  }
+  
+  // Location image operations
+  async addLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined> {
+    // First get the current location to access its images
+    const location = await this.getLocation(locationId);
+    if (!location) return undefined;
+    
+    // Parse current images array (or initialize if not present)
+    const currentImages = location.images ? JSON.parse(location.images.toString()) : [];
+    
+    // Add the new image if it doesn't already exist
+    if (!currentImages.includes(imageUrl)) {
+      const updatedImages = [...currentImages, imageUrl];
+      
+      // Update the location with the new images array
+      return this.updateLocation(locationId, { 
+        images: JSON.stringify(updatedImages) as any 
+      });
+    }
+    
+    return location;
+  }
+  
+  async removeLocationImage(locationId: number, imageUrl: string): Promise<Location | undefined> {
+    // First get the current location to access its images
+    const location = await this.getLocation(locationId);
+    if (!location) return undefined;
+    
+    // Parse current images array (or return if no images)
+    const currentImages = location.images ? JSON.parse(location.images.toString()) : [];
+    if (currentImages.length === 0) return location;
+    
+    // Filter out the image to remove
+    const updatedImages = currentImages.filter((url: string) => url !== imageUrl);
+    
+    // Update the location with the filtered images array
+    return this.updateLocation(locationId, { 
+      images: JSON.stringify(updatedImages) as any 
+    });
+  }
+  
+  async updateLocationImages(locationId: number, images: string[]): Promise<Location | undefined> {
+    // Update the location with the new images array directly
+    return this.updateLocation(locationId, { 
+      images: JSON.stringify(images) as any 
+    });
   }
 
   // Experience operations
