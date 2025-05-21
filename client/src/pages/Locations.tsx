@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@shared/schema';
 import { LocationImageUpload } from '@/components/ui/location-image-upload';
+import { ImagePlus, LoaderIcon, Image } from 'lucide-react';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -596,17 +597,65 @@ export default function Locations() {
                 </p>
               </div>
               
-              <div className="flex flex-row gap-2 mb-4">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe this location's features and amenities" 
+                        className="min-h-[80px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="border rounded-md p-3 mt-4 mb-2">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="font-medium flex items-center">
+                    <Image className="w-4 h-4 mr-1" />
+                    Location Images
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {locationImages.length} of 5 images
+                  </span>
+                </div>
+                
+                {locationImages.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {locationImages.slice(0, 3).map((image, index) => (
+                      <div key={index} className="aspect-square relative rounded-md overflow-hidden">
+                        <img 
+                          src={image} 
+                          alt={`Location image ${index + 1}`}
+                          className="object-cover w-full h-full" 
+                        />
+                      </div>
+                    ))}
+                    {locationImages.length > 3 && (
+                      <div className="aspect-square flex items-center justify-center bg-muted rounded-md">
+                        <span className="text-sm">+{locationImages.length - 3} more</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mb-3">No images added yet</p>
+                )}
+                
                 <Button 
                   type="button"
                   variant="outline"
-                  className="flex-1 flex items-center justify-center" 
+                  size="sm"
+                  className="w-full flex items-center justify-center" 
                   onClick={() => setImagesDialogOpen(true)}
                 >
                   <ImagePlus className="mr-2 h-4 w-4" />
-                  {locationImages.length > 0 ? 
-                    `Manage Images (${locationImages.length})` : 
-                    'Add Images'}
+                  {locationImages.length > 0 ? 'Manage Images' : 'Add Images'}
                 </Button>
               </div>
               
