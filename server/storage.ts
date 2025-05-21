@@ -22,6 +22,7 @@ export interface IStorage {
   
   // Experience Guide operations
   getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;
+  getExperienceGuideById(id: number): Promise<ExperienceGuide | undefined>;
   assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide>;
   updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined>;
   removeGuideFromExperience(id: number): Promise<void>;
@@ -444,6 +445,16 @@ export class DatabaseStorage implements IStorage {
       .from(experienceGuides)
       .where(eq(experienceGuides.experienceId, experienceId))
       .orderBy(experienceGuides.isPrimary);
+  }
+  
+  // Get specific guide assignment by ID
+  async getExperienceGuideById(id: number): Promise<ExperienceGuide | undefined> {
+    const [assignment] = await db
+      .select()
+      .from(experienceGuides)
+      .where(eq(experienceGuides.id, id));
+    
+    return assignment;
   }
 
   // Assign a guide to an experience

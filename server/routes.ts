@@ -879,20 +879,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      console.log(`[GUIDE DELETION] Attempting to delete guide assignment with ID: ${id}`);
+      
+      // Get the assignment before deleting for logging
+      const assignment = await storage.getExperienceGuideById(id);
+      if (!assignment) {
+        console.log(`[GUIDE DELETION] Assignment with ID ${id} not found`);
+        return res.status(404).json({ error: 'Guide assignment not found' });
+      }
+      
+      console.log(`[GUIDE DELETION] Found assignment to delete:`, assignment);
       
       // Remove guide from experience
       await storage.removeGuideFromExperience(id);
+      
+      // Verify the deletion was successful
+      const verifyDeleted = await storage.getExperienceGuideById(id);
+      if (verifyDeleted) {
+        console.error(`[GUIDE DELETION] Deletion verification failed - assignment still exists:`, verifyDeleted);
+        throw new Error('Failed to delete guide assignment - assignment still exists after deletion');
+      }
+      
+      console.log(`[GUIDE DELETION] Deletion verified successful for ID: ${id}`);
       
       // Record activity
       await storage.createActivity({
         action: 'remove_guide',
         userId: req.user?.claims?.sub || 'system',
-        details: `Removed guide assignment with ID ${id}`
+        details: `Removed guide assignment with ID ${id} (guide: ${assignment.guideId}, experience: ${assignment.experienceId})`
       });
       
-      res.status(204).send();
+      // Return success with more details
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Guide assignment successfully removed',
+        deletedAssignment: { id }
+      });
     } catch (error) {
-      console.error('Error removing guide from experience:', error);
+      console.error('[GUIDE DELETION] Error removing guide from experience:', error);
       res.status(500).json({ error: 'Failed to remove guide from experience' });
     }
   });
