@@ -3,7 +3,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format, isSameDay } from "date-fns";
-import { X, CalendarRange, Trash2 } from "lucide-react";
+import { X, CalendarRange, Trash2, Save, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 interface DateAvailabilityProps {
@@ -19,14 +19,16 @@ export function DateAvailability({
   onChange 
 }: DateAvailabilityProps) {
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
-  // Create a working copy of selected dates
-  const [workingDates, setWorkingDates] = React.useState<Date[]>(selectedDates);
+  // Create a working copy of selected dates - completely separate from parent state
+  const [workingDates, setWorkingDates] = React.useState<Date[]>([]);
   // Track if we have unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   
-  // Update working dates when selectedDates changes (from parent)
+  // Initialize workingDates when component mounts or selectedDates changes
   React.useEffect(() => {
-    setWorkingDates(selectedDates);
+    // Deep copy of dates to ensure we're not sharing references
+    const datesCopy = selectedDates.map(date => new Date(date.getTime()));
+    setWorkingDates(datesCopy);
     setHasUnsavedChanges(false);
   }, [selectedDates]);
   
@@ -62,25 +64,34 @@ export function DateAvailability({
   
   // Remove a date from selection (but don't save yet)
   const removeDate = (dateToRemove: Date) => {
+    // Use isSameDay to match dates since times might differ
     const updatedDates = workingDates.filter(date => !isSameDay(date, dateToRemove));
     setWorkingDates(updatedDates);
     setHasUnsavedChanges(true);
   };
   
   // Save changes back to parent component
-  const saveChanges = () => {
+  const saveChanges = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent dialog closing
+    e.stopPropagation();
     onChange(workingDates);
     setHasUnsavedChanges(false);
   };
   
   // Cancel changes and revert to original dates
-  const cancelChanges = () => {
-    setWorkingDates(selectedDates);
+  const cancelChanges = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent dialog closing
+    e.stopPropagation();
+    // Deep copy of dates to ensure we're not sharing references
+    const datesCopy = selectedDates.map(date => new Date(date.getTime()));
+    setWorkingDates(datesCopy);
     setHasUnsavedChanges(false);
   };
   
   // Clear all selected dates
-  const clearAllDates = () => {
+  const clearAllDates = (e: React.MouseEvent) => {
+    // Stop event propagation to prevent dialog closing
+    e.stopPropagation();
     setWorkingDates([]);
     setHasUnsavedChanges(true);
   };
@@ -174,7 +185,15 @@ export function DateAvailability({
         
         <div className="space-y-4 flex-1">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Selected Available Dates</h3>
+            <div className="flex items-center">
+              <h3 className="text-sm font-medium">Selected Available Dates</h3>
+              
+              {hasUnsavedChanges && (
+                <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">
+                  MODIFIED
+                </span>
+              )}
+            </div>
             
             <div className="flex items-center gap-2">
               {workingDates.length > 0 && (
@@ -221,13 +240,18 @@ export function DateAvailability({
           
           {/* Save/Cancel buttons */}
           {hasUnsavedChanges && (
-            <div className="flex items-center gap-2 justify-end mt-2">
+            <div className="flex items-center gap-2 justify-end mt-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+              <div className="mr-auto text-xs text-blue-700">
+                <span className="font-medium">Unsaved changes.</span> Apply or discard your date changes.
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={cancelChanges}
+                className="bg-white hover:bg-gray-50"
               >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Cancel
               </Button>
               <Button
@@ -235,7 +259,9 @@ export function DateAvailability({
                 variant="default"
                 size="sm"
                 onClick={saveChanges}
+                className="bg-blue-600 hover:bg-blue-700"
               >
+                <Save className="h-3.5 w-3.5 mr-1.5" />
                 Save Changes
               </Button>
             </div>
