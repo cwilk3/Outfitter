@@ -91,6 +91,9 @@ export function ExperienceGuides({
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
     mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
+      console.log(`[DEBUG] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
+      console.log(`[DEBUG] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
+      
       const response = await fetch(`/api/experiences/${experienceId}/guides`, {
         method: 'POST',
         headers: {
@@ -100,13 +103,25 @@ export function ExperienceGuides({
       });
       
       if (!response.ok) {
-        throw new Error('Failed to assign guide');
+        const errorText = await response.text();
+        console.error(`[DEBUG] Guide assignment failed: ${response.status} ${errorText}`);
+        throw new Error(`Failed to assign guide: ${errorText || response.statusText}`);
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log(`[DEBUG] Guide assignment successful:`, result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log(`[DEBUG] Guide assignment mutation succeeded:`, data);
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+      
+      // Force refetch to ensure UI is updated
+      setTimeout(() => {
+        console.log(`[DEBUG] Forcing guide assignments refetch for experience ${experienceId}`);
+        refetchAssignedGuides();
+      }, 300);
+      
       toast({
         title: 'Guide assigned',
         description: 'The guide has been successfully assigned to this experience.',
@@ -119,7 +134,7 @@ export function ExperienceGuides({
         description: 'Failed to assign guide. Please try again.',
         variant: 'destructive',
       });
-      console.error('Error assigning guide:', error);
+      console.error('[DEBUG] Error assigning guide:', error);
     },
   });
 

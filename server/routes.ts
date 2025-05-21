@@ -797,6 +797,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const experienceId = parseInt(req.params.experienceId);
       
+      console.log(`[GUIDE ASSIGNMENT] Starting guide assignment for experience ID: ${experienceId}`);
+      console.log(`[GUIDE ASSIGNMENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
+      console.log(`[GUIDE ASSIGNMENT] Request body:`, JSON.stringify(req.body, null, 2));
+      
+      // Check if experience exists
+      const existingExperience = await storage.getExperience(experienceId);
+      if (!existingExperience) {
+        console.error(`[GUIDE ASSIGNMENT] Experience with ID ${experienceId} not found`);
+        return res.status(404).json({ error: `Experience with ID ${experienceId} not found` });
+      }
+      
+      console.log(`[GUIDE ASSIGNMENT] Found target experience:`, JSON.stringify({
+        id: existingExperience.id,
+        name: existingExperience.name,
+        locationId: existingExperience.locationId
+      }, null, 2));
+      
       // Prepare data for validation with guaranteed values
       const guideData = {
         experienceId,
@@ -804,11 +821,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isPrimary: req.body.isPrimary === true
       };
       
+      console.log(`[GUIDE ASSIGNMENT] Prepared guide data:`, JSON.stringify(guideData, null, 2));
+      
+      // Check for duplicate assignments
+      const existingGuides = await storage.getExperienceGuides(experienceId);
+      console.log(`[GUIDE ASSIGNMENT] Existing guides for this experience:`, JSON.stringify(existingGuides, null, 2));
+      
+      const existingAssignment = existingGuides.find(g => g.guideId === guideData.guideId);
+      if (existingAssignment) {
+        console.log(`[GUIDE ASSIGNMENT] Guide ${guideData.guideId} is already assigned to experience ${experienceId}`);
+        return res.status(400).json({ 
+          error: 'This guide is already assigned to this experience',
+          existingAssignment
+        });
+      }
+      
       // Validate data
       const validatedData = insertExperienceGuideSchema.parse(guideData);
+      console.log(`[GUIDE ASSIGNMENT] Validated data:`, JSON.stringify(validatedData, null, 2));
       
       // Assign guide to experience
       const guide = await storage.assignGuideToExperience(validatedData);
+      console.log(`[GUIDE ASSIGNMENT] Guide assignment successful:`, JSON.stringify(guide, null, 2));
+      
+      // Verify the guide was actually assigned by fetching all guides again
+      const verificationGuides = await storage.getExperienceGuides(experienceId);
+      console.log(`[GUIDE ASSIGNMENT] Verification - all guides after assignment:`, JSON.stringify(verificationGuides, null, 2));
+      
+      const assignmentVerified = verificationGuides.some(g => g.guideId === guideData.guideId);
+      if (!assignmentVerified) {
+        console.error(`[GUIDE ASSIGNMENT] Verification failed - guide ${guideData.guideId} not found in updated guide list`);
+      } else {
+        console.log(`[GUIDE ASSIGNMENT] Verification successful - guide ${guideData.guideId} found in updated guide list`);
+      }
       
       // Record activity
       await storage.createActivity({
@@ -819,9 +864,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(guide);
     } catch (error) {
-      console.error('Error assigning guide to experience:', error);
+      console.error('[GUIDE ASSIGNMENT] Error assigning guide to experience:', error);
       
       if (error instanceof z.ZodError) {
+        console.error('[GUIDE ASSIGNMENT] Validation error:', JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: 'Invalid data', errors: error.errors });
       }
       
