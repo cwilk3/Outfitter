@@ -7,6 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@/types';
+import { ImageUpload } from '@/components/ui/image-upload';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, MapPin, PlusCircle, CheckCircle, XCircle, AlertTriangle, Image as ImageIcon, Upload } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Location form validation schema
@@ -56,6 +57,9 @@ const locationFormSchema = z.object({
   state: z.string().min(2, { message: 'State is required.' }),
   zip: z.string().optional(),
   description: z.string().optional(),
+  imageUrl: z.string().optional().nullable().refine(val => !val || val === "" || val.startsWith('http') || val.startsWith('data:'), {
+    message: 'Image URL must be a valid URL or data URL',
+  }),
   isActive: z.boolean().default(true),
   locationId: z.number().optional(), // For editing existing location
 });
@@ -453,6 +457,37 @@ export default function LocationsContent() {
                         {...field} 
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Image</FormLabel>
+                    <div className="space-y-4">
+                      <ImageUpload 
+                        onImageSelected={(url) => field.onChange(url)}
+                        currentImageUrl={field.value}
+                        maxSizeMB={2}
+                      />
+                      <div className="pt-2">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Or enter an image URL manually:
+                        </p>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/image.jpg" 
+                            value={field.value || ''} 
+                            onChange={field.onChange}
+                            className="mt-1"
+                          />
+                        </FormControl>
+                      </div>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

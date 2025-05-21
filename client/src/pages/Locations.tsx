@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,8 +7,7 @@ import { apiRequest } from '../lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useRole } from '@/hooks/useRole';
 import { Location } from '@shared/schema';
-import { LocationImageUpload } from '@/components/ui/location-image-upload';
-import { ImagePlus, LoaderIcon, Image } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 // Define ApiError class for error handling
 class ApiError extends Error {
@@ -66,7 +65,6 @@ import {
   CheckCircle,
   XCircle,
   LoaderIcon,
-  ImagePlus,
 } from 'lucide-react';
 
 // Create the location form schema
@@ -77,6 +75,9 @@ const locationFormSchema = z.object({
   state: z.string().min(1, 'State is required'),
   zip: z.string().nullable(),
   description: z.string().nullable(),
+  imageUrl: z.string().nullable().refine(val => !val || val.startsWith('http') || val.startsWith('data:'), {
+    message: 'Image URL must be a valid URL or data URL',
+  }),
   isActive: z.boolean().default(true),
 });
 
@@ -93,7 +94,6 @@ export default function Locations() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
-  const [locationImages, setLocationImages] = useState<string[]>([]);
   
   // Query to fetch all locations
   const { data: locations = [], isLoading } = useQuery<Location[]>({
@@ -110,6 +110,7 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      imageUrl: '',
       isActive: true,
     },
   });
@@ -117,7 +118,6 @@ export default function Locations() {
   // Create location mutation
   const createMutation = useMutation({
     mutationFn: async (data: LocationFormValues) => {
-      // First create the location
       const response = await fetch('/api/locations', {
         method: 'POST',
         headers: {
@@ -131,28 +131,7 @@ export default function Locations() {
         throw new ApiError(error.message, error);
       }
       
-      const newLocation = await response.json();
-      
-      // Then upload images if there are any
-      if (locationImages.length > 0) {
-        const imagesResponse = await fetch(`/api/locations/${newLocation.id}/images`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ images: locationImages }),
-        });
-        
-        if (!imagesResponse.ok) {
-          toast({
-            title: 'Warning',
-            description: 'Location created, but failed to upload images.',
-            variant: 'destructive',
-          });
-        }
-      }
-      
-      return newLocation;
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -162,7 +141,6 @@ export default function Locations() {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
       setIsDialogOpen(false);
       form.reset();
-      setLocationImages([]);
     },
     onError: (error: Error) => {
       toast({
@@ -177,8 +155,6 @@ export default function Locations() {
   const updateMutation = useMutation({
     mutationFn: async (data: LocationFormValues & { id: number }) => {
       const { id, ...locationData } = data;
-      
-      // First update the location details
       const response = await fetch(`/api/locations/${id}`, {
         method: 'PATCH',
         headers: {
@@ -192,26 +168,7 @@ export default function Locations() {
         throw new ApiError(error.message, error);
       }
       
-      const updatedLocation = await response.json();
-      
-      // Then update images if there are any changes
-      const imagesResponse = await fetch(`/api/locations/${id}/images`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ images: locationImages }),
-      });
-      
-      if (!imagesResponse.ok) {
-        toast({
-          title: 'Warning',
-          description: 'Location updated, but failed to update images.',
-          variant: 'destructive',
-        });
-      }
-      
-      return updatedLocation;
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -271,21 +228,6 @@ export default function Locations() {
       updateMutation.mutate({ ...data, id: currentLocation.id });
     }
   };
-  
-  // Manage images separately
-  const [imagesDialogOpen, setImagesDialogOpen] = useState(false);
-
-  // Parse stored images from location
-  const parseLocationImages = useCallback((location: Location): string[] => {
-    if (!location.images) return [];
-    try {
-      const images = JSON.parse(location.images.toString());
-      return Array.isArray(images) ? images : [];
-    } catch (e) {
-      console.error("Error parsing location images:", e);
-      return [];
-    }
-  }, []);
 
   // Open dialog for creating a new location
   const openCreateDialog = useCallback(() => {
@@ -297,9 +239,9 @@ export default function Locations() {
       state: '',
       zip: '',
       description: '',
+      imageUrl: '',
       isActive: true,
     });
-    setLocationImages([]);
     setCurrentLocation(null);
     setIsDialogOpen(true);
   }, [form]);
@@ -314,16 +256,12 @@ export default function Locations() {
       state: location.state,
       zip: location.zip || '',
       description: location.description || '',
+      imageUrl: location.imageUrl || '',
       isActive: location.isActive,
     });
-    
-    // Parse and load existing images
-    const existingImages = parseLocationImages(location);
-    setLocationImages(existingImages);
-    
     setCurrentLocation(location);
     setIsDialogOpen(true);
-  }, [form, parseLocationImages]);
+  }, [form]);
 
   // Open delete confirmation dialog
   const openDeleteDialog = useCallback((location: Location) => {
@@ -360,10 +298,32 @@ export default function Locations() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {locations.map((location: any) => (
-            <Card key={location.id} className="overflow-hidden">
-              <CardHeader className="bg-muted/50">
+            <Card key={location.id} className="overflow-hidden flex flex-col h-full">
+              <div className="relative w-full h-40 overflow-hidden bg-muted">
+                {location.imageUrl ? (
+                  <img 
+                    src={location.imageUrl} 
+                    alt={location.name} 
+                    className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://placehold.co/600x400?text=No+Image+Available";
+                      e.currentTarget.onerror = null;
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <div className="text-center p-4">
+                      <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground/60" />
+                      <p className="text-sm text-muted-foreground">{location.name}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <CardHeader className="bg-muted/50 pb-3">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="flex-1">{location.name}</CardTitle>
+                  <CardTitle className="flex-1 group">
+                    <span className="transition-colors group-hover:text-primary">{location.name}</span>
+                  </CardTitle>
                   <div className="flex items-center space-x-1">
                     {location.isActive ? (
                       <span className="text-xs bg-green-100 text-green-800 rounded-full px-2 py-1 flex items-center">
@@ -376,25 +336,39 @@ export default function Locations() {
                     )}
                   </div>
                 </div>
-                <CardDescription className="flex items-center">
+                <CardDescription className="flex items-center mt-1">
                   <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
                   {location.city}, {location.state}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent className="p-4 pb-5 flex-grow">
                 {location.address && (
-                  <p className="text-sm text-muted-foreground mb-2">{location.address}</p>
+                  <div className="flex items-start mb-2">
+                    <p className="text-sm text-muted-foreground">{location.address}</p>
+                  </div>
                 )}
                 {location.description && (
-                  <p className="text-sm">{location.description}</p>
+                  <div className="mt-2">
+                    <p className="text-sm line-clamp-3">{location.description}</p>
+                  </div>
                 )}
               </CardContent>
               {isAdmin && (
-                <CardFooter className="bg-muted/30 p-4 flex justify-end space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditDialog(location)}>
+                <CardFooter className="bg-muted/30 p-4 flex justify-end space-x-2 mt-auto">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="hover:bg-primary hover:text-primary-foreground transition-colors"
+                    onClick={() => openEditDialog(location)}
+                  >
                     <Pencil className="h-4 w-4 mr-1" /> Edit
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(location)}>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="hover:bg-destructive/90 transition-colors" 
+                    onClick={() => openDeleteDialog(location)}
+                  >
                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                   </Button>
                 </CardFooter>
@@ -404,36 +378,9 @@ export default function Locations() {
         </div>
       )}
       
-      {/* Location Images Dialog */}
-      <Dialog open={imagesDialogOpen} onOpenChange={setImagesDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Location Images</DialogTitle>
-            <DialogDescription>Upload images for this location to help customers visualize their experience.</DialogDescription>
-          </DialogHeader>
-          
-          <div className="overflow-y-auto pr-1" style={{ maxHeight: "calc(85vh - 180px)" }}>
-            <LocationImageUpload 
-              images={locationImages}
-              onChange={setLocationImages}
-              maxImages={5}
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              {locationImages.length} of 5 images selected
-            </p>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setImagesDialogOpen(false)}>
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       {/* Location Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
               {formMode === 'create' ? 'Create New Location' : 'Edit Location'}
@@ -446,7 +393,7 @@ export default function Locations() {
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(90vh - 180px)" }}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -557,7 +504,36 @@ export default function Locations() {
                 )}
               />
               
-
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Image</FormLabel>
+                    <div className="space-y-4">
+                      <ImageUpload 
+                        onImageSelected={(url) => field.onChange(url)}
+                        currentImageUrl={field.value}
+                        maxSizeMB={2}
+                      />
+                      <div className="pt-2">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Or enter an image URL manually:
+                        </p>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/image.jpg" 
+                            value={field.value || ''} 
+                            onChange={field.onChange}
+                            className="mt-1"
+                          />
+                        </FormControl>
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <FormField
                 control={form.control}
@@ -580,85 +556,6 @@ export default function Locations() {
                 )}
               />
               
-              {/* Location Image Upload - DEBUG VERSION */}
-              <div className="space-y-2 border-2 border-red-500 bg-red-50 p-4 my-6 rounded-md">
-                <div className="flex justify-between items-center">
-                  <FormLabel className="text-base font-bold">LOCATION IMAGES - DEBUG</FormLabel>
-                  <p className="text-xs text-muted-foreground">Max 5 images</p>
-                </div>
-                <LocationImageUpload 
-                  images={locationImages}
-                  onChange={setLocationImages}
-                  maxImages={5}
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Upload images of the location to help customers visualize their experience.
-                  Drag and drop images or click to browse.
-                </p>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe this location's features and amenities" 
-                        className="min-h-[80px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="border rounded-md p-3 mt-4 mb-2">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="font-medium flex items-center">
-                    <Image className="w-4 h-4 mr-1" />
-                    Location Images
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {locationImages.length} of 5 images
-                  </span>
-                </div>
-                
-                {locationImages.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {locationImages.slice(0, 3).map((image, index) => (
-                      <div key={index} className="aspect-square relative rounded-md overflow-hidden">
-                        <img 
-                          src={image} 
-                          alt={`Location image ${index + 1}`}
-                          className="object-cover w-full h-full" 
-                        />
-                      </div>
-                    ))}
-                    {locationImages.length > 3 && (
-                      <div className="aspect-square flex items-center justify-center bg-muted rounded-md">
-                        <span className="text-sm">+{locationImages.length - 3} more</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mb-3">No images added yet</p>
-                )}
-                
-                <Button 
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full flex items-center justify-center" 
-                  onClick={() => setImagesDialogOpen(true)}
-                >
-                  <ImagePlus className="mr-2 h-4 w-4" />
-                  {locationImages.length > 0 ? 'Manage Images' : 'Add Images'}
-                </Button>
-              </div>
-              
               <DialogFooter>
                 <Button 
                   type="submit" 
@@ -672,8 +569,7 @@ export default function Locations() {
               </DialogFooter>
             </form>
           </Form>
-            </div>
-          </DialogContent>
+        </DialogContent>
       </Dialog>
       
       {/* Delete Confirmation Dialog */}
