@@ -261,18 +261,17 @@ function PublicBooking() {
       
       const response = await apiRequest('POST', '/api/public/bookings', bookingData);
       
-      if (response.ok) {
-        const bookingConfirmation = await response.json();
-        setBookingConfirmation(bookingConfirmation);
-        setBookingDialogOpen(false);
-        setConfirmationDialogOpen(true);
-      } else {
-        toast({
-          title: "Booking failed",
-          description: "There was an error processing your booking. Please try again later.",
-          variant: "destructive",
-        });
-      }
+      // The apiRequest function already handles the response and returns the data directly
+      // No need to check .ok or call .json() again
+      setBookingConfirmation(response);
+      setBookingDialogOpen(false);
+      setConfirmationDialogOpen(true);
+      
+      toast({
+        title: "Booking successful!",
+        description: "Your booking has been confirmed.",
+        variant: "default",
+      });
     } catch (error) {
       console.error(error);
       toast({
