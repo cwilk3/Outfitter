@@ -1069,10 +1069,39 @@ export class MemStorage implements IStorage {
   }
 
   async assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide> {
+    console.log(`[GUIDE_STORAGE] Assigning guide ${data.guideId} to experience ${data.experienceId}`);
+    
+    // Double-check the experience exists first
+    const experience = this.experiences.get(data.experienceId);
+    if (!experience) {
+      console.error(`[GUIDE_STORAGE] Error: Attempted to assign guide to non-existent experience ID: ${data.experienceId}`);
+      throw new Error(`Experience with ID ${data.experienceId} not found`);
+    }
+    console.log(`[GUIDE_STORAGE] Found target experience: ${experience.name} (ID: ${experience.id})`);
+    
+    // Check if guide is already assigned to avoid duplicates
+    let existingAssignment: ExperienceGuide | undefined;
+    for (const guide of this.experienceGuides.values()) {
+      if (guide.experienceId === data.experienceId && guide.guideId === data.guideId) {
+        existingAssignment = guide;
+        break;
+      }
+    }
+    
+    if (existingAssignment) {
+      console.log(`[GUIDE_STORAGE] Guide ${data.guideId} is already assigned to experience ${data.experienceId}, updating instead`);
+      // Update the existing assignment instead of creating a new one
+      existingAssignment.isPrimary = data.isPrimary;
+      existingAssignment.updatedAt = new Date();
+      this.experienceGuides.set(existingAssignment.id, existingAssignment);
+      return existingAssignment;
+    }
+    
     // If this guide is being set as primary, ensure no other guide is primary
     if (data.isPrimary) {
       for (const guide of this.experienceGuides.values()) {
         if (guide.experienceId === data.experienceId && guide.isPrimary) {
+          console.log(`[GUIDE_STORAGE] Removing primary status from guide ${guide.guideId} for experience ${guide.experienceId}`);
           guide.isPrimary = false;
           guide.updatedAt = new Date();
           this.experienceGuides.set(guide.id, guide);
@@ -1091,7 +1120,17 @@ export class MemStorage implements IStorage {
       isPrimary: data.isPrimary === true ? true : false
     };
     
+    console.log(`[GUIDE_STORAGE] Creating new guide assignment with ID ${id}`, guide);
     this.experienceGuides.set(id, guide);
+    
+    // Verify the assignment was stored correctly
+    const verification = this.experienceGuides.get(id);
+    if (!verification) {
+      console.error(`[GUIDE_STORAGE] Failed to store guide assignment in memory! ID: ${id}`);
+    } else {
+      console.log(`[GUIDE_STORAGE] Successfully stored guide assignment with ID ${id}`);
+    }
+    
     return guide;
   }
 
