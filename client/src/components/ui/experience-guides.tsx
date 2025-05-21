@@ -91,36 +91,77 @@ export function ExperienceGuides({
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
     mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
-      console.log(`[DEBUG] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
-      console.log(`[DEBUG] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
+      console.log(`[CLIENT] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
+      console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
       
-      const response = await fetch(`/api/experiences/${experienceId}/guides`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[DEBUG] Guide assignment failed: ${response.status} ${errorText}`);
-        throw new Error(`Failed to assign guide: ${errorText || response.statusText}`);
+      try {
+        // First, try to get the actual experience details to ensure it exists
+        const experienceCheck = await fetch(`/api/experiences/${experienceId}`);
+        
+        if (!experienceCheck.ok) {
+          console.error(`[CLIENT] Experience ${experienceId} check failed: ${experienceCheck.status}`);
+          throw new Error(`Cannot find experience with ID ${experienceId}`);
+        }
+        
+        const experienceData = await experienceCheck.json();
+        console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
+        
+        // Now perform the guide assignment
+        const response = await fetch(`/api/experiences/${experienceId}/guides`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[CLIENT] Guide assignment failed: ${response.status} ${errorText}`);
+          throw new Error(`Failed to assign guide: ${errorText || response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log(`[CLIENT] Guide assignment successful:`, result);
+        
+        // Verify the assignment was successful by immediately checking
+        const verifyResponse = await fetch(`/api/experiences/${experienceId}/guides`);
+        if (verifyResponse.ok) {
+          const guides = await verifyResponse.json();
+          console.log(`[CLIENT] Verification - found ${guides.length} guides, checking for new assignment:`, guides);
+          
+          const assigned = guides.some((g: any) => g.guideId === data.guideId);
+          if (!assigned) {
+            console.warn(`[CLIENT] Verification failed - newly assigned guide ${data.guideId} not found in response!`);
+            // We'll continue anyway since the assignment API returned success
+          } else {
+            console.log(`[CLIENT] Verification successful - guide ${data.guideId} found in assigned guides`);
+          }
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('[CLIENT] Error in guide assignment process:', error);
+        throw error;
       }
-      
-      const result = await response.json();
-      console.log(`[DEBUG] Guide assignment successful:`, result);
-      return result;
     },
     onSuccess: (data) => {
-      console.log(`[DEBUG] Guide assignment mutation succeeded:`, data);
+      console.log(`[CLIENT] Guide assignment mutation succeeded:`, data);
+      
+      // Aggressively invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       
-      // Force refetch to ensure UI is updated
-      setTimeout(() => {
-        console.log(`[DEBUG] Forcing guide assignments refetch for experience ${experienceId}`);
+      // Force multiple refetches to ensure UI is updated - this helps with in-memory storage
+      const performRefetch = () => {
+        console.log(`[CLIENT] Forcing guide assignments refetch for experience ${experienceId}`);
         refetchAssignedGuides();
-      }, 300);
+      };
+      
+      // Stagger the refetches to ensure data is up-to-date
+      setTimeout(performRefetch, 100);
+      setTimeout(performRefetch, 500);
       
       toast({
         title: 'Guide assigned',
@@ -134,7 +175,7 @@ export function ExperienceGuides({
         description: 'Failed to assign guide. Please try again.',
         variant: 'destructive',
       });
-      console.error('[DEBUG] Error assigning guide:', error);
+      console.error('[CLIENT] Error assigning guide:', error);
     },
   });
 
