@@ -74,12 +74,12 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Switch>
-          {/* Public routes */}
-          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
+          {/* Public routes - put auth first to ensure it matches */}
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
+          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
           
-          {/* Protected routes with authentication check moved to ProtectedRoutes */}
+          {/* Protected routes - catch-all for authenticated pages */}
           <Route path="/*">
             <ProtectedRoutes />
           </Route>
