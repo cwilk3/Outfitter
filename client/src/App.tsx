@@ -22,8 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
 function ProtectedRoutes() {
-  // Dev mode - we always authenticate
-  const { isLoading } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -34,6 +33,11 @@ function ProtectedRoutes() {
         </div>
       </div>
     );
+  }
+
+  // Redirect to auth page if not authenticated
+  if (!isAuthenticated) {
+    return <AuthPage />;
   }
 
   return (
