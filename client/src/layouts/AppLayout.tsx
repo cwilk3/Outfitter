@@ -20,9 +20,12 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentTestRole, setCurrentTestRole] = useState<'admin' | 'guide'>('admin');
   const { isAdmin, user } = useRole();
   const { user: authUser } = useAuth();
+  
+  // Get current role from URL or default to admin
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentTestRole = (urlParams.get('role') as 'admin' | 'guide') || 'admin';
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
