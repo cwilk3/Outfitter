@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation, useRouter } from "wouter";
+import { Link, useLocation } from "wouter";
 import SidebarNavItem from "./SidebarNavItem";
 import { useRole } from "@/hooks/useRole";
 import { 
@@ -22,7 +22,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const { isAdmin, user } = useRole();
 
   return (
@@ -156,7 +156,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             <button
               onClick={() => {
                 localStorage.removeItem('dev-user');
-                navigate('/auth');
+                window.location.href = '/auth';
               }}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="Logout"

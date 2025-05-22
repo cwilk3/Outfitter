@@ -23,11 +23,7 @@ import {
 
 // Development authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  // For development, simulate a user in the request
-  (req as any).user = {
-    id: 'dev-user-1',
-    claims: { sub: 'dev-user-1' }
-  };
+  // Always allow access in development
   return next();
 };
 
