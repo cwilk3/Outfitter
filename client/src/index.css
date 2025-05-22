@@ -135,6 +135,29 @@
   @apply border-l-2 text-xs overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
+/* React Big Calendar custom styles */
+.rbc-event {
+  @apply py-0 px-1 text-xs font-medium rounded leading-tight;
+}
+
+.rbc-event-content {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  line-height: 1.2;
+  max-height: 2.4em;
+}
+
+.rbc-event-label {
+  @apply hidden;
+}
+
+.rbc-day-slot .rbc-event {
+  @apply min-h-[1.5em] flex items-center;
+}
+
+.rbc-month-view .rbc-event {
+  @apply my-[1px];
+}
+
 @media (max-width: 768px) {
   .calendar-grid td {
     @apply h-16;

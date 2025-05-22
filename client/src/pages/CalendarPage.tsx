@@ -54,9 +54,20 @@ export default function CalendarPage() {
         const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
+        // Create more compact, information-rich event title
+        const statusIndicator = booking.status === 'confirmed' ? '✓ ' : 
+                             booking.status === 'pending' ? '⌛ ' : 
+                             booking.status === 'deposit_paid' ? '💰 ' :
+                             booking.status === 'cancelled' ? '✗ ' : '✓ ';
+        
+        // Format the title to be more information-dense
+        const title = experience 
+          ? `${statusIndicator}${experience.name.substring(0, 15)}${experience.name.length > 15 ? '...' : ''}\n${customer?.firstName || ''} ${customer?.lastName || ''}`
+          : `${statusIndicator}Booking #${booking.bookingNumber}`;
+        
         return {
           id: booking.id,
-          title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
+          title: title,
           start: new Date(booking.startDate),
           end: new Date(booking.endDate),
           allDay: true,
@@ -80,35 +91,49 @@ export default function CalendarPage() {
   // Customize event style based on booking status
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = '#2C5F2D'; // default hunter green
+    let borderColor = '#1E3C1F'; // darker version for border
     
     switch (event.resource.booking.status) {
       case 'confirmed':
         backgroundColor = '#34A853'; // green
+        borderColor = '#2A8942';
         break;
       case 'pending':
         backgroundColor = '#FBBC05'; // yellow
+        borderColor = '#E8A800';
         break;
       case 'deposit_paid':
         backgroundColor = '#4285F4'; // blue
+        borderColor = '#3367D6';
         break;
       case 'cancelled':
         backgroundColor = '#EA4335'; // red
+        borderColor = '#D73027';
         break;
       case 'completed':
         backgroundColor = '#2C5F2D'; // hunter green
+        borderColor = '#1E3C1F';
         break;
       default:
         backgroundColor = '#2C5F2D'; // hunter green
+        borderColor = '#1E3C1F';
     }
     
     return {
       style: {
         backgroundColor,
-        borderRadius: '4px',
-        opacity: 0.8,
+        borderRadius: '3px',
+        opacity: 0.9,
         color: 'white',
         border: '0px',
-        display: 'block'
+        borderLeft: `3px solid ${borderColor}`,
+        display: 'block',
+        fontSize: '10px',
+        padding: '1px 4px',
+        overflow: 'hidden',
+        whiteSpace: 'pre-line', // Allows for line breaks in the title
+        textShadow: '0px 0px 2px rgba(0,0,0,0.4)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
       }
     };
   };
