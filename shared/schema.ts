@@ -30,6 +30,35 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Outfitters table for multi-tenancy
+export const outfitters = pgTable("outfitters", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  zip: varchar("zip", { length: 20 }),
+  website: varchar("website", { length: 255 }),
+  logo: varchar("logo", { length: 500 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User-Outfitter relationship table
+export const userOutfitters = pgTable("user_outfitters", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  outfitterId: integer("outfitter_id").notNull().references(() => outfitters.id),
+  role: roleEnum("role").notNull().default('guide'),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Experience categories enum
 export const categoryEnum = pgEnum('category', [
   'deer_hunting', 
