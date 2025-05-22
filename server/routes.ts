@@ -1945,7 +1945,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(bookingDetails.endDate),
         status: payment?.paymentOption === 'full' ? 'paid' : 'deposit_paid',
         totalAmount: payment?.totalAmount || experienceDetails.price,
-        notes: bookingDetails.notes || ''
+        notes: bookingDetails.notes || '',
+        groupSize: bookingDetails.guests
       });
       
       // Get experience details
