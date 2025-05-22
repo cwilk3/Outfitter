@@ -3,8 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import path from "path";
-// Import authentication middleware but we'll use a custom version for development
-import { setupAuth, isAuthenticated } from "./replitAuth";
+// Import authentication middleware
+import { setupAuth, isAuthenticated as replitAuth } from "./replitAuth";
 import { 
   insertUserSchema, 
   insertExperienceSchema, 
@@ -79,31 +79,31 @@ const adminOnly = hasRole('admin');
 const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Development mode: Comment out auth setup for now
-  // await setupAuth(app);
+  // Enable Replit authentication
+  await setupAuth(app);
   
-  // Auth routes - Development mode with test guide user
-  app.get('/api/auth/user', async (req: any, res) => {
-    // Development mode: Return test guide user
-    const testGuideUser = {
-      id: "dev-guide-1",
-      email: "guide@example.com",
-      firstName: "Guide",
-      lastName: "User",
-      profileImageUrl: null,
-      role: "guide",
-      phone: null,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    res.json(testGuideUser);
+  // Auth routes - Return authenticated user
+  app.get('/api/auth/user', replitAuth, async (req: any, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get user details from database by Replit ID
+      const userRecord = await storage.getUser(user.claims.sub);
+      if (!userRecord) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(userRecord);
+    } catch (error) {
+      console.error('Error fetching authenticated user:', error);
+      res.status(500).json({ message: "Failed to fetch user data" });
+    }
   });
 
-  // Logout route - Development mode
-  app.get('/api/logout', (req, res) => {
-    res.redirect('/auth');
-  });
+
 
   // Outfitter onboarding routes
   app.post('/api/outfitters', async (req, res) => {

@@ -54,30 +54,14 @@ export default function AuthPage() {
     },
   });
 
-  const handleSignIn = async (data: SignInValues) => {
-    setLoading(true);
-    try {
-      // For now, redirect to onboarding - this will be connected to real auth later
-      console.log("Sign in:", data);
-      setLocation("/onboarding");
-    } catch (error) {
-      console.error("Sign in error:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleSignIn = async () => {
+    // Redirect to Replit OAuth login
+    window.location.href = '/api/login';
   };
 
-  const handleSignUp = async (data: SignUpValues) => {
-    setLoading(true);
-    try {
-      // For now, redirect to onboarding - this will be connected to real auth later
-      console.log("Sign up:", data);
-      setLocation("/onboarding");
-    } catch (error) {
-      console.error("Sign up error:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleSignUp = async () => {
+    // Redirect to Replit OAuth login (same flow for sign up)
+    window.location.href = '/api/login';
   };
 
   const handleTestLogin = async (userType: 'admin' | 'guide') => {
@@ -173,43 +157,15 @@ export default function AuthPage() {
                   </div>
                 </div>
                 
-                <Form {...signInForm}>
-                  <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
-                    <FormField
-                      control={signInForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signInForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-emerald-600 hover:bg-emerald-700" 
-                      disabled={loading}
-                    >
-                      {loading ? "Signing in..." : "Sign In"}
-                    </Button>
-                  </form>
-                </Form>
+                <div className="space-y-4">
+                  <Button 
+                    onClick={handleSignIn}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700" 
+                    disabled={loading}
+                  >
+                    {loading ? "Signing in..." : "Sign in with Replit"}
+                  </Button>
+                </div>
               </TabsContent>
 
               {/* Sign Up Tab */}
