@@ -19,6 +19,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
+  getUserWithRole(userId: string): Promise<{role: 'admin' | 'guide', outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
   
   // Outfitter operations

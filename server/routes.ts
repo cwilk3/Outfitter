@@ -236,8 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Location routes
-  app.get('/api/locations', isAuthenticated, async (req, res) => {
+  // Location routes (guides can view, only admins can modify)
+  app.get('/api/locations', guideOrAdmin, async (req, res) => {
     try {
       const activeOnly = req.query.activeOnly === 'true';
       const locations = await storage.listLocations(activeOnly);
@@ -264,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/locations', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/locations', adminOnly, async (req, res) => {
     try {
       console.log('[LOCATION_CREATE] Request body:', JSON.stringify(req.body, null, 2));
       
@@ -1589,7 +1589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/settings', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/settings', adminOnly, async (req, res) => {
     try {
       const validatedData = insertSettingsSchema.parse(req.body);
       const settings = await storage.updateSettings(validatedData);
