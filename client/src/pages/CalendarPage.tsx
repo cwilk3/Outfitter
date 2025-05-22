@@ -54,9 +54,9 @@ export default function CalendarPage() {
         const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
-        // Format the title to be more information-dense
+        // Format the title to show hunt type, customer last name, group size
         const title = experience 
-          ? `${experience.name.substring(0, 15)}${experience.name.length > 15 ? '...' : ''}\n${customer?.firstName || ''} ${customer?.lastName || ''}`
+          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
           : `Booking #${booking.bookingNumber}`;
         
         return {
