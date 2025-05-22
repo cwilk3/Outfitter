@@ -34,26 +34,11 @@ const hasRole = (role: string) => (req: Request, res: Response, next: Function) 
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware - commented out for development
-  // await setupAuth(app);
+  // Enable authentication system
+  await setupAuth(app);
   
   // Auth routes
-  app.get('/api/auth/user', async (req: any, res) => {
-    // In development mode, bypass authentication
-    if (process.env.NODE_ENV !== 'production' && !process.env.REPLIT_DOMAINS) {
-      // Return a dummy admin user for development
-      return res.json({
-        id: "dev-admin",
-        email: "admin@example.com",
-        firstName: "Admin",
-        lastName: "User",
-        profileImageUrl: null,
-        role: "admin",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-    }
-
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
