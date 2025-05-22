@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar, momentLocalizer, EventProps } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Booking, Experience, Customer } from '@/types';
@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar as CalendarIcon, MapPin, Users, DollarSign, User } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Users, DollarSign, User, ChevronDown } from 'lucide-react';
 
 // Setup localizer for the calendar
 const localizer = momentLocalizer(moment);
@@ -49,7 +49,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
-    if (bookings && experiences && customers) {
+    if (bookings && bookings.length > 0 && experiences && experiences.length > 0 && customers && customers.length > 0) {
       const mappedEvents = bookings.map((booking: Booking) => {
         const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
@@ -79,7 +79,13 @@ export default function CalendarPage() {
         };
       });
       
-      setEvents(mappedEvents);
+      // Compare if the events are different before setting
+      const eventsJSON = JSON.stringify(events);
+      const mappedEventsJSON = JSON.stringify(mappedEvents);
+      
+      if (eventsJSON !== mappedEventsJSON) {
+        setEvents(mappedEvents);
+      }
     }
   }, [bookings, experiences, customers]);
 
@@ -123,9 +129,9 @@ export default function CalendarPage() {
       style: {
         backgroundColor,
         borderLeftColor,
-        borderLeftWidth: '3px',
-        borderLeftStyle: 'solid',
-        borderRadius: '2px',
+        borderLeftWidth: 3,
+        borderLeftStyle: 'solid' as const,
+        borderRadius: 2,
         opacity: 0.9,
         color: 'white',
         fontSize: '0.75rem',
@@ -134,7 +140,7 @@ export default function CalendarPage() {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        marginBottom: '2px'
+        marginBottom: 2
       }
     };
   };
@@ -214,6 +220,20 @@ export default function CalendarPage() {
               eventPropGetter={eventStyleGetter}
               views={['month', 'week', 'day', 'agenda']}
               defaultView="month"
+              popup={true}
+              popupOffset={10}
+              onShowMore={(events, date) => {
+                // Show a popup with all events for that day
+                console.log('Show more events for date:', date, events);
+              }}
+              components={{
+                event: ({ event }) => (
+                  <div className="text-xs font-medium leading-tight">
+                    {event.title}
+                  </div>
+                )
+              }}
+              className="calendar-grid"
             />
           </div>
         </CardContent>
