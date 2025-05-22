@@ -196,13 +196,8 @@ export default function CalendarPage() {
               messages={{
                 showMore: (total) => `+${total} more`
               }}
-              components={{
-                event: (props) => (
-                  <div className="truncate text-xs px-1 py-0.5">
-                    {props.title}
-                  </div>
-                )
-              }}
+              // Keep the original event formatting
+              max={4} // Show maximum 4 events before "+X more"
             />
           </div>
         </CardContent>
