@@ -153,6 +153,7 @@ export const bookings = pgTable("bookings", {
   endDate: timestamp("end_date").notNull(),
   status: bookingStatusEnum("status").notNull().default('pending'),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  groupSize: integer("group_size").notNull().default(1),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

@@ -1517,6 +1517,7 @@ export class MemStorage implements IStorage {
       endDate: new Date(tomorrow.getTime() + 2 * 24 * 60 * 60 * 1000),
       status: 'confirmed',
       totalAmount: 1200,
+      groupSize: 2,
     };
     this.createBooking(booking1);
     
@@ -1528,6 +1529,7 @@ export class MemStorage implements IStorage {
       endDate: new Date(nextWeek.getTime() + 3 * 24 * 60 * 60 * 1000),
       status: 'deposit_paid',
       totalAmount: 3500,
+      groupSize: 4,
     };
     this.createBooking(booking2);
     
@@ -1542,6 +1544,7 @@ export class MemStorage implements IStorage {
       endDate: new Date(twoWeeksFromNow.getTime() + 2 * 24 * 60 * 60 * 1000),
       status: 'confirmed',
       totalAmount: 850,
+      groupSize: 3,
     };
     this.createBooking(booking3);
     
