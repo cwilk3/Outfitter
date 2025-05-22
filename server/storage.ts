@@ -141,6 +141,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserWithRole(userId: string): Promise<{role: 'admin' | 'guide', outfitterId: number} | undefined> {
+    const [userOutfitter] = await db
+      .select({
+        role: userOutfitters.role,
+        outfitterId: userOutfitters.outfitterId
+      })
+      .from(userOutfitters)
+      .where(eq(userOutfitters.userId, userId))
+      .limit(1);
+    
+    return userOutfitter;
+  }
+
   async listUsers(role?: string): Promise<User[]> {
     if (role) {
       return db.select().from(users).where(eq(users.role, role));

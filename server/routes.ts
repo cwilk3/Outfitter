@@ -27,11 +27,52 @@ const isAuthenticated = (req: Request, res: Response, next: Function) => {
   return next();
 };
 
-// Define middleware for role checking based on Replit Auth
-const hasRole = (role: string) => (req: Request, res: Response, next: Function) => {
-  // For development: always bypass role checking
-  return next();
+// Role-based permission middleware
+const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: Response, next: Function) => {
+  try {
+    // In development mode, always allow access
+    if (process.env.NODE_ENV === 'development') {
+      return next();
+    }
+
+    // Get user from authentication
+    const user = (req as any).user;
+    if (!user || !user.claims) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Get user's role from database
+    const userWithRole = await storage.getUserWithRole(user.claims.sub);
+    if (!userWithRole) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // Check if user has required role or higher
+    if (requiredRole === 'admin' && userWithRole.role !== 'admin') {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    // Admin can access guide routes, guide can only access guide routes
+    if (requiredRole === 'guide' && !['admin', 'guide'].includes(userWithRole.role)) {
+      return res.status(403).json({ message: "Guide access required" });
+    }
+
+    // Attach user role and outfitter info to request
+    (req as any).userRole = userWithRole.role;
+    (req as any).outfitterId = userWithRole.outfitterId;
+
+    next();
+  } catch (error) {
+    console.error('Role check error:', error);
+    res.status(500).json({ message: "Permission check failed" });
+  }
 };
+
+// Admin-only middleware
+const adminOnly = hasRole('admin');
+
+// Guide or admin middleware  
+const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Development mode: Comment out auth setup for now
