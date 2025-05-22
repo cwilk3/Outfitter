@@ -177,7 +177,7 @@ export default function CalendarPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[700px]"> {/* Increased height to accommodate taller cells */}
+          <div className="h-[600px]">
             <Calendar
               localizer={localizer}
               events={events}
@@ -188,19 +188,6 @@ export default function CalendarPage() {
               eventPropGetter={eventStyleGetter}
               views={['month', 'week', 'day', 'agenda']}
               defaultView="month"
-              components={{
-                // Customize event rendering in the month view
-                month: {
-                  // Max display 4 events, then show "+X more"
-                  dateHeader: ({ date, label }) => {
-                    return <span>{label}</span>;
-                  }
-                }
-              }}
-              // Set max number of events to display before "+X more" link
-              popup
-              popupOffset={30}
-              length={4} // Show up to 4 events before showing the "+X more" indicator
             />
           </div>
         </CardContent>
