@@ -23,7 +23,11 @@ import {
 
 // Development authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  // Always allow access in development
+  // For development, simulate a user in the request
+  (req as any).user = {
+    id: 'dev-user-1',
+    claims: { sub: 'dev-user-1' }
+  };
   return next();
 };
 
@@ -153,11 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User-Outfitter Association routes (temporarily without auth for testing)
-  app.get('/api/user-outfitters', async (req, res) => {
+  // User-Outfitter Association routes
+  app.get('/api/user-outfitters', isAuthenticated, async (req, res) => {
     try {
-      // Return empty array for now to stop console errors
-      res.json([]);
+      const userId = (req.user as any).claims.sub;
+      const userOutfitters = await storage.getUserOutfitters(userId);
+      res.json(userOutfitters);
     } catch (error) {
       console.error('Error fetching user outfitters:', error);
       res.status(500).json({ message: 'Failed to fetch outfitter associations' });

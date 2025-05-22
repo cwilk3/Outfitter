@@ -22,7 +22,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
 function ProtectedRoutes() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  // Dev mode - we always authenticate
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -33,12 +34,6 @@ function ProtectedRoutes() {
         </div>
       </div>
     );
-  }
-
-  // If not authenticated, redirect to auth page using navigation
-  if (!isAuthenticated) {
-    window.location.href = "/auth";
-    return null;
   }
 
   return (
@@ -74,12 +69,12 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Switch>
-          {/* Public routes - put auth first to ensure it matches */}
+          {/* Public routes */}
+          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
-          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
           
-          {/* Protected routes - catch-all for authenticated pages */}
+          {/* Protected routes */}
           <Route path="/*">
             <ProtectedRoutes />
           </Route>
