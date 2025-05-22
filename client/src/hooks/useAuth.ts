@@ -5,23 +5,26 @@ import { useState, useEffect } from "react";
 export function useAuth() {
   const [devUser, setDevUser] = useState<any>(null);
   
-  // Check for development user in localStorage
-  useEffect(() => {
+  // Check for development user in localStorage (synchronous check every render)
+  const currentDevUser = (() => {
     const storedDevUser = localStorage.getItem('dev-user');
-    if (storedDevUser) {
-      setDevUser(JSON.parse(storedDevUser));
-    }
-  }, []);
+    return storedDevUser ? JSON.parse(storedDevUser) : null;
+  })();
+  
+  // Update state if localStorage changed
+  useEffect(() => {
+    setDevUser(currentDevUser);
+  }, [JSON.stringify(currentDevUser)]);
 
   const { data: apiUser, isLoading: apiLoading } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    enabled: !devUser, // Only query API if no dev user
+    enabled: !currentDevUser, // Only query API if no dev user
   });
 
-  // Use dev user if available, otherwise use API user
-  const user = devUser || apiUser;
-  const isLoading = !devUser && apiLoading;
+  // Use current dev user if available, otherwise use API user
+  const user = currentDevUser || apiUser;
+  const isLoading = !currentDevUser && apiLoading;
 
   return {
     user,
