@@ -70,7 +70,11 @@ export default function OnboardingPage() {
   const createOutfitterMutation = useMutation({
     mutationFn: async (data: OnboardingValues) => {
       const response = await apiRequest("POST", "/api/outfitters", data);
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -81,12 +85,14 @@ export default function OnboardingPage() {
       setLocation("/");
     },
     onError: (error) => {
+      console.error("Onboarding error details:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
       toast({
         title: "Setup Error",
         description: "There was an issue setting up your business. Please try again.",
         variant: "destructive",
       });
-      console.error("Onboarding error:", error);
     },
   });
 
