@@ -54,9 +54,20 @@ export default function CalendarPage() {
         const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
+        // Make the title more compact - just show experience name and last name
+        let title = "";
+        if (experience) {
+          title = experience.name;
+          if (customer) {
+            title += ` - ${customer.lastName}`;
+          }
+        } else {
+          title = `Booking #${booking.bookingNumber}`;
+        }
+        
         return {
           id: booking.id,
-          title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
+          title: title,
           start: new Date(booking.startDate),
           end: new Date(booking.endDate),
           allDay: true,
@@ -80,35 +91,50 @@ export default function CalendarPage() {
   // Customize event style based on booking status
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = '#2C5F2D'; // default hunter green
+    let borderLeftColor = '#1A4620'; // darker hunter green for border
     
     switch (event.resource.booking.status) {
       case 'confirmed':
         backgroundColor = '#34A853'; // green
+        borderLeftColor = '#2A8644'; // darker green
         break;
       case 'pending':
         backgroundColor = '#FBBC05'; // yellow
+        borderLeftColor = '#E5A001'; // darker yellow
         break;
       case 'deposit_paid':
         backgroundColor = '#4285F4'; // blue
+        borderLeftColor = '#2A75E5'; // darker blue
         break;
       case 'cancelled':
         backgroundColor = '#EA4335'; // red
+        borderLeftColor = '#D32F2F'; // darker red
         break;
       case 'completed':
         backgroundColor = '#2C5F2D'; // hunter green
+        borderLeftColor = '#1A4620'; // darker hunter green
         break;
       default:
         backgroundColor = '#2C5F2D'; // hunter green
+        borderLeftColor = '#1A4620'; // darker hunter green
     }
     
     return {
       style: {
         backgroundColor,
-        borderRadius: '4px',
-        opacity: 0.8,
+        borderLeftColor,
+        borderLeftWidth: '3px',
+        borderLeftStyle: 'solid',
+        borderRadius: '2px',
+        opacity: 0.9,
         color: 'white',
-        border: '0px',
-        display: 'block'
+        fontSize: '0.75rem',
+        lineHeight: '1rem',
+        padding: '1px 4px',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        marginBottom: '2px'
       }
     };
   };
