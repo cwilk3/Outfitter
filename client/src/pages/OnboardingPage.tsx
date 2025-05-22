@@ -69,12 +69,7 @@ export default function OnboardingPage() {
 
   const createOutfitterMutation = useMutation({
     mutationFn: async (data: OnboardingValues) => {
-      const response = await apiRequest("POST", "/api/outfitters", data);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-      return result;
+      return await apiRequest("POST", "/api/outfitters", data);
     },
     onSuccess: () => {
       toast({
