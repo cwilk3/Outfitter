@@ -55,8 +55,18 @@ export default function CalendarPage() {
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
         // Format the title to show hunt type, customer last name, group size
+        // Extract group size from notes or use booking details
+        let groupSize = 0;
+        if (booking.notes) {
+          // Try to extract group size from notes which might contain "Group Size: X"
+          const groupSizeMatch = booking.notes.match(/Group Size: (\d+)/);
+          if (groupSizeMatch && groupSizeMatch[1]) {
+            groupSize = parseInt(groupSizeMatch[1], 10);
+          }
+        }
+        
         const title = experience 
-          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
+          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${groupSize}`
           : `Booking #${booking.bookingNumber}`;
         
         // Fix timezone handling by ensuring dates are interpreted correctly
