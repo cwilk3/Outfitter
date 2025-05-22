@@ -38,6 +38,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          {/* Dashboard - Available to all users */}
           <SidebarNavItem 
             to="/" 
             icon={<Home className="h-5 w-5" />} 
@@ -47,15 +48,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             Dashboard
           </SidebarNavItem>
 
-          <SidebarNavItem 
-            to="/experiences" 
-            icon={<BookOpen className="h-5 w-5" />} 
-            isActive={location === "/experiences"}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Experiences
-          </SidebarNavItem>
-
+          {/* Calendar - Available to all users */}
           <SidebarNavItem 
             to="/calendar" 
             icon={<Calendar className="h-5 w-5" />} 
@@ -65,15 +58,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             Calendar
           </SidebarNavItem>
 
-          <SidebarNavItem 
-            to="/bookings" 
-            icon={<PackageOpen className="h-5 w-5" />} 
-            isActive={location === "/bookings"}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Bookings
-          </SidebarNavItem>
-
+          {/* Customers - Available to all users */}
           <SidebarNavItem 
             to="/customers" 
             icon={<Users className="h-5 w-5" />} 
@@ -83,43 +68,64 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             Customers
           </SidebarNavItem>
 
-          <SidebarNavItem 
-            to="/staff" 
-            icon={<UserCog className="h-5 w-5" />} 
-            isActive={location === "/staff"}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Staff
-          </SidebarNavItem>
-
+          {/* Admin-only sections */}
           {isAdmin && (
-            <SidebarNavItem 
-              to="/payments" 
-              icon={<Wallet className="h-5 w-5" />} 
-              isActive={location === "/payments"}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Payments
-            </SidebarNavItem>
+            <>
+              <SidebarNavItem 
+                to="/experiences" 
+                icon={<BookOpen className="h-5 w-5" />} 
+                isActive={location === "/experiences"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Experiences
+              </SidebarNavItem>
+
+              <SidebarNavItem 
+                to="/bookings" 
+                icon={<PackageOpen className="h-5 w-5" />} 
+                isActive={location === "/bookings"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Bookings
+              </SidebarNavItem>
+
+              <SidebarNavItem 
+                to="/staff" 
+                icon={<UserCog className="h-5 w-5" />} 
+                isActive={location === "/staff"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Staff
+              </SidebarNavItem>
+
+              <SidebarNavItem 
+                to="/payments" 
+                icon={<Wallet className="h-5 w-5" />} 
+                isActive={location === "/payments"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Payments
+              </SidebarNavItem>
+
+              <SidebarNavItem 
+                to="/documents" 
+                icon={<FileText className="h-5 w-5" />} 
+                isActive={location === "/documents"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Documents
+              </SidebarNavItem>
+
+              <SidebarNavItem 
+                to="/settings" 
+                icon={<Settings className="h-5 w-5" />} 
+                isActive={location === "/settings"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Settings
+              </SidebarNavItem>
+            </>
           )}
-
-          <SidebarNavItem 
-            to="/documents" 
-            icon={<FileText className="h-5 w-5" />} 
-            isActive={location === "/documents"}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Documents
-          </SidebarNavItem>
-
-          <SidebarNavItem 
-            to="/settings" 
-            icon={<Settings className="h-5 w-5" />} 
-            isActive={location === "/settings"}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Settings
-          </SidebarNavItem>
         </nav>
 
         {/* User profile */}

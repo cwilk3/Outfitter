@@ -1,14 +1,11 @@
 import { useAuth } from "./useAuth";
 
-// Development mode flag - keep in sync with useAuth.ts
-const DEV_MODE = true;
-
 export function useRole() {
-  const { user, isLoading, isAuthenticated, isAdmin: authIsAdmin } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   
-  // If we're in development mode, always return admin role
-  const isAdmin = DEV_MODE ? true : authIsAdmin || user?.role === 'admin';
-  const isGuide = DEV_MODE ? false : user?.role === 'guide';
+  // Read role from user object returned by API
+  const isAdmin = user?.role === 'admin';
+  const isGuide = user?.role === 'guide';
   
   return {
     user,
