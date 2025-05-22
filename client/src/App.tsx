@@ -35,9 +35,10 @@ function ProtectedRoutes() {
     );
   }
 
-  // Redirect to auth page if not authenticated
+  // If not authenticated, redirect to auth page using navigation
   if (!isAuthenticated) {
-    return <AuthPage />;
+    window.location.href = "/auth";
+    return null;
   }
 
   return (
@@ -78,7 +79,7 @@ function App() {
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           
-          {/* Protected routes */}
+          {/* Protected routes with authentication check moved to ProtectedRoutes */}
           <Route path="/*">
             <ProtectedRoutes />
           </Route>
