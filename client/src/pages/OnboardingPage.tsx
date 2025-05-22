@@ -205,7 +205,7 @@ export default function OnboardingPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-lg font-semibold">What type of outfitter are you?</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger className="text-lg p-4">
                                 <SelectValue placeholder="Select your business type" />
