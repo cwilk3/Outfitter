@@ -55,25 +55,8 @@ export default function CalendarPage() {
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
         // Format the title to show hunt type, customer last name, group size
-        // Extract group size from notes field in various possible formats
-        let groupSize = 0;
-        if (booking.notes) {
-          // Try multiple potential patterns to find group size
-          // First try the standard "Group Size: X" format
-          let groupSizeMatch = booking.notes.match(/Group Size:\s*(\d+)/i);
-          
-          // If not found, check for just the raw number in the notes
-          if (!groupSizeMatch && booking.notes.match(/\d+/)) {
-            groupSizeMatch = booking.notes.match(/(\d+)/);
-          }
-          
-          if (groupSizeMatch && groupSizeMatch[1]) {
-            groupSize = parseInt(groupSizeMatch[1], 10);
-          }
-        }
-        
         const title = experience 
-          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${groupSize}`
+          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
           : `Booking #${booking.bookingNumber}`;
         
         // Fix timezone handling by ensuring dates are interpreted correctly
@@ -289,20 +272,7 @@ export default function CalendarPage() {
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-1 text-gray-500" />
-                      {(() => {
-                        // Extract group size from booking notes
-                        let groupSize = 0;
-                        const notes = selectedEvent.resource.booking.notes;
-                        if (notes) {
-                          const groupSizeMatch = notes.match(/Group Size:\s*(\d+)/i);
-                          if (groupSizeMatch && groupSizeMatch[1]) {
-                            groupSize = parseInt(groupSizeMatch[1], 10);
-                          }
-                        }
-                        return (
-                          <span className="text-sm">{groupSize} of {selectedEvent.resource.experience.capacity} guests</span>
-                        );
-                      })()}
+                      <span className="text-sm">Max {selectedEvent.resource.experience.capacity} people</span>
                     </div>
                   </div>
                 </div>
