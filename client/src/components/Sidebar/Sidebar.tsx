@@ -131,26 +131,38 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
 
         {/* User profile */}
         <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center">
-            {user?.profileImageUrl ? (
-              <img 
-                className="w-10 h-10 rounded-full object-cover" 
-                src={user.profileImageUrl} 
-                alt={`${user.firstName} ${user.lastName}`}
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">
-                {user?.firstName?.[0] || "U"}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {user?.profileImageUrl ? (
+                <img 
+                  className="w-10 h-10 rounded-full object-cover" 
+                  src={user.profileImageUrl} 
+                  alt={`${user.firstName} ${user.lastName}`}
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center">
+                  {user?.firstName?.[0] || "U"}
+                </div>
+              )}
+              <div className="ml-3">
+                <p className="text-sm font-medium">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {isAdmin ? "Administrator" : "Guide"}
+                </p>
               </div>
-            )}
-            <div className="ml-3">
-              <p className="text-sm font-medium">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-gray-500">
-                {isAdmin ? "Administrator" : "Guide"}
-              </p>
             </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('dev-user');
+                window.location.href = '/auth';
+              }}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
