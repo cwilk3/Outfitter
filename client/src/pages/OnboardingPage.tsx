@@ -22,7 +22,7 @@ const onboardingSchema = z.object({
   businessType: z.enum(["hunting", "fishing", "both"], {
     required_error: "Please select your business type",
   }),
-  description: z.string().min(10, "Please provide a brief description (at least 10 characters)"),
+  description: z.string().min(1, "Please provide a brief description"),
   
   // Contact Information
   phone: z.string().min(10, "Please enter a valid phone number"),
@@ -114,7 +114,7 @@ export default function OnboardingPage() {
       case 1:
         return values.businessType && values.businessName?.trim().length > 0;
       case 2:
-        return values.description?.trim().length >= 10;
+        return values.description?.trim().length > 0;
       case 3:
         return values.phone?.trim().length > 0 && values.email?.trim().length > 0;
       case 4:
