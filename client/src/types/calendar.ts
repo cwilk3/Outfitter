@@ -18,4 +18,9 @@ export interface CalendarEventStyleGetterProps {
   event: CalendarEvent;
 }
 
-// No need for module augmentation, we'll use any types
+// Add module declaration for react-big-calendar
+declare module 'react-big-calendar' {
+  import React from 'react';
+  export function momentLocalizer(moment: any): any;
+  export const Calendar: React.FC<any>;
+}

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, momentLocalizer, EventProps } from 'react-big-calendar';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Booking, Experience, Customer } from '@/types';
@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar as CalendarIcon, MapPin, Users, DollarSign, User, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Users, DollarSign, User } from 'lucide-react';
 
 // Setup localizer for the calendar
 const localizer = momentLocalizer(moment);
@@ -48,46 +48,29 @@ export default function CalendarPage() {
   // Combine data into calendar events
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
-  // Create a memoized version of events to prevent infinite re-renders
-  const memoizedEvents = useCallback(() => {
-    if (!bookings?.length || !experiences?.length || !customers?.length) {
-      return [];
-    }
-    
-    return bookings.map((booking: Booking) => {
-      const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
-      const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
-      
-      // Make the title more compact - just show experience name and last name
-      let title = "";
-      if (experience) {
-        title = experience.name;
-        if (customer) {
-          title += ` - ${customer.lastName}`;
-        }
-      } else {
-        title = `Booking #${booking.bookingNumber}`;
-      }
-      
-      return {
-        id: booking.id,
-        title: title,
-        start: new Date(booking.startDate),
-        end: new Date(booking.endDate),
-        allDay: true,
-        resource: {
-          booking,
-          experience,
-          customer
-        }
-      };
-    });
-  }, [bookings, experiences, customers]);
-  
-  // Set events only when the dependencies change
   useEffect(() => {
-    setEvents(memoizedEvents());
-  }, [memoizedEvents]);
+    if (bookings && experiences && customers) {
+      const mappedEvents = bookings.map((booking: Booking) => {
+        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+        
+        return {
+          id: booking.id,
+          title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
+          start: new Date(booking.startDate),
+          end: new Date(booking.endDate),
+          allDay: true,
+          resource: {
+            booking,
+            experience,
+            customer
+          }
+        };
+      });
+      
+      setEvents(mappedEvents);
+    }
+  }, [bookings, experiences, customers]);
 
   // Handle event selection
   const handleSelectEvent = (event: CalendarEvent) => {
@@ -97,50 +80,35 @@ export default function CalendarPage() {
   // Customize event style based on booking status
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = '#2C5F2D'; // default hunter green
-    let borderLeftColor = '#1A4620'; // darker hunter green for border
     
     switch (event.resource.booking.status) {
       case 'confirmed':
         backgroundColor = '#34A853'; // green
-        borderLeftColor = '#2A8644'; // darker green
         break;
       case 'pending':
         backgroundColor = '#FBBC05'; // yellow
-        borderLeftColor = '#E5A001'; // darker yellow
         break;
       case 'deposit_paid':
         backgroundColor = '#4285F4'; // blue
-        borderLeftColor = '#2A75E5'; // darker blue
         break;
       case 'cancelled':
         backgroundColor = '#EA4335'; // red
-        borderLeftColor = '#D32F2F'; // darker red
         break;
       case 'completed':
         backgroundColor = '#2C5F2D'; // hunter green
-        borderLeftColor = '#1A4620'; // darker hunter green
         break;
       default:
         backgroundColor = '#2C5F2D'; // hunter green
-        borderLeftColor = '#1A4620'; // darker hunter green
     }
     
     return {
       style: {
         backgroundColor,
-        borderLeftColor,
-        borderLeftWidth: 3,
-        borderLeftStyle: 'solid' as const,
-        borderRadius: 2,
-        opacity: 0.9,
+        borderRadius: '4px',
+        opacity: 0.8,
         color: 'white',
-        fontSize: '0.75rem',
-        lineHeight: '1rem',
-        padding: '1px 4px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        marginBottom: 2
+        border: '0px',
+        display: 'block'
       }
     };
   };
@@ -220,25 +188,6 @@ export default function CalendarPage() {
               eventPropGetter={eventStyleGetter}
               views={['month', 'week', 'day', 'agenda']}
               defaultView="month"
-              popup={true}
-              popupOffset={10}
-              components={{
-                event: ({ event }) => (
-                  <div className="text-xs font-medium leading-tight">
-                    {event.title}
-                  </div>
-                )
-              }}
-              // Enables the "+X more" link when there are too many events
-              onShowMore={(events, date) => {
-                // When the "+X more" link is clicked, it will automatically 
-                // show a popup with all events for that day
-                console.log(`Showing ${events.length} events for ${moment(date).format('MMM D, YYYY')}`);
-              }}
-              messages={{
-                showMore: (total) => `+${total} more`
-              }}
-              className="calendar-grid"
             />
           </div>
         </CardContent>

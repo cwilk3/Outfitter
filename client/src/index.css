@@ -128,76 +128,15 @@
 }
 
 .calendar-grid td {
-  @apply h-32 overflow-hidden;
+  @apply h-24 overflow-hidden;
 }
 
 .calendar-event {
-  @apply border-l-2 text-xs py-0.5 px-1 mb-1 overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-/* React Big Calendar overrides */
-.rbc-event {
-  @apply py-0.5 px-1 text-xs min-h-[20px] rounded-sm my-0.5 !important;
-}
-
-.rbc-event-label {
-  @apply hidden !important;
-}
-
-.rbc-event-content {
-  @apply truncate font-medium leading-tight !important;
-}
-
-.rbc-day-slot .rbc-event {
-  @apply border-l-2 !important;
-}
-
-.rbc-day-bg {
-  @apply cursor-pointer hover:bg-gray-50 transition-colors !important;
-}
-
-.rbc-month-view {
-  @apply border-gray-200 !important;
-}
-
-.rbc-month-row {
-  @apply overflow-visible !important;
-}
-
-.rbc-row-content {
-  @apply overflow-visible !important;
-}
-
-.rbc-row-segment {
-  @apply overflow-visible !important;
-}
-
-/* Show more events (+X More) button styling */
-.rbc-show-more {
-  @apply text-primary font-medium text-xs px-1 py-0.5 rounded-sm bg-primary/5 hover:bg-primary/10 hover:underline transition-colors !important;
-  background-color: rgba(44, 95, 45, 0.05) !important;
-}
-
-/* Make cell heights taller to accommodate more events */
-.rbc-month-view .rbc-month-row {
-  @apply min-h-[120px] !important;
-}
-
-/* Style the show more popup */
-.rbc-overlay {
-  @apply rounded-md shadow-lg border border-gray-200 bg-white max-h-[250px] overflow-y-auto !important;
-}
-
-.rbc-overlay-header {
-  @apply text-sm font-medium py-2 px-3 bg-gray-50 border-b border-gray-200 !important;
+  @apply border-l-2 text-xs overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
 @media (max-width: 768px) {
   .calendar-grid td {
-    @apply h-20;
-  }
-  
-  .rbc-event {
-    @apply py-0 px-0.5 min-h-[16px] text-[10px] !important;
+    @apply h-16;
   }
 }
