@@ -12,7 +12,8 @@ import {
   Wallet,
   FileText,
   Settings,
-  MapPin
+  MapPin,
+  LogOut
 } from "lucide-react";
 
 interface SidebarProps {

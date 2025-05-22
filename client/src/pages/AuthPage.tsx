@@ -80,6 +80,38 @@ export default function AuthPage() {
     }
   };
 
+  const handleTestLogin = async (userType: 'admin' | 'guide') => {
+    setLoading(true);
+    try {
+      // Set development user in localStorage for testing
+      const testUser = userType === 'admin' 
+        ? {
+            id: 'dev-admin-1',
+            email: 'admin@testoutfitter.com',
+            firstName: 'Test',
+            lastName: 'Admin',
+            role: 'admin'
+          }
+        : {
+            id: 'dev-guide-1', 
+            email: 'guide@testoutfitter.com',
+            firstName: 'Test',
+            lastName: 'Guide',
+            role: 'guide'
+          };
+      
+      localStorage.setItem('dev-user', JSON.stringify(testUser));
+      console.log(`Logging in as ${userType}:`, testUser);
+      
+      // Redirect to main dashboard
+      setLocation("/");
+    } catch (error) {
+      console.error("Test login error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -112,6 +144,35 @@ export default function AuthPage() {
 
               {/* Sign In Tab */}
               <TabsContent value="signin">
+                {/* Development Mode - Quick Test Users */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-900 mb-3">Development Mode - Test Users</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-left justify-start text-sm"
+                      onClick={() => handleTestLogin('admin')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>Test Admin User - Full Access</span>
+                      </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-left justify-start text-sm"
+                      onClick={() => handleTestLogin('guide')}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Test Guide User - Limited Access</span>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+                
                 <Form {...signInForm}>
                   <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
                     <FormField
