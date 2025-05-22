@@ -78,22 +78,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development mode: Comment out auth setup for now
   // await setupAuth(app);
   
-  // Auth routes - Development mode with test admin user
+  // Auth routes - Development mode with test guide user
   app.get('/api/auth/user', async (req: any, res) => {
-    // Development mode: Return test admin user
-    const testAdminUser = {
-      id: "dev-admin-1",
-      email: "admin@example.com",
-      firstName: "Admin",
+    // Development mode: Return test guide user
+    const testGuideUser = {
+      id: "dev-guide-1",
+      email: "guide@example.com",
+      firstName: "Guide",
       lastName: "User",
       profileImageUrl: null,
-      role: "admin",
+      role: "guide",
       phone: null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
     
-    res.json(testAdminUser);
+    res.json(testGuideUser);
   });
 
   // Outfitter onboarding routes
