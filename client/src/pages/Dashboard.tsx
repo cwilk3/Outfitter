@@ -34,21 +34,23 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Activity and Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        {/* Recent Activity */}
-        <div className="lg:col-span-2">
-          <RecentActivity />
-        </div>
+      {/* Admin-only: Recent Activity and Quick Actions */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Recent Activity */}
+          <div className="lg:col-span-2">
+            <RecentActivity />
+          </div>
 
-        {/* Quick Actions */}
-        <div className="lg:col-span-1">
-          <QuickActions />
-          
-          {/* Booking Link Generator - For Admins Only */}
-          {isAdmin && <BookingLinkGenerator />}
+          {/* Quick Actions */}
+          <div className="lg:col-span-1">
+            <QuickActions />
+            
+            {/* Booking Link Generator */}
+            <BookingLinkGenerator />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
