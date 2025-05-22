@@ -108,15 +108,20 @@ export default function OnboardingPage() {
 
   const isStepValid = (step: number) => {
     const values = form.getValues();
+    console.log('Step validation:', step, 'Values:', values); // Debug log
+    
     switch (step) {
       case 1:
-        return values.businessType && values.businessName;
+        return values.businessType && values.businessName?.trim().length > 0;
       case 2:
-        return values.description.length >= 10;
+        return values.description?.trim().length >= 10;
       case 3:
-        return values.phone && values.email;
+        return values.phone?.trim().length > 0 && values.email?.trim().length > 0;
       case 4:
-        return values.address && values.city && values.state && values.zipCode;
+        return values.address?.trim().length > 0 && 
+               values.city?.trim().length > 0 && 
+               values.state?.trim().length > 0 && 
+               values.zipCode?.trim().length > 0;
       default:
         return false;
     }
