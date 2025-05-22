@@ -54,16 +54,10 @@ export default function CalendarPage() {
         const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
-        // Create more compact, information-rich event title
-        const statusIndicator = booking.status === 'confirmed' ? '✓ ' : 
-                             booking.status === 'pending' ? '⌛ ' : 
-                             booking.status === 'deposit_paid' ? '💰 ' :
-                             booking.status === 'cancelled' ? '✗ ' : '✓ ';
-        
         // Format the title to be more information-dense
         const title = experience 
-          ? `${statusIndicator}${experience.name.substring(0, 15)}${experience.name.length > 15 ? '...' : ''}\n${customer?.firstName || ''} ${customer?.lastName || ''}`
-          : `${statusIndicator}Booking #${booking.bookingNumber}`;
+          ? `${experience.name.substring(0, 15)}${experience.name.length > 15 ? '...' : ''}\n${customer?.firstName || ''} ${customer?.lastName || ''}`
+          : `Booking #${booking.bookingNumber}`;
         
         return {
           id: booking.id,
