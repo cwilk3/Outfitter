@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Calendar Styling */
+.rbc-calendar {
+  /* General calendar styling */
+}
+
+/* Make calendar cells taller to fit more events */
+.rbc-month-view .rbc-month-row {
+  min-height: 150px; /* Increase the minimum height */
+}
+
+/* Style for the "+X more" indicator */
+.rbc-more-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
+}
+
 :root {
   /* Base colors */
   --background: 0 0% 100%;
