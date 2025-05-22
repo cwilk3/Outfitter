@@ -19,6 +19,7 @@ import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
 function ProtectedRoutes() {
   // Dev mode - we always authenticate
@@ -36,27 +37,29 @@ function ProtectedRoutes() {
   }
 
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/experiences" component={Experiences} />
-        <Route path="/locations">
-          {() => {
-            // Redirect to experiences
-            window.location.href = "/experiences";
-            return null;
-          }}
-        </Route>
-        <Route path="/calendar" component={CalendarPage} />
-        <Route path="/bookings" component={Bookings} />
-        <Route path="/customers" component={Customers} />
-        <Route path="/staff" component={Staff} />
-        <Route path="/payments" component={Payments} />
-        <Route path="/documents" component={Documents} />
-        <Route path="/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <OutfitterProvider>
+      <AppLayout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/experiences" component={Experiences} />
+          <Route path="/locations">
+            {() => {
+              // Redirect to experiences
+              window.location.href = "/experiences";
+              return null;
+            }}
+          </Route>
+          <Route path="/calendar" component={CalendarPage} />
+          <Route path="/bookings" component={Bookings} />
+          <Route path="/customers" component={Customers} />
+          <Route path="/staff" component={Staff} />
+          <Route path="/payments" component={Payments} />
+          <Route path="/documents" component={Documents} />
+          <Route path="/settings" component={Settings} />
+          <Route component={NotFound} />
+        </Switch>
+      </AppLayout>
+    </OutfitterProvider>
   );
 }
 
