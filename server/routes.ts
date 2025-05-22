@@ -152,6 +152,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // User-Outfitter Association routes
+  app.get('/api/user-outfitters', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).claims.sub;
+      const userOutfitters = await storage.getUserOutfitters(userId);
+      res.json(userOutfitters);
+    } catch (error) {
+      console.error('Error fetching user outfitters:', error);
+      res.status(500).json({ message: 'Failed to fetch outfitter associations' });
+    }
+  });
   
   // User routes
   app.get('/api/users', isAuthenticated, async (req, res) => {
