@@ -64,6 +64,11 @@ async function upsertUser(claims: any) {
 }
 
 export async function setupAuth(app: Express) {
+  // Skip auth setup in development mode
+  if (process.env.NODE_ENV === 'development') {
+    return;
+  }
+  
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
