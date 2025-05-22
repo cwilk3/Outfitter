@@ -1,13 +1,14 @@
 import {
   users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, 
-  experienceLocations, experienceAddons, experienceGuides, addonInventoryDates,
-  type User, type InsertUser, type UpsertUser, type Experience, type InsertExperience, 
+  experienceLocations, experienceAddons, experienceGuides, addonInventoryDates, outfitters, userOutfitters,
+  type User, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
   type Activity, type InsertActivity, type Location, type InsertLocation,
   type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
-  type ExperienceGuide, type InsertExperienceGuide
+  type ExperienceGuide, type InsertExperienceGuide, type Outfitter, type InsertOutfitter,
+  type UserOutfitter, type InsertUserOutfitter
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
@@ -19,6 +20,18 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   listUsers(role?: string): Promise<User[]>;
+  
+  // Outfitter operations
+  createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
+  getOutfitter(id: number): Promise<Outfitter | undefined>;
+  updateOutfitter(id: number, outfitter: Partial<InsertOutfitter>): Promise<Outfitter | undefined>;
+  listOutfitters(): Promise<Outfitter[]>;
+  
+  // User-Outfitter relationship operations
+  addUserToOutfitter(userId: string, outfitterId: number, role: 'admin' | 'guide'): Promise<UserOutfitter>;
+  getUserOutfitters(userId: string): Promise<(UserOutfitter & { outfitter: Outfitter })[]>;
+  getOutfitterUsers(outfitterId: number): Promise<(UserOutfitter & { user: User })[]>;
+  removeUserFromOutfitter(userId: string, outfitterId: number): Promise<void>;
   
   // Experience Guide operations
   getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;

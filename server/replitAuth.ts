@@ -1,16 +1,14 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
-
 import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
-import { pool } from "./db";
 
 if (!process.env.REPLIT_DOMAINS) {
-  console.warn("Environment variable REPLIT_DOMAINS not provided - auth flow will not work until deployed");
+  throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
 const getOidcConfig = memoize(
@@ -27,19 +25,19 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
-    pool,
-    createTableIfMissing: true,
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "dev-session-secret",
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       maxAge: sessionTtl,
     },
   });
@@ -55,16 +53,13 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-async function upsertUser(
-  claims: any,
-) {
+async function upsertUser(claims: any) {
   await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
-    role: "admin" // Default to admin role for now, can be changed to match your app's logic
   });
 }
 
@@ -73,12 +68,6 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
-
-  // Skip setup if REPLIT_DOMAINS is not set (e.g., in development)
-  if (!process.env.REPLIT_DOMAINS) {
-    console.warn("Skipping OpenID Connect setup - REPLIT_DOMAINS not set");
-    return;
-  }
 
   const config = await getOidcConfig();
 
@@ -92,8 +81,7 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  for (const domain of process.env.REPLIT_DOMAINS!.split(",")) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -136,14 +124,9 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // During development or testing, bypass authentication
-  if (process.env.NODE_ENV !== 'production' && !process.env.REPLIT_DOMAINS) {
-    return next();
-  }
-
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user?.expires_at) {
+  if (!req.isAuthenticated() || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

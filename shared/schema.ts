@@ -530,3 +530,25 @@ export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
+// Outfitter types
+export const insertOutfitterSchema = createInsertSchema(outfitters).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertUserOutfitterSchema = createInsertSchema(userOutfitters).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type Outfitter = typeof outfitters.$inferSelect;
+export type InsertOutfitter = z.infer<typeof insertOutfitterSchema>;
+
+export type UserOutfitter = typeof userOutfitters.$inferSelect;
+export type InsertUserOutfitter = z.infer<typeof insertUserOutfitterSchema>;
+
+// For Replit Auth compatibility - these are the main User types
+export type UpsertUser = typeof users.$inferInsert;
