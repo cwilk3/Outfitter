@@ -55,11 +55,18 @@ export default function CalendarPage() {
         const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
         
         // Format the title to show hunt type, customer last name, group size
-        // Extract group size from notes or use booking details
+        // Extract group size from notes field in various possible formats
         let groupSize = 0;
         if (booking.notes) {
-          // Try to extract group size from notes which might contain "Group Size: X"
-          const groupSizeMatch = booking.notes.match(/Group Size: (\d+)/);
+          // Try multiple potential patterns to find group size
+          // First try the standard "Group Size: X" format
+          let groupSizeMatch = booking.notes.match(/Group Size:\s*(\d+)/i);
+          
+          // If not found, check for just the raw number in the notes
+          if (!groupSizeMatch && booking.notes.match(/\d+/)) {
+            groupSizeMatch = booking.notes.match(/(\d+)/);
+          }
+          
           if (groupSizeMatch && groupSizeMatch[1]) {
             groupSize = parseInt(groupSizeMatch[1], 10);
           }
