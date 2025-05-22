@@ -15,6 +15,8 @@ import Payments from "@/pages/Payments";
 import Documents from "@/pages/Documents";
 import Settings from "@/pages/Settings";
 import PublicBooking from "@/pages/PublicBooking";
+import AuthPage from "@/pages/AuthPage";
+import OnboardingPage from "@/pages/OnboardingPage";
 import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -66,6 +68,8 @@ function App() {
         <Switch>
           {/* Public routes */}
           <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/onboarding" component={OnboardingPage} />
           
           {/* Protected routes */}
           <Route path="/*">

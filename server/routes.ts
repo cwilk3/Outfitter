@@ -54,6 +54,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     res.json(testAdminUser);
   });
+
+  // Outfitter onboarding routes
+  app.post('/api/outfitters', async (req, res) => {
+    try {
+      const {
+        businessName,
+        businessType,
+        description,
+        phone,
+        email,
+        website,
+        address,
+        city,
+        state,
+        zipCode,
+      } = req.body;
+
+      // Create the outfitter
+      const outfitter = await storage.createOutfitter({
+        name: businessName,
+        businessType,
+        description,
+        phone,
+        email,
+        website: website || null,
+        address,
+        city,
+        state,
+        zipCode,
+        isActive: true,
+      });
+
+      // Create a default location for the outfitter
+      await storage.createLocation({
+        name: `${businessName} - Main Location`,
+        city,
+        state,
+        description: `Main business location for ${businessName}`,
+        address,
+        zip: zipCode,
+        isActive: true,
+        outfitterId: outfitter.id,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Outfitter created successfully!",
+        outfitter,
+      });
+    } catch (error) {
+      console.error('Error creating outfitter:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to create outfitter business profile' 
+      });
+    }
+  });
   
   // User routes
   app.get('/api/users', isAuthenticated, async (req, res) => {
