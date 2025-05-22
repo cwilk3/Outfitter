@@ -156,7 +156,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User-Outfitter Association routes
   app.get('/api/user-outfitters', isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      // Handle both dev users and real auth users
+      const user = req.user as any;
+      const userId = user.claims?.sub || user.id;
+      
+      if (!userId) {
+        return res.status(400).json({ message: 'User ID not found' });
+      }
+      
       const userOutfitters = await storage.getUserOutfitters(userId);
       res.json(userOutfitters);
     } catch (error) {
