@@ -289,7 +289,20 @@ export default function CalendarPage() {
                     </div>
                     <div className="flex items-center">
                       <Users className="h-4 w-4 mr-1 text-gray-500" />
-                      <span className="text-sm">Max {selectedEvent.resource.experience.capacity} people</span>
+                      {(() => {
+                        // Extract group size from booking notes
+                        let groupSize = 0;
+                        const notes = selectedEvent.resource.booking.notes;
+                        if (notes) {
+                          const groupSizeMatch = notes.match(/Group Size:\s*(\d+)/i);
+                          if (groupSizeMatch && groupSizeMatch[1]) {
+                            groupSize = parseInt(groupSizeMatch[1], 10);
+                          }
+                        }
+                        return (
+                          <span className="text-sm">{groupSize} of {selectedEvent.resource.experience.capacity} guests</span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
