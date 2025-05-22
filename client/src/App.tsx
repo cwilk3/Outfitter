@@ -21,7 +21,7 @@ import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoutes() {
   // Dev mode - we always authenticate
   const { isLoading } = useAuth();
 
@@ -39,7 +39,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <OutfitterProvider>
       <AppLayout>
-        {children}
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/experiences" component={Experiences} />
+          <Route path="/locations">
+            {() => {
+              // Redirect to experiences
+              window.location.href = "/experiences";
+              return null;
+            }}
+          </Route>
+          <Route path="/calendar" component={CalendarPage} />
+          <Route path="/bookings" component={Bookings} />
+          <Route path="/customers" component={Customers} />
+          <Route path="/staff" component={Staff} />
+          <Route path="/payments" component={Payments} />
+          <Route path="/documents" component={Documents} />
+          <Route path="/settings" component={Settings} />
+          <Route component={NotFound} />
+        </Switch>
       </AppLayout>
     </OutfitterProvider>
   );
@@ -51,34 +69,14 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Switch>
-          {/* Public routes - no authentication required */}
+          {/* Public routes */}
           <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           
-          {/* Protected routes - authentication required */}
-          <Route path="/:rest*">
-            <ProtectedRoute>
-              <Switch>
-                <Route path="/" component={Dashboard} />
-                <Route path="/experiences" component={Experiences} />
-                <Route path="/locations">
-                  {() => {
-                    // Redirect to experiences
-                    window.location.href = "/experiences";
-                    return null;
-                  }}
-                </Route>
-                <Route path="/calendar" component={CalendarPage} />
-                <Route path="/bookings" component={Bookings} />
-                <Route path="/customers" component={Customers} />
-                <Route path="/staff" component={Staff} />
-                <Route path="/payments" component={Payments} />
-                <Route path="/documents" component={Documents} />
-                <Route path="/settings" component={Settings} />
-                <Route component={NotFound} />
-              </Switch>
-            </ProtectedRoute>
+          {/* Protected routes */}
+          <Route path="/*">
+            <ProtectedRoutes />
           </Route>
         </Switch>
       </TooltipProvider>
