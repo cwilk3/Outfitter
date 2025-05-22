@@ -100,6 +100,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(testGuideUser);
   });
 
+  // Logout route - Development mode
+  app.get('/api/logout', (req, res) => {
+    res.redirect('/auth');
+  });
+
   // Outfitter onboarding routes
   app.post('/api/outfitters', async (req, res) => {
     try {
