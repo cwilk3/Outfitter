@@ -4,69 +4,24 @@
 
 /* Custom Calendar Styling */
 .rbc-calendar {
-  width: 100% !important;
-  height: 100% !important;
+  /* General calendar styling */
 }
 
 /* Make calendar cells taller to fit more events */
 .rbc-month-view .rbc-month-row {
-  min-height: 150px !important; /* Increase the minimum height */
-}
-
-/* Fix border issues */
-.rbc-day-bg {
-  border: 1px solid #e5e7eb !important;
-}
-
-/* Make day cells more consistent in height */
-.rbc-month-view .rbc-date-cell {
-  padding: 4px;
-  text-align: right;
+  min-height: 150px; /* Increase the minimum height */
 }
 
 /* Style for the "+X more" indicator */
 .rbc-more-link {
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  color: #666 !important;
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  padding: 2px 4px !important;
-  border-radius: 4px !important;
-  margin: 2px 0 !important;
-  display: inline-block !important;
-  text-align: center !important;
-  width: auto !important;
-}
-
-/* Fix for event rendering */
-.rbc-event {
-  padding: 2px 5px !important;
-  margin-bottom: 3px !important;
-  border-radius: 3px !important;
-  font-size: 0.8rem !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  line-height: 1.2 !important;
-}
-
-/* Fix for row content area */
-.rbc-row-content {
-  z-index: 1;
-}
-
-/* Ensure events don't get cut off at the bottom */
-.rbc-row-content-scrollable {
-  height: 100% !important;
-}
-
-.rbc-month-view .rbc-row-segment {
-  padding: 0 1px 1px 1px !important;
-}
-
-/* Add some space at the bottom of each cell */
-.rbc-month-view .rbc-row-content {
-  margin-bottom: 5px !important;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #666;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
 }
 
 :root {

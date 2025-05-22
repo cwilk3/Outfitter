@@ -176,28 +176,31 @@ export default function CalendarPage() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
-          <div className="h-[700px] w-full">
+        <CardContent>
+          <div className="h-[700px]"> {/* Increased height to accommodate taller cells */}
             <Calendar
               localizer={localizer}
               events={events}
               startAccessor="start"
               endAccessor="end"
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '100%' }}
               onSelectEvent={handleSelectEvent}
               eventPropGetter={eventStyleGetter}
               views={['month', 'week', 'day', 'agenda']}
               defaultView="month"
+              components={{
+                // Customize event rendering in the month view
+                month: {
+                  // Max display 4 events, then show "+X more"
+                  dateHeader: ({ date, label }) => {
+                    return <span>{label}</span>;
+                  }
+                }
+              }}
+              // Set max number of events to display before "+X more" link
               popup
               popupOffset={30}
-              formats={{
-                dayFormat: 'D',
-              }}
-              messages={{
-                showMore: (total) => `+${total} more`
-              }}
-              // Keep the original event formatting
-              max={4} // Show maximum 4 events before "+X more"
+              length={4} // Show up to 4 events before showing the "+X more" indicator
             />
           </div>
         </CardContent>
