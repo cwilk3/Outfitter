@@ -78,31 +78,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Development mode: Comment out auth setup for now
   // await setupAuth(app);
   
-  // Auth routes - Development mode with switchable test users
+  // Auth routes - Development mode with test admin user
   app.get('/api/auth/user', async (req: any, res) => {
-    // Check for role override in query params for testing
-    const testRole = req.query.role || 'admin';
-    
-    if (testRole === 'guide') {
-      const testGuideUser = {
-        id: "dev-guide-1",
-        email: "guide@example.com", 
-        firstName: "Guide",
-        lastName: "User",
-        profileImageUrl: null,
-        role: "guide",
-        phone: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      return res.json(testGuideUser);
-    }
-    
-    // Default admin user
+    // Development mode: Return test admin user
     const testAdminUser = {
       id: "dev-admin-1",
       email: "admin@example.com",
-      firstName: "Admin", 
+      firstName: "Admin",
       lastName: "User",
       profileImageUrl: null,
       role: "admin",
@@ -112,17 +94,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     
     res.json(testAdminUser);
-  });
-
-  // Test endpoint to switch roles easily
-  app.post('/api/test/switch-role', async (req, res) => {
-    const { role } = req.body;
-    
-    if (!['admin', 'guide'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Use "admin" or "guide"' });
-    }
-    
-    res.json({ message: `Switched to ${role} role`, role });
   });
 
   // Outfitter onboarding routes

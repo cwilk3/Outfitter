@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
 import { useRole } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, LogOut, User, Shield, UserCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell, LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,20 +21,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isAdmin, user } = useRole();
   const { user: authUser } = useAuth();
-  
-  // Get current role from URL or default to admin
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentTestRole = (urlParams.get('role') as 'admin' | 'guide') || 'admin';
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  const switchTestRole = () => {
-    const newRole = currentTestRole === 'admin' ? 'guide' : 'admin';
-    setCurrentTestRole(newRole);
-    // Refresh the page to apply the role change
-    window.location.href = `/?role=${newRole}`;
   };
 
   return (
@@ -73,27 +61,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <h1 className="text-xl font-bold text-primary lg:hidden">Outfitter</h1>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                {/* Role Test Button */}
-                <Button
-                  onClick={switchTestRole}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                >
-                  {currentTestRole === 'admin' ? (
-                    <>
-                      <Shield className="h-4 w-4" />
-                      Switch to Guide
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="h-4 w-4" />
-                      Switch to Admin
-                    </>
-                  )}
-                </Button>
-                
+              <div className="flex items-center">
                 <button className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none">
                   <Bell className="h-6 w-6" />
                 </button>
