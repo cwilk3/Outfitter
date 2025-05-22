@@ -156,7 +156,7 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
             <button
               onClick={() => {
                 localStorage.removeItem('dev-user');
-                window.location.href = '/auth';
+                window.location.href = '/';
               }}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="Logout"
