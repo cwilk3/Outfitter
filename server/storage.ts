@@ -148,6 +148,86 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users);
   }
 
+  // Outfitter operations
+  async createOutfitter(outfitterData: InsertOutfitter): Promise<Outfitter> {
+    const [outfitter] = await db
+      .insert(outfitters)
+      .values(outfitterData)
+      .returning();
+    return outfitter;
+  }
+
+  async getOutfitter(id: number): Promise<Outfitter | undefined> {
+    const [outfitter] = await db.select().from(outfitters).where(eq(outfitters.id, id));
+    return outfitter;
+  }
+
+  async updateOutfitter(id: number, outfitterData: Partial<InsertOutfitter>): Promise<Outfitter | undefined> {
+    const [outfitter] = await db
+      .update(outfitters)
+      .set({
+        ...outfitterData,
+        updatedAt: new Date(),
+      })
+      .where(eq(outfitters.id, id))
+      .returning();
+    return outfitter;
+  }
+
+  async listOutfitters(): Promise<Outfitter[]> {
+    return db.select().from(outfitters).orderBy(outfitters.name);
+  }
+
+  // User-Outfitter relationship operations
+  async addUserToOutfitter(userId: string, outfitterId: number, role: 'admin' | 'guide'): Promise<UserOutfitter> {
+    const [userOutfitter] = await db
+      .insert(userOutfitters)
+      .values({ userId, outfitterId, role })
+      .returning();
+    return userOutfitter;
+  }
+
+  async getUserOutfitters(userId: string): Promise<(UserOutfitter & { outfitter: Outfitter })[]> {
+    return db
+      .select({
+        id: userOutfitters.id,
+        userId: userOutfitters.userId,
+        outfitterId: userOutfitters.outfitterId,
+        role: userOutfitters.role,
+        createdAt: userOutfitters.createdAt,
+        outfitter: outfitters
+      })
+      .from(userOutfitters)
+      .innerJoin(outfitters, eq(userOutfitters.outfitterId, outfitters.id))
+      .where(eq(userOutfitters.userId, userId));
+  }
+
+  async getOutfitterUsers(outfitterId: number): Promise<(UserOutfitter & { user: User })[]> {
+    return db
+      .select({
+        id: userOutfitters.id,
+        userId: userOutfitters.userId,
+        outfitterId: userOutfitters.outfitterId,
+        role: userOutfitters.role,
+        createdAt: userOutfitters.createdAt,
+        user: users
+      })
+      .from(userOutfitters)
+      .innerJoin(users, eq(userOutfitters.userId, users.id))
+      .where(eq(userOutfitters.outfitterId, outfitterId));
+  }
+
+  async removeUserFromOutfitter(userId: string, outfitterId: number): Promise<void> {
+    await db
+      .delete(userOutfitters)
+      .where(
+        and(
+          eq(userOutfitters.userId, userId),
+          eq(userOutfitters.outfitterId, outfitterId)
+        )
+      );
+  }
+
   // Location operations
   async getLocation(id: number): Promise<Location | undefined> {
     const [location] = await db.select().from(locations).where(eq(locations.id, id));
