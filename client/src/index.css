@@ -172,6 +172,26 @@
   @apply overflow-visible !important;
 }
 
+/* Show more events (+X More) button styling */
+.rbc-show-more {
+  @apply text-primary font-medium text-xs px-1 py-0.5 rounded-sm bg-primary/5 hover:bg-primary/10 hover:underline transition-colors !important;
+  background-color: rgba(44, 95, 45, 0.05) !important;
+}
+
+/* Make cell heights taller to accommodate more events */
+.rbc-month-view .rbc-month-row {
+  @apply min-h-[120px] !important;
+}
+
+/* Style the show more popup */
+.rbc-overlay {
+  @apply rounded-md shadow-lg border border-gray-200 bg-white max-h-[250px] overflow-y-auto !important;
+}
+
+.rbc-overlay-header {
+  @apply text-sm font-medium py-2 px-3 bg-gray-50 border-b border-gray-200 !important;
+}
+
 @media (max-width: 768px) {
   .calendar-grid td {
     @apply h-20;

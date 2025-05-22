@@ -48,46 +48,46 @@ export default function CalendarPage() {
   // Combine data into calendar events
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
-  useEffect(() => {
-    if (bookings && bookings.length > 0 && experiences && experiences.length > 0 && customers && customers.length > 0) {
-      const mappedEvents = bookings.map((booking: Booking) => {
-        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
-        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
-        
-        // Make the title more compact - just show experience name and last name
-        let title = "";
-        if (experience) {
-          title = experience.name;
-          if (customer) {
-            title += ` - ${customer.lastName}`;
-          }
-        } else {
-          title = `Booking #${booking.bookingNumber}`;
-        }
-        
-        return {
-          id: booking.id,
-          title: title,
-          start: new Date(booking.startDate),
-          end: new Date(booking.endDate),
-          allDay: true,
-          resource: {
-            booking,
-            experience,
-            customer
-          }
-        };
-      });
-      
-      // Compare if the events are different before setting
-      const eventsJSON = JSON.stringify(events);
-      const mappedEventsJSON = JSON.stringify(mappedEvents);
-      
-      if (eventsJSON !== mappedEventsJSON) {
-        setEvents(mappedEvents);
-      }
+  // Create a memoized version of events to prevent infinite re-renders
+  const memoizedEvents = useCallback(() => {
+    if (!bookings?.length || !experiences?.length || !customers?.length) {
+      return [];
     }
+    
+    return bookings.map((booking: Booking) => {
+      const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+      const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+      
+      // Make the title more compact - just show experience name and last name
+      let title = "";
+      if (experience) {
+        title = experience.name;
+        if (customer) {
+          title += ` - ${customer.lastName}`;
+        }
+      } else {
+        title = `Booking #${booking.bookingNumber}`;
+      }
+      
+      return {
+        id: booking.id,
+        title: title,
+        start: new Date(booking.startDate),
+        end: new Date(booking.endDate),
+        allDay: true,
+        resource: {
+          booking,
+          experience,
+          customer
+        }
+      };
+    });
   }, [bookings, experiences, customers]);
+  
+  // Set events only when the dependencies change
+  useEffect(() => {
+    setEvents(memoizedEvents());
+  }, [memoizedEvents]);
 
   // Handle event selection
   const handleSelectEvent = (event: CalendarEvent) => {
@@ -222,16 +222,21 @@ export default function CalendarPage() {
               defaultView="month"
               popup={true}
               popupOffset={10}
-              onShowMore={(events, date) => {
-                // Show a popup with all events for that day
-                console.log('Show more events for date:', date, events);
-              }}
               components={{
                 event: ({ event }) => (
                   <div className="text-xs font-medium leading-tight">
                     {event.title}
                   </div>
                 )
+              }}
+              // Enables the "+X more" link when there are too many events
+              onShowMore={(events, date) => {
+                // When the "+X more" link is clicked, it will automatically 
+                // show a popup with all events for that day
+                console.log(`Showing ${events.length} events for ${moment(date).format('MMM D, YYYY')}`);
+              }}
+              messages={{
+                showMore: (total) => `+${total} more`
               }}
               className="calendar-grid"
             />
