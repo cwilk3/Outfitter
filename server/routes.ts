@@ -116,6 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      const { verifyToken } = await import('./emailAuth');
       const decoded = verifyToken(token);
       console.log('Direct auth check - decoded:', decoded);
       
@@ -367,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0',
+        userId: req.user?.id || '0',
         action: 'Created new location',
         details: { locationId: location.id, name: location.name }
       });
@@ -418,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0', 
+        userId: req.user?.id || '0', 
         action: 'Updated location',
         details: { locationId: updatedLocation.id, name: updatedLocation.name }
       });
@@ -456,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0',
+        userId: req.user?.id || '0',
         action: 'Deleted location',
         details: { locationId: id, name: location.name }
       });
@@ -839,7 +840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0', // Get authenticated user ID from Replit Auth
+        userId: req.user?.id || '0',
         action: 'Updated experience',
         details: { experienceId: updatedExperience.id, name: updatedExperience.name }
       });
@@ -869,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0', // Get authenticated user ID from Replit Auth
+        userId: req.user?.id || '0',
         action: 'Deleted experience',
         details: { experienceId: id, name: experience.name }
       });
@@ -900,7 +901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0',
+        userId: req.user?.id || '0',
         action: 'Associated location with experience',
         details: { 
           experienceId: experienceLocation.experienceId, 
@@ -941,7 +942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user?.claims?.sub || '0',
+        userId: req.user?.id || '0',
         action: 'Removed location from experience',
         details: { experienceId, locationId }
       });
@@ -1063,7 +1064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record activity
       await storage.createActivity({
         action: 'assign_guide',
-        userId: req.user?.claims?.sub || 'system',
+        userId: req.user?.id || 'system',
         details: `Assigned guide ${guide.guideId} to experience ${guide.experienceId}`
       });
       
@@ -1115,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record activity
       await storage.createActivity({
         action: 'update_guide_assignment',
-        userId: req.user?.claims?.sub || 'system',
+        userId: req.user?.id || 'system',
         details: `Updated guide assignment for experience ${updatedGuide.experienceId}`
       });
       
@@ -1156,7 +1157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Record activity
       await storage.createActivity({
         action: 'remove_guide',
-        userId: req.user?.claims?.sub || 'system',
+        userId: req.user?.id || 'system',
         details: `Removed guide assignment with ID ${id} (guide: ${assignment.guideId}, experience: ${assignment.experienceId})`
       });
       
