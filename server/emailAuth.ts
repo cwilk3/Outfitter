@@ -40,8 +40,11 @@ export function generateToken(user: User, outfitterId: number): string {
 // Verify JWT token
 export function verifyToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('Token verification successful:', decoded);
+    return decoded;
   } catch (error) {
+    console.log('Token verification failed:', error.message);
     return null;
   }
 }
