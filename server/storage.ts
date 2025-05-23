@@ -1767,30 +1767,30 @@ export class MemStorage implements IStorage {
       bookingLink: 'https://outfitter.app/book/wilderness-adventures',
     });
     
-    // Add activities
-    this.createActivity({
-      userId: 1,
-      action: 'Created new booking',
-      details: { bookingId: 1, bookingNumber: 'B-2023-095', customerName: 'Sam Thompson' },
-    });
+    // TODO: Re-enable sample activities with valid user IDs after authentication fix
+    // this.createActivity({
+    //   userId: 1,
+    //   action: 'Created new booking',
+    //   details: { bookingId: 1, bookingNumber: 'B-2023-095', customerName: 'Sam Thompson' },
+    // });
     
-    this.createActivity({
-      userId: 1,
-      action: 'Payment received',
-      details: { bookingId: 1, bookingNumber: 'B-2023-095', amount: 1200 },
-    });
+    // this.createActivity({
+    //   userId: 1,
+    //   action: 'Payment received',
+    //   details: { bookingId: 1, bookingNumber: 'B-2023-095', amount: 1200 },
+    // });
     
-    this.createActivity({
-      userId: 1,
-      action: 'Updated trip details',
-      details: { bookingId: 2, bookingNumber: 'B-2023-096', customerName: 'Robert Martinez' },
-    });
+    // this.createActivity({
+    //   userId: 1,
+    //   action: 'Updated trip details',
+    //   details: { bookingId: 2, bookingNumber: 'B-2023-096', customerName: 'Robert Martinez' },
+    // });
     
-    this.createActivity({
-      userId: 1,
-      action: 'Created new customer',
-      details: { customerId: 3, customerName: 'Lisa Garcia' },
-    });
+    // this.createActivity({
+    //   userId: 1,
+    //   action: 'Created new customer',
+    //   details: { customerId: 3, customerName: 'Lisa Garcia' },
+    // });
   }
 
   // User operations
