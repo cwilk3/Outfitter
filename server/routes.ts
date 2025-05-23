@@ -102,8 +102,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Legacy route for backward compatibility
   app.get('/api/auth/user', requireAuth, async (req: any, res) => {
     try {
+      console.log('User from request:', req.user);
       const userId = req.user.id;
+      console.log('Looking up user ID:', userId);
       const user = await storage.getUser(userId);
+      console.log('Found user:', user);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
