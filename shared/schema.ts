@@ -19,8 +19,9 @@ export const roleEnum = pgEnum('role', ['admin', 'guide']);
 
 // User table
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   phone: text("phone"),
@@ -51,7 +52,7 @@ export const outfitters = pgTable("outfitters", {
 // User-Outfitter relationship table
 export const userOutfitters = pgTable("user_outfitters", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   outfitterId: integer("outfitter_id").notNull().references(() => outfitters.id),
   role: roleEnum("role").notNull().default('guide'),
   isActive: boolean("is_active").default(true),
