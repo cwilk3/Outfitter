@@ -1001,8 +1001,8 @@ export class DatabaseStorage implements IStorage {
 
   // Settings operations
   async getSettings(): Promise<Settings | undefined> {
-    const [settings] = await db.select().from(settings);
-    return settings;
+    const [settingsRecord] = await db.select().from(settings);
+    return settingsRecord;
   }
 
   async updateSettings(settingsData: InsertSettings): Promise<Settings> {
