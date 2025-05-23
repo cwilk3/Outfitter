@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Session storage table for legacy support
+// Session storage table for Replit Auth
 export const sessions = pgTable(
   "sessions",
   {
@@ -14,36 +14,18 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// JWT Refresh Tokens table for secure authentication
-export const refreshTokens = pgTable("refresh_tokens", {
-  id: serial("id").primaryKey(),
-  token: varchar("token", { length: 500 }).notNull().unique(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  expiresAt: timestamp("expires_at").notNull(),
-  isRevoked: boolean("is_revoked").default(false),
-  deviceInfo: text("device_info"), // Browser/device identification
-  ipAddress: varchar("ip_address", { length: 45 }), // IPv4/IPv6 support
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 // User roles enum
 export const roleEnum = pgEnum('role', ['admin', 'guide']);
 
 // User table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique().notNull(),
-  passwordHash: varchar("password_hash").notNull(),
+  email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   phone: text("phone"),
   profileImageUrl: varchar("profile_image_url"),
   role: roleEnum("role").notNull().default('guide'),
-  isEmailVerified: boolean("is_email_verified").default(false),
-  emailVerificationToken: varchar("email_verification_token"),
-  passwordResetToken: varchar("password_reset_token"),
-  passwordResetExpires: timestamp("password_reset_expires"),
-  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -237,7 +219,7 @@ export const documents = pgTable("documents", {
   size: integer("size").notNull(),
   bookingId: integer("booking_id").references(() => bookings.id),
   customerId: integer("customer_id").references(() => customers.id),
-  guideId: varchar("guide_id").references(() => users.id),
+  guideId: integer("guide_id").references(() => users.id),
   outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -289,14 +271,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   experienceGuides: many(experienceGuides),
   activities: many(activities),
   documents: many(documents),
-  refreshTokens: many(refreshTokens),
-}));
-
-export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
-  user: one(users, {
-    fields: [refreshTokens.userId],
-    references: [users.id],
-  }),
 }));
 
 export const locationsRelations = relations(locations, ({ many }) => ({
@@ -585,40 +559,3 @@ export type InsertUserOutfitter = z.infer<typeof insertUserOutfitterSchema>;
 
 // For Replit Auth compatibility
 export type UserInsert = typeof users.$inferInsert;
-
-// Refresh Token types
-export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({ 
-  id: true,
-  createdAt: true 
-});
-
-export type RefreshToken = typeof refreshTokens.$inferSelect;
-export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;
-
-// Authentication-specific schemas
-export const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-export const registerSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  role: z.enum(['admin', 'guide']).default('guide'),
-});
-
-export const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-});
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-export type LoginData = z.infer<typeof loginSchema>;
-export type RegisterData = z.infer<typeof registerSchema>;
-export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
