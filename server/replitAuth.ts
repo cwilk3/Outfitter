@@ -71,6 +71,15 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  try {
+    const config = await getOidcConfig();
+    console.log("OAuth config loaded successfully");
+  } catch (error) {
+    console.error("OAuth config error:", error);
+    // Continue without OAuth routes for now
+    return;
+  }
+
   const config = await getOidcConfig();
 
   const verify: VerifyFunction = async (
