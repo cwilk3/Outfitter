@@ -49,9 +49,10 @@ export function useAuth() {
     }) => {
       return apiRequest('POST', '/api/auth/register', userData);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    onSuccess: (userData) => {
+      // Directly set the user data in cache after successful registration
+      queryClient.setQueryData(["/api/auth/me"], userData);
+      queryClient.setQueryData(["/api/auth/user"], userData);
     },
   });
 
