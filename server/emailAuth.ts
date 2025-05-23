@@ -153,35 +153,76 @@ export async function registerUser(req: Request, res: Response) {
       return res.status(409).json({ error: 'User already exists with this email' });
     }
 
+    console.log('=== REGISTRATION DEBUG START ===');
+    console.log('Registration data received:', { email, firstName, lastName, phone, role, companyName });
+
     // Hash password
+    console.log('Hashing password...');
     const passwordHash = await hashPassword(password);
+    console.log('Password hashed successfully');
 
     // Create user
-    const newUser = await storage.createUserWithPassword({
+    console.log('Creating user with data:', {
       email,
-      passwordHash,
+      passwordHash: '[HIDDEN]',
       firstName,
       lastName,
       phone,
       role: role as 'admin' | 'guide'
     });
-    console.log('Created user:', newUser);
+    
+    try {
+      const newUser = await storage.createUserWithPassword({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone,
+        role: role as 'admin' | 'guide'
+      });
+      console.log('✅ Created user successfully:', newUser);
 
-    // Create outfitter for this user
-    const outfitter = await storage.createOutfitter({
-      name: companyName,
-      email: email,
-      isActive: true
-    });
-    console.log('Created outfitter:', outfitter);
+      // Create outfitter for this user
+      console.log('Creating outfitter with data:', {
+        name: companyName,
+        email: email,
+        isActive: true
+      });
+      
+      try {
+        const outfitter = await storage.createOutfitter({
+          name: companyName,
+          email: email,
+          isActive: true
+        });
+        console.log('✅ Created outfitter successfully:', outfitter);
 
-    // Link user to outfitter
-    const userOutfitter = await storage.createUserOutfitter({
-      userId: newUser.id,
-      outfitterId: outfitter.id,
-      role: role as 'admin' | 'guide'
-    });
-    console.log('Created user-outfitter relationship:', userOutfitter);
+        // Link user to outfitter
+        console.log('Creating user-outfitter relationship with data:', {
+          userId: newUser.id,
+          outfitterId: outfitter.id,
+          role: role as 'admin' | 'guide'
+        });
+        
+        try {
+          const userOutfitter = await storage.createUserOutfitter({
+            userId: newUser.id,
+            outfitterId: outfitter.id,
+            role: role as 'admin' | 'guide'
+          });
+          console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
+        } catch (error) {
+          console.error('❌ Failed to create user-outfitter relationship:', error);
+          throw error;
+        }
+      } catch (error) {
+        console.error('❌ Failed to create outfitter:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('❌ Failed to create user:', error);
+      throw error;
+    }
 
     // Generate token
     const token = generateToken(newUser, outfitter.id);
