@@ -8,10 +8,11 @@ import {
   type Activity, type InsertActivity, type Location, type InsertLocation,
   type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
   type ExperienceGuide, type InsertExperienceGuide, type Outfitter, type InsertOutfitter,
-  type UserOutfitter, type InsertUserOutfitter
+  type UserOutfitter, type InsertUserOutfitter, type RegisterData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
+import crypto from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
@@ -21,6 +22,14 @@ export interface IStorage {
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   getUserWithRole(userId: string): Promise<{role: 'admin' | 'guide', outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
+  
+  // Authentication operations
+  createUser(userData: RegisterData & { passwordHash: string }): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUserLoginTime(userId: string): Promise<void>;
+  updateUserPasswordResetToken(userId: string, token: string, expires: Date): Promise<void>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+  clearPasswordResetToken(userId: string): Promise<void>;
   
   // Outfitter operations
   createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
@@ -177,6 +186,68 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(users).where(eq(users.role, role));
     }
     return db.select().from(users);
+  }
+
+  // Authentication operations
+  async createUser(userData: RegisterData & { passwordHash: string }): Promise<User> {
+    const userId = crypto.randomUUID();
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: userData.email,
+        passwordHash: userData.passwordHash,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        role: userData.role,
+        isEmailVerified: false,
+      })
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async updateUserLoginTime(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserPasswordResetToken(userId: string, token: string, expires: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordResetToken: token,
+        passwordResetExpires: expires 
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async clearPasswordResetToken(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        passwordResetToken: null,
+        passwordResetExpires: null 
+      })
+      .where(eq(users.id, userId));
   }
 
   // Outfitter operations

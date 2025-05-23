@@ -10,7 +10,7 @@ interface AuthenticatedRequest extends Request {
 }
 import path from "path";
 // Import authentication middleware
-import { setupAuth, isAuthenticated as replitAuth } from "./replitAuth";
+import { authenticateToken, AuthenticatedRequest as AuthRequest } from "./auth";
 import { 
   insertUserSchema, 
   insertExperienceSchema, 
@@ -24,8 +24,24 @@ import {
   insertLocationSchema,
   insertExperienceLocationSchema,
   insertExperienceAddonSchema,
-  insertExperienceGuideSchema
+  insertExperienceGuideSchema,
+  loginSchema,
+  registerSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 } from "@shared/schema";
+import { 
+  hashPassword, 
+  verifyPassword, 
+  generateAccessToken, 
+  generateRefreshToken,
+  storeRefreshToken,
+  verifyRefreshToken,
+  revokeRefreshToken,
+  generateSecureToken,
+  getDeviceInfo,
+  getIpAddress
+} from "./auth";
 
 // Development authentication middleware
 const isAuthenticated = (req: Request, res: Response, next: Function) => {
@@ -85,22 +101,189 @@ const adminOnly = hasRole('admin');
 const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit OAuth authentication
-  await setupAuth(app);
   
-  // Auth routes - Dev authentication endpoint
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Authentication routes (JWT-based)
+  
+  // Register new user
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      const validatedData = registerSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists with this email' });
+      }
+      
+      // Hash password
+      const passwordHash = await hashPassword(validatedData.password);
+      
+      // Create user
+      const user = await storage.createUser({
+        ...validatedData,
+        passwordHash,
+      });
+      
+      // Generate tokens
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      
+      const refreshToken = generateRefreshToken();
+      
+      // Store refresh token
+      await storeRefreshToken(
+        user.id,
+        refreshToken,
+        getDeviceInfo(req),
+        getIpAddress(req)
+      );
+      
+      // Return user data and tokens (excluding password hash)
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      res.status(201).json({
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      });
+      
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Registration failed' });
     }
   });
-
-  // Simple logout route that redirects to auth
+  
+  // Login user
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(validatedData.email);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      // Verify password
+      const isValidPassword = await verifyPassword(validatedData.password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+      
+      // Update last login time
+      await storage.updateUserLoginTime(user.id);
+      
+      // Generate tokens
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      
+      const refreshToken = generateRefreshToken();
+      
+      // Store refresh token
+      await storeRefreshToken(
+        user.id,
+        refreshToken,
+        getDeviceInfo(req),
+        getIpAddress(req)
+      );
+      
+      // Return user data and tokens (excluding password hash)
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      res.json({
+        user: userWithoutPassword,
+        accessToken,
+        refreshToken,
+      });
+      
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+  
+  // Refresh access token
+  app.post('/api/auth/refresh', async (req: Request, res: Response) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh token required' });
+      }
+      
+      // Verify refresh token
+      const tokenData = await verifyRefreshToken(refreshToken);
+      if (!tokenData) {
+        return res.status(401).json({ message: 'Invalid or expired refresh token' });
+      }
+      
+      // Get user data
+      const user = await storage.getUser(tokenData.userId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      
+      // Generate new access token
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+      
+      res.json({ accessToken });
+      
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      res.status(500).json({ message: 'Token refresh failed' });
+    }
+  });
+  
+  // Logout user (revoke refresh token)
+  app.post('/api/auth/logout', async (req: Request, res: Response) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (refreshToken) {
+        await revokeRefreshToken(refreshToken);
+      }
+      
+      res.json({ message: 'Logged out successfully' });
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ message: 'Logout failed' });
+    }
+  });
+  
+  // Get current user (protected route)
+  app.get('/api/auth/user', authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const user = await storage.getUser(req.user!.userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Return user data (excluding password hash)
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+      
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({ message: 'Failed to fetch user' });
+    }
+  });
+  
+  // Logout route (for compatibility)
   app.get('/api/logout', (req, res) => {
     res.redirect('/auth');
   });
