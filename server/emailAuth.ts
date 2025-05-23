@@ -214,12 +214,16 @@ export function logoutUser(req: Request, res: Response) {
 // Get current user endpoint
 export async function getCurrentUser(req: AuthenticatedRequest, res: Response) {
   try {
+    console.log('getCurrentUser called, req.user:', req.user);
+    
     if (!req.user) {
+      console.log('No user found in request');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     // Return user without password hash
     const { passwordHash, ...userResponse } = req.user;
+    console.log('Returning user response:', userResponse);
     res.json(userResponse);
   } catch (error) {
     console.error('Get current user error:', error);

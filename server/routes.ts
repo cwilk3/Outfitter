@@ -97,7 +97,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/login', loginUser);
   app.post('/api/auth/register', registerUser);
   app.post('/api/auth/logout', logoutUser);
-  app.get('/api/auth/me', requireAuth, getCurrentUser);
+  app.get('/api/auth/me', async (req, res) => {
+    console.log('Direct auth check - cookies:', req.cookies);
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({ error: 'No token found' });
+    }
+    
+    try {
+      const decoded = require('./emailAuth').verifyToken(token);
+      console.log('Direct auth check - decoded:', decoded);
+      
+      if (!decoded) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      
+      const user = await storage.getUserWithRole(decoded.userId);
+      console.log('Direct auth check - user found:', user);
+      
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      
+      const { passwordHash, ...userResponse } = user;
+      res.json(userResponse);
+    } catch (error) {
+      console.error('Direct auth error:', error);
+      res.status(500).json({ error: 'Auth failed' });
+    }
+  });
   
   // Legacy route for backward compatibility
   app.get('/api/auth/user', requireAuth, async (req: any, res) => {
