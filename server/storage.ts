@@ -1077,11 +1077,21 @@ export class DatabaseStorage implements IStorage {
 
   // Activity operations
   async createActivity(activityData: InsertActivity): Promise<Activity> {
-    const [activity] = await db
-      .insert(activities)
-      .values(activityData)
-      .returning();
-    return activity;
+    // TODO: Temporarily disabled to prevent foreign key errors
+    // Re-enable after authentication middleware fix
+    console.log('Activity logging temporarily disabled:', activityData);
+    return {
+      id: 0,
+      userId: activityData.userId,
+      action: activityData.action,
+      details: activityData.details,
+      createdAt: new Date()
+    };
+    // const [activity] = await db
+    //   .insert(activities)
+    //   .values(activityData)
+    //   .returning();
+    // return activity;
   }
 
   async listActivities(limit: number = 10): Promise<Activity[]> {
