@@ -71,7 +71,15 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
+  let config;
+  try {
+    config = await getOidcConfig();
+    console.log("✅ OAuth config loaded successfully");
+  } catch (error) {
+    console.error("❌ OAuth config error:", error);
+    // Skip OAuth setup if configuration fails
+    return;
+  }
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
