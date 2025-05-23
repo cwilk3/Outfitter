@@ -14,10 +14,12 @@ import {
   getCurrentUser
 } from "./emailAuth";
 
+// Import User type from shared schema
+import type { User } from "@shared/schema";
+
 // Authentication request interface 
 interface AuthenticatedRequest extends Request {
-  user?: any;
-  outfitterId?: number;
+  user?: User & { outfitterId: number };
 }
 import { 
   insertUserSchema, 
@@ -140,11 +142,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Legacy route for backward compatibility
-  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+  app.get('/api/auth/user', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       console.log('User from request:', req.user);
-      const userId = req.user.id;
+      const userId = req.user?.id;
       console.log('Looking up user ID:', userId);
+      if (!userId) {
+        return res.status(401).json({ error: 'User ID not found' });
+      }
       const user = await storage.getUser(userId);
       console.log('Found user:', user);
       res.json(user);

@@ -1,16 +1,5 @@
-// User types
-export interface User {
-  id: number;
-  username: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  profileImage?: string;
-  role: 'admin' | 'guide';
-  createdAt: string;
-  updatedAt: string;
-}
+// User types now imported from shared schema
+// Remove duplicate User interface - use shared schema instead
 
 // Location types
 export interface Location {
