@@ -1,10 +1,14 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import * as client from "openid-client";
+import { Strategy, type VerifyFunction } from "openid-client/passport";
+import passport from "passport";
+import session from "express-session";
 import type { Express, RequestHandler } from "express";
+import memoize from "memoizee";
+import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("Environment variable JWT_SECRET not provided");
+if (!process.env.REPLIT_DOMAINS) {
+  throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
 const getOidcConfig = memoize(
