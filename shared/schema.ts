@@ -19,7 +19,7 @@ export const roleEnum = pgEnum('role', ['admin', 'guide']);
 
 // User table
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique().notNull(),
   password: varchar("password").notNull(),
   firstName: varchar("first_name"),
@@ -52,7 +52,7 @@ export const outfitters = pgTable("outfitters", {
 // User-Outfitter relationship table
 export const userOutfitters = pgTable("user_outfitters", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   outfitterId: integer("outfitter_id").notNull().references(() => outfitters.id),
   role: roleEnum("role").notNull().default('guide'),
   isActive: boolean("is_active").default(true),
@@ -138,7 +138,7 @@ export const experienceLocations = pgTable("experience_locations", {
 export const experienceGuides = pgTable("experience_guides", {
   id: serial("id").primaryKey(),
   experienceId: integer("experience_id").notNull().references(() => experiences.id),
-  guideId: integer("guide_id").notNull().references(() => users.id),
+  guideId: varchar("guide_id").notNull().references(() => users.id),
   isPrimary: boolean("is_primary").default(false), // Whether this is the primary guide for the experience
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -197,7 +197,7 @@ export const bookings = pgTable("bookings", {
 export const bookingGuides = pgTable("booking_guides", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull().references(() => bookings.id),
-  guideId: integer("guide_id").notNull().references(() => users.id),
+  guideId: varchar("guide_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
