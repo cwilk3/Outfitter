@@ -52,34 +52,27 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies?.token;
 
+    console.log('Auth check - token found:', !!token);
+
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     const decoded = verifyToken(token);
+    console.log('Auth check - decoded token:', decoded);
     if (!decoded) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
     // Get user with role info
     const userWithRole = await storage.getUserWithRole(decoded.userId);
+    console.log('Auth check - found user:', userWithRole);
     if (!userWithRole) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = {
-      id: userWithRole.id,
-      email: userWithRole.email,
-      role: userWithRole.role,
-      outfitterId: userWithRole.outfitterId,
-      firstName: userWithRole.firstName,
-      lastName: userWithRole.lastName,
-      phone: userWithRole.phone,
-      profileImageUrl: userWithRole.profileImageUrl,
-      passwordHash: userWithRole.passwordHash,
-      createdAt: userWithRole.createdAt,
-      updatedAt: userWithRole.updatedAt
-    };
+    req.user = userWithRole;
+    console.log('Auth check - req.user set to:', req.user);
 
     next();
   } catch (error) {
