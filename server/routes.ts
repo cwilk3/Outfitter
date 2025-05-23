@@ -93,15 +93,21 @@ const adminOnly = hasRole('admin');
 const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Email/Password Authentication Routes
-  app.post('/api/auth/login', loginUser);
+  console.log('=== REGISTERING ROUTES ===');
+  console.log('registerUser imported as:', typeof registerUser);
+  
+  // CRITICAL: Register email authentication routes FIRST to prevent conflicts
   app.post('/api/auth/email-register', (req, res) => {
-    console.log('=== ROUTE HANDLER CALLED ===');
+    console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
     console.log('registerUser function type:', typeof registerUser);
     console.log('registerUser function:', !!registerUser);
     return registerUser(req, res);
   });
+  
+  app.post('/api/auth/login', loginUser);
   app.post('/api/auth/logout', logoutUser);
+  
+  console.log('=== CRITICAL EMAIL ROUTES REGISTERED FIRST ===');
   app.get('/api/auth/me', async (req, res) => {
     console.log('Direct auth check - cookies:', req.cookies);
     const token = req.cookies?.token;
