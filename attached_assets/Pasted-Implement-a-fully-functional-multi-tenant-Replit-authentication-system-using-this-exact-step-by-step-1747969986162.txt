@@ -1,0 +1,39 @@
+Implement a fully functional multi-tenant Replit authentication system using this exact step-by-step approach. Follow these steps in order without deviation:
+
+Phase 1: Multi-Tenant Database Schema Implementation
+
+Add nullable outfitterId fields to these exact tables: locations, experiences, customers, bookings, settings, documents, payments
+Create a default outfitter record with id=1, name="Default Outfitter" for existing data
+Update all existing records to reference outfitterId=1
+Run npm run db:push to apply schema changes
+Test that dev authentication system still works completely with new schema
+Verify all existing data loads properly with outfitterId populated
+Phase 2: Data Isolation Layer Implementation
+7. Update storage.ts interface methods to accept outfitterId parameter
+
+Add outfitterId filtering to all storage methods (getLocations, getExperiences, etc.)
+Create middleware to extract outfitterId from user session and inject into requests
+Update all API routes to pass outfitterId to storage methods
+Test data isolation: create second outfitter, verify data doesn't cross-pollinate
+Verify existing dev users still see their data correctly
+Phase 3: Replit Authentication Integration
+13. Create test endpoint to verify Replit OAuth setup works with real environment variables
+
+Enable /api/login route to use Replit OAuth instead of dev users
+Enable /api/callback route and test complete login flow
+Update /api/auth/user to return real Replit user data with outfitter assignment
+Update frontend useAuth hook to handle real authentication state
+Test complete login/logout cycle works with real Replit users
+Verify outfitter data isolation works with real authenticated users
+Critical Safety Requirements:
+
+After each numbered step, test the app works completely before proceeding
+If any step breaks existing functionality, immediately revert and ask for guidance
+Never proceed to next phase until current phase is 100% working
+Use npm run db:push for all schema changes, never manual SQL
+Keep dev authentication as fallback until Replit auth is fully proven
+Test with multiple user scenarios (admin, guide) and multiple outfitters
+Verify zero data cross-pollution between outfitters at every step
+Success Criteria: Real Replit users can login, see only their outfitter's data, logout works perfectly, zero data leakage between outfitters, all existing features work, dev system available as fallback until proven.
+
+Emergency Protocol: If anything breaks, immediately revert the last change and request guidance before continuing.

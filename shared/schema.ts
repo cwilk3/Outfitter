@@ -100,6 +100,7 @@ export const locations = pgTable("locations", {
   description: text("description"),
   images: jsonb("images").default('[]'), // Add images field as jsonb array similar to experiences
   isActive: boolean("is_active").notNull().default(true),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -119,6 +120,7 @@ export const experiences = pgTable("experiences", {
   rules: jsonb("rules").default('[]'), // List of rules like required licenses, etc.
   amenities: jsonb("amenities").default('[]'), // List of available amenities (bird dogs, guided, etc)
   tripIncludes: jsonb("trip_includes").default('[]'), // List of what's included in the trip (lodging, meals, etc)
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -168,6 +170,7 @@ export const customers = pgTable("customers", {
   state: text("state"),
   zip: text("zip"),
   notes: text("notes"),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -184,6 +187,7 @@ export const bookings = pgTable("bookings", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   groupSize: integer("group_size").notNull().default(1),
   notes: text("notes"),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
