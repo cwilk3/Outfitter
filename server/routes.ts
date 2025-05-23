@@ -366,12 +366,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[LOCATION_CREATE] Created location:', JSON.stringify(location, null, 2));
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Created new location',
-        details: { locationId: location.id, name: location.name }
-      });
+      // TODO: Re-enable activity logging after authentication middleware fix
+      // await storage.createActivity({
+      //   userId: req.user?.id || '0',
+      //   action: 'Created new location',
+      //   details: { locationId: location.id, name: location.name }
+      // });
       
       res.status(201).json(location);
     } catch (error) {
