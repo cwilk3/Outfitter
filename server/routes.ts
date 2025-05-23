@@ -4,13 +4,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 
 // Extended Request interface for outfitter context
-interface AuthenticatedRequest extends Request {
-  user?: any;
-  outfitterId?: number;
-}
 import path from "path";
-// Import authentication middleware - Replit OAuth removed
-// import { setupAuth, requireAuth as replitAuth } from "./replitAuth";
+// Email authentication system
 import { 
   requireAuth, 
   loginUser, 

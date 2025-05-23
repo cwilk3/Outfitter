@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Session storage table for Replit Auth
+// Session storage table
 export const sessions = pgTable(
   "sessions",
   {
@@ -565,5 +565,5 @@ export type InsertOutfitter = z.infer<typeof insertOutfitterSchema>;
 export type UserOutfitter = typeof userOutfitters.$inferSelect;
 export type InsertUserOutfitter = z.infer<typeof insertUserOutfitterSchema>;
 
-// For Replit Auth compatibility
+// User insert type
 export type UserInsert = typeof users.$inferInsert;
