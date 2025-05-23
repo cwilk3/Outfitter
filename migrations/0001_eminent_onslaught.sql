@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ALTER COLUMN "guide_id" SET DATA TYPE varchar;
