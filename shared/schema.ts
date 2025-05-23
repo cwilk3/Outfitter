@@ -219,7 +219,7 @@ export const documents = pgTable("documents", {
   size: integer("size").notNull(),
   bookingId: integer("booking_id").references(() => bookings.id),
   customerId: integer("customer_id").references(() => customers.id),
-  guideId: integer("guide_id").references(() => users.id),
+  guideId: varchar("guide_id").references(() => users.id),
   outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
