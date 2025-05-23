@@ -9,8 +9,8 @@ interface AuthenticatedRequest extends Request {
   outfitterId?: number;
 }
 import path from "path";
-// Import authentication middleware
-import { setupAuth, isAuthenticated as replitAuth } from "./replitAuth";
+// Import authentication middleware - Replit OAuth removed
+// import { setupAuth, requireAuth as replitAuth } from "./replitAuth";
 import { 
   requireAuth, 
   loginUser, 
@@ -36,7 +36,7 @@ import {
 } from "@shared/schema";
 
 // Development authentication middleware - DISABLED for production email auth
-// const isAuthenticated = (req: Request, res: Response, next: Function) => {
+// const requireAuth = (req: Request, res: Response, next: Function) => {
 //   // For development, simulate a user in the request
 //   (req as any).user = {
 //     id: 'dev-user-1',
@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User-Outfitter Association routes
-  app.get('/api/user-outfitters', isAuthenticated, async (req, res) => {
+  app.get('/api/user-outfitters', requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).claims.sub;
       const userOutfitters = await storage.getUserOutfitters(userId);
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // User routes
-  app.get('/api/users', isAuthenticated, async (req, res) => {
+  app.get('/api/users', requireAuth, async (req, res) => {
     try {
       const role = req.query.role as string | undefined;
       const users = await storage.listUsers(role);
@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/users/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/users/:id', requireAuth, async (req, res) => {
     try {
       const id = req.params.id;
       const user = await storage.getUser(id);
@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/users', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/users', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       const user = await storage.createUser(validatedData);
@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/users/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/users/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -313,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/locations/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/locations/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const location = await storage.getLocation(id);
@@ -373,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.patch('/api/locations/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/locations/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.delete('/api/locations/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const location = await storage.getLocation(id);
@@ -458,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Experience routes (only accessible by admin)
-  app.get('/api/experiences', isAuthenticated, async (req, res) => {
+  app.get('/api/experiences', requireAuth, async (req, res) => {
     try {
       const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
       const experiences = await storage.listExperiences(locationId);
@@ -470,7 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Experience Add-ons routes
-  app.get('/api/experience-addons/:experienceId', isAuthenticated, async (req, res) => {
+  app.get('/api/experience-addons/:experienceId', requireAuth, async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
       const addons = await storage.getExperienceAddons(experienceId);
@@ -481,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/experience-addons', isAuthenticated, async (req, res) => {
+  app.post('/api/experience-addons', requireAuth, async (req, res) => {
     try {
       const validatedData = insertExperienceAddonSchema.parse(req.body);
       
@@ -512,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/experience-addons/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/experience-addons/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -543,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/experience-addons/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/experience-addons/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const addon = await storage.getExperienceAddon(id);
@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/experiences/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/experiences/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const experience = await storage.getExperience(id);
@@ -591,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/experiences', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/experiences', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       // Log incoming data for debugging
       console.log("Incoming experience data:", req.body);
@@ -693,7 +693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/experiences/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.patch('/api/experiences/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -845,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.delete('/api/experiences/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.delete('/api/experiences/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const experience = await storage.getExperience(id);
@@ -871,7 +871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Experience Location routes
-  app.get('/api/experiences/:id/locations', isAuthenticated, async (req, res) => {
+  app.get('/api/experiences/:id/locations', requireAuth, async (req, res) => {
     try {
       const experienceId = parseInt(req.params.id);
       const locations = await storage.getExperienceLocations(experienceId);
@@ -882,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/experience-locations', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/experience-locations', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const validatedData = insertExperienceLocationSchema.parse(req.body);
       const experienceLocation = await storage.addExperienceLocation(validatedData);
@@ -910,7 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all experience-location associations
-  app.get('/api/experience-locations', isAuthenticated, async (req, res) => {
+  app.get('/api/experience-locations', requireAuth, async (req, res) => {
     try {
       // Use the storage to get all associations from the database
       const allExperienceLocations = await storage.getAllExperienceLocations();
@@ -921,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/experience-locations/:experienceId/:locationId', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.delete('/api/experience-locations/:experienceId/:locationId', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
       const locationId = parseInt(req.params.locationId);
@@ -957,7 +957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get experiences assigned to a specific guide
-  app.get('/api/guides/:guideId/experiences', isAuthenticated, async (req, res) => {
+  app.get('/api/guides/:guideId/experiences', requireAuth, async (req, res) => {
     try {
       const guideId = req.params.guideId;
       
@@ -987,7 +987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Assign a guide to an experience
-  app.post('/api/experiences/:experienceId/guides', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/experiences/:experienceId/guides', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const experienceId = parseInt(req.params.experienceId);
       
@@ -1085,7 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a guide assignment
-  app.put('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.put('/api/experience-guides/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -1116,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Remove a guide from an experience
-  app.delete('/api/experience-guides/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.delete('/api/experience-guides/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       console.log(`[GUIDE DELETION] Attempting to delete guide assignment with ID: ${id}`);
@@ -1174,7 +1174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer routes
-  app.get('/api/customers', isAuthenticated, async (req, res) => {
+  app.get('/api/customers', requireAuth, async (req, res) => {
     try {
       const search = req.query.search as string | undefined;
       const customers = await storage.listCustomers(search);
@@ -1185,7 +1185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/customers/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/customers/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const customer = await storage.getCustomer(id);
@@ -1201,7 +1201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/customers', isAuthenticated, async (req, res) => {
+  app.post('/api/customers', requireAuth, async (req, res) => {
     try {
       const validatedData = insertCustomerSchema.parse(req.body);
       const customer = await storage.createCustomer(validatedData);
@@ -1225,7 +1225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/customers/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/customers/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -1257,7 +1257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Booking routes
-  app.get('/api/bookings', isAuthenticated, async (req, res) => {
+  app.get('/api/bookings', requireAuth, async (req, res) => {
     try {
       const filters: any = {};
       
@@ -1281,7 +1281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bookings/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/bookings/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const booking = await storage.getBooking(id);
@@ -1297,7 +1297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/bookings', isAuthenticated, async (req, res) => {
+  app.post('/api/bookings', requireAuth, async (req, res) => {
     try {
       const validatedData = insertBookingSchema.parse(req.body);
       const booking = await storage.createBooking(validatedData);
@@ -1340,7 +1340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/bookings/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/bookings/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -1372,7 +1372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Booking Guides routes
-  app.get('/api/bookings/:bookingId/guides', isAuthenticated, async (req, res) => {
+  app.get('/api/bookings/:bookingId/guides', requireAuth, async (req, res) => {
     try {
       const bookingId = parseInt(req.params.bookingId);
       const guides = await storage.listBookingGuides(bookingId);
@@ -1383,7 +1383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/bookings/:bookingId/guides', isAuthenticated, async (req, res) => {
+  app.post('/api/bookings/:bookingId/guides', requireAuth, async (req, res) => {
     try {
       const bookingId = parseInt(req.params.bookingId);
       const validatedData = insertBookingGuideSchema.parse({
@@ -1412,7 +1412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/bookings/:bookingId/guides/:guideId', isAuthenticated, async (req, res) => {
+  app.delete('/api/bookings/:bookingId/guides/:guideId', requireAuth, async (req, res) => {
     try {
       const bookingId = parseInt(req.params.bookingId);
       const guideId = parseInt(req.params.guideId);
@@ -1434,7 +1434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document routes
-  app.get('/api/documents', isAuthenticated, async (req, res) => {
+  app.get('/api/documents', requireAuth, async (req, res) => {
     try {
       const filter: any = {};
       
@@ -1458,7 +1458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/documents/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/documents/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const document = await storage.getDocument(id);
@@ -1474,7 +1474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/documents', isAuthenticated, async (req, res) => {
+  app.post('/api/documents', requireAuth, async (req, res) => {
     try {
       const validatedData = insertDocumentSchema.parse(req.body);
       const document = await storage.createDocument(validatedData);
@@ -1498,7 +1498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/documents/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/documents/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -1529,7 +1529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/documents/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/documents/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const document = await storage.getDocument(id);
@@ -1555,7 +1555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment routes (accessible only by admins)
-  app.get('/api/payments', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.get('/api/payments', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const bookingId = req.query.bookingId ? parseInt(req.query.bookingId as string) : undefined;
       const payments = await storage.listPayments(bookingId);
@@ -1566,7 +1566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/payments/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.get('/api/payments/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const payment = await storage.getPayment(id);
@@ -1582,7 +1582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/payments', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/payments', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const validatedData = insertPaymentSchema.parse(req.body);
       const payment = await storage.createPayment(validatedData);
@@ -1606,7 +1606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/payments/:id', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.patch('/api/payments/:id', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       // Allowing partial updates
@@ -1638,7 +1638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Settings routes (most operations only accessible by admins)
-  app.get('/api/settings', isAuthenticated, async (req, res) => {
+  app.get('/api/settings', requireAuth, async (req, res) => {
     // Temporary bypass to prevent UI blocking - will restore proper storage after authentication implementation
     res.json({
       companyName: 'Outfitter Demo',
@@ -1675,7 +1675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Activity routes
-  app.get('/api/activities', isAuthenticated, async (req, res) => {
+  app.get('/api/activities', requireAuth, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const activities = await storage.listActivities(limit);
@@ -1687,7 +1687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard routes
-  app.get('/api/dashboard/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
@@ -1697,7 +1697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/dashboard/upcoming-bookings', isAuthenticated, async (req, res) => {
+  app.get('/api/dashboard/upcoming-bookings', requireAuth, async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const upcomingBookings = await storage.getUpcomingBookings(limit);
@@ -1709,7 +1709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // QuickBooks mock integration endpoints
-  app.post('/api/quickbooks/generate-invoice', isAuthenticated, hasRole('admin'), async (req, res) => {
+  app.post('/api/quickbooks/generate-invoice', requireAuth, hasRole('admin'), async (req, res) => {
     try {
       const { bookingId } = req.body;
       
