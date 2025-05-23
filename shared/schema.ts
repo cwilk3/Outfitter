@@ -557,5 +557,5 @@ export type InsertOutfitter = z.infer<typeof insertOutfitterSchema>;
 export type UserOutfitter = typeof userOutfitters.$inferSelect;
 export type InsertUserOutfitter = z.infer<typeof insertUserOutfitterSchema>;
 
-// For Replit Auth compatibility - these are the main User types
-export type UpsertUser = typeof users.$inferInsert;
+// For Replit Auth compatibility
+export type UserInsert = typeof users.$inferInsert;

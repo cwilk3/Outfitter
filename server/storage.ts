@@ -208,7 +208,9 @@ export class DatabaseStorage implements IStorage {
         userId: userOutfitters.userId,
         outfitterId: userOutfitters.outfitterId,
         role: userOutfitters.role,
+        isActive: userOutfitters.isActive,
         createdAt: userOutfitters.createdAt,
+        updatedAt: userOutfitters.updatedAt,
         outfitter: outfitters
       })
       .from(userOutfitters)
@@ -223,7 +225,9 @@ export class DatabaseStorage implements IStorage {
         userId: userOutfitters.userId,
         outfitterId: userOutfitters.outfitterId,
         role: userOutfitters.role,
+        isActive: userOutfitters.isActive,
         createdAt: userOutfitters.createdAt,
+        updatedAt: userOutfitters.updatedAt,
         user: users
       })
       .from(userOutfitters)
