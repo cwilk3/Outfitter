@@ -2,6 +2,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+
+// Extended Request interface for outfitter context
+interface AuthenticatedRequest extends Request {
+  user?: any;
+  outfitterId?: number;
+}
 import path from "path";
 // Import authentication middleware
 import { setupAuth, isAuthenticated as replitAuth } from "./replitAuth";
