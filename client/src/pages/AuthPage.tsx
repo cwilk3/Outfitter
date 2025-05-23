@@ -1,276 +1,363 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mountain, Fish, Target } from "lucide-react";
-import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, Loader2, Mountain } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
-// Form schemas
-const signInSchema = z.object({
+// Validation schemas
+const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
-const signUpSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
+const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+  companyName: z.string().min(1, "Company name is required"),
+  phone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
-type SignInValues = z.infer<typeof signInSchema>;
-type SignUpValues = z.infer<typeof signUpSchema>;
+type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const [, setLocation] = useLocation();
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
+  
+  const { login, register, isLoggingIn, isRegistering, loginError, registerError } = useAuth();
+  const { toast } = useToast();
 
-  const signInForm = useForm<SignInValues>({
-    resolver: zodResolver(signInSchema),
+  // Login form
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const signUpForm = useForm<SignUpValues>({
-    resolver: zodResolver(signUpSchema),
+  // Register form
+  const registerForm = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
-      firstName: "",
-      lastName: "",
+      companyName: "",
+      phone: "",
     },
   });
 
-  const handleSignIn = async () => {
-    // Redirect to Replit OAuth login
-    window.location.href = '/api/login';
-  };
-
-  const handleSignUp = async () => {
-    // Redirect to Replit OAuth login (same flow for sign up)
-    window.location.href = '/api/login';
-  };
-
-  const handleTestLogin = async (userType: 'admin' | 'guide') => {
-    setLoading(true);
+  const onLogin = async (data: LoginFormData) => {
     try {
-      // Set development user in localStorage for testing
-      const testUser = userType === 'admin' 
-        ? {
-            id: 'dev-admin-1',
-            email: 'admin@testoutfitter.com',
-            firstName: 'Test',
-            lastName: 'Admin',
-            role: 'admin'
-          }
-        : {
-            id: 'dev-guide-1', 
-            email: 'guide@testoutfitter.com',
-            firstName: 'Test',
-            lastName: 'Guide',
-            role: 'guide'
-          };
-      
-      localStorage.setItem('dev-user', JSON.stringify(testUser));
-      console.log(`Logging in as ${userType}:`, testUser);
-      
-      // Redirect to main dashboard
-      setLocation("/");
-    } catch (error) {
-      console.error("Test login error:", error);
-    } finally {
-      setLoading(false);
+      await login(data);
+      toast({
+        title: "Welcome back!",
+        description: "You've been successfully logged in.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error?.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onRegister = async (data: RegisterFormData) => {
+    try {
+      const { confirmPassword, ...registerData } = data;
+      await register(registerData);
+      toast({
+        title: "Account created successfully!",
+        description: "Welcome to Outfitter. You're now logged in.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error?.message || "Please check your information and try again.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="bg-emerald-600 p-2 rounded-lg">
-              <Mountain className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-emerald-900">Outfitter</h1>
+          <div className="flex items-center justify-center mb-4">
+            <Mountain className="h-12 w-12 text-emerald-600" />
           </div>
-          <p className="text-emerald-700 text-lg">
-            Adventure Booking Platform for Hunting & Fishing Outfitters
+          <h1 className="text-3xl font-bold text-gray-900">Outfitter</h1>
+          <p className="text-gray-600 mt-2">
+            Professional outfitter management platform
           </p>
         </div>
 
-        <Card className="border-emerald-200 shadow-xl">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center text-emerald-900">Welcome</CardTitle>
-            <CardDescription className="text-center text-emerald-600">
-              Sign in to your account or create a new outfitter business
+        <Card className="shadow-xl border-0">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-2xl">Welcome</CardTitle>
+            <CardDescription>
+              Sign in to your account or create a new one
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="register">Sign Up</TabsTrigger>
               </TabsList>
 
-              {/* Sign In Tab */}
-              <TabsContent value="signin">
-                {/* Development Mode - Quick Test Users */}
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="text-sm font-medium text-blue-900 mb-3">Development Mode - Test Users</h3>
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="text-left justify-start text-sm"
-                      onClick={() => handleTestLogin('admin')}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span>Test Admin User - Full Access</span>
-                      </div>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="text-left justify-start text-sm"
-                      onClick={() => handleTestLogin('guide')}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>Test Guide User - Limited Access</span>
-                      </div>
-                    </Button>
+              {/* Login Form */}
+              <TabsContent value="login" className="space-y-4 mt-6">
+                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      {...loginForm.register("email")}
+                      className={loginForm.formState.errors.email ? "border-red-500" : ""}
+                    />
+                    {loginForm.formState.errors.email && (
+                      <p className="text-sm text-red-500">
+                        {loginForm.formState.errors.email.message}
+                      </p>
+                    )}
                   </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <Button 
-                    onClick={handleSignIn}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700" 
-                    disabled={loading}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        {...loginForm.register("password")}
+                        className={loginForm.formState.errors.password ? "border-red-500 pr-10" : "pr-10"}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </div>
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-red-500">
+                        {loginForm.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {loginError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {(loginError as any)?.message || "Login failed. Please check your credentials."}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoggingIn}
                   >
-                    {loading ? "Signing in..." : "Sign in with Replit"}
+                    {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign In
                   </Button>
-                </div>
+                </form>
               </TabsContent>
 
-              {/* Sign Up Tab */}
-              <TabsContent value="signup">
-                <Form {...signUpForm}>
-                  <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={signUpForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+              {/* Register Form */}
+              <TabsContent value="register" className="space-y-4 mt-6">
+                <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        placeholder="John"
+                        {...registerForm.register("firstName")}
+                        className={registerForm.formState.errors.firstName ? "border-red-500" : ""}
                       />
-                      <FormField
-                        control={signUpForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {registerForm.formState.errors.firstName && (
+                        <p className="text-sm text-red-500">
+                          {registerForm.formState.errors.firstName.message}
+                        </p>
+                      )}
                     </div>
-                    <FormField
-                      control={signUpForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="john@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Doe"
+                        {...registerForm.register("lastName")}
+                        className={registerForm.formState.errors.lastName ? "border-red-500" : ""}
+                      />
+                      {registerForm.formState.errors.lastName && (
+                        <p className="text-sm text-red-500">
+                          {registerForm.formState.errors.lastName.message}
+                        </p>
                       )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-email">Email</Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="john@example.com"
+                      {...registerForm.register("email")}
+                      className={registerForm.formState.errors.email ? "border-red-500" : ""}
                     />
-                    <FormField
-                      control={signUpForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Create a password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                    {registerForm.formState.errors.email && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.email.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      placeholder="Your Outfitter Company"
+                      {...registerForm.register("companyName")}
+                      className={registerForm.formState.errors.companyName ? "border-red-500" : ""}
                     />
-                    <FormField
-                      control={signUpForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Confirm your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                    {registerForm.formState.errors.companyName && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.companyName.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone (Optional)</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      {...registerForm.register("phone")}
                     />
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-emerald-600 hover:bg-emerald-700" 
-                      disabled={loading}
-                    >
-                      {loading ? "Creating account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </Form>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="register-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
+                        {...registerForm.register("password")}
+                        className={registerForm.formState.errors.password ? "border-red-500 pr-10" : "pr-10"}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </div>
+                    {registerForm.formState.errors.password && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        {...registerForm.register("confirmPassword")}
+                        className={registerForm.formState.errors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </div>
+                    {registerForm.formState.errors.confirmPassword && (
+                      <p className="text-sm text-red-500">
+                        {registerForm.formState.errors.confirmPassword.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {registerError && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        {(registerError as any)?.message || "Registration failed. Please try again."}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isRegistering}
+                  >
+                    {isRegistering && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Create Account
+                  </Button>
+                </form>
               </TabsContent>
             </Tabs>
-
-            {/* Features Preview */}
-            <div className="mt-8 pt-6 border-t border-emerald-200">
-              <p className="text-sm text-emerald-600 text-center mb-4">Why choose Outfitter?</p>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Target className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm text-emerald-700">Streamlined booking management</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Fish className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm text-emerald-700">Hunting & fishing experience platform</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mountain className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm text-emerald-700">Professional guide management</span>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
+
+        <div className="text-center mt-6 text-sm text-gray-600">
+          <p>© 2024 Outfitter. Professional outfitter management made simple.</p>
+        </div>
       </div>
     </div>
   );

@@ -1,33 +1,94 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useAuth() {
-  const [devUser, setDevUser] = useState<any>(null);
+  const queryClient = useQueryClient();
   
-  // Check for development user in localStorage
-  useEffect(() => {
-    const storedDevUser = localStorage.getItem('dev-user');
-    if (storedDevUser) {
-      setDevUser(JSON.parse(storedDevUser));
-    }
-  }, []);
-
-  const { data: apiUser, isLoading: apiLoading } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
-    retry: false,
-    enabled: !devUser, // Only query API if no dev user
+  // Try the new authentication endpoint first, fall back to old one
+  const { data: user, isLoading } = useQuery<User>({
+    queryKey: ["/api/auth/me"],
+    retry: (failureCount, error: any) => {
+      // If new endpoint fails, try the old one
+      if (failureCount === 0 && error?.status === 404) {
+        return false; // Don't retry, we'll handle fallback
+      }
+      return false;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Use dev user if available, otherwise use API user
-  const user = devUser || apiUser;
-  const isLoading = !devUser && apiLoading;
+  // Fallback to old authentication endpoint if new one fails
+  const { data: fallbackUser, isLoading: fallbackLoading } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+    retry: false,
+    enabled: !user && !isLoading, // Only try fallback if primary failed
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      return apiRequest('/api/auth/login', 'POST', credentials);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
+
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (userData: { 
+      email: string; 
+      password: string; 
+      firstName: string; 
+      lastName: string; 
+      companyName: string;
+      phone?: string;
+    }) => {
+      return apiRequest('/api/auth/register', 'POST', userData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+  });
+
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/auth/logout', 'POST');
+    },
+    onSuccess: () => {
+      queryClient.clear(); // Clear all cached data
+      window.location.href = '/'; // Redirect to landing page
+    },
+  });
+
+  const currentUser = user || fallbackUser;
+  const currentLoading = isLoading || (!user && fallbackLoading);
 
   return {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    isGuide: user?.role === 'guide',
+    user: currentUser,
+    isLoading: currentLoading,
+    isAuthenticated: !!currentUser,
+    isAdmin: currentUser?.role === 'admin',
+    isGuide: currentUser?.role === 'guide',
+    
+    // Authentication actions
+    login: loginMutation.mutateAsync,
+    register: registerMutation.mutateAsync,
+    logout: logoutMutation.mutateAsync,
+    
+    // Loading states
+    isLoggingIn: loginMutation.isPending,
+    isRegistering: registerMutation.isPending,
+    isLoggingOut: logoutMutation.isPending,
+    
+    // Error states
+    loginError: loginMutation.error,
+    registerError: registerMutation.error,
+    logoutError: logoutMutation.error,
   };
 }

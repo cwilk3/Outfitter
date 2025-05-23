@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation, useRouter } from "wouter";
 import SidebarNavItem from "./SidebarNavItem";
 import { useRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Home, 
   BookOpen, 
@@ -24,6 +25,7 @@ interface SidebarProps {
 export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
   const [location, navigate] = useLocation();
   const { isAdmin, user } = useRole();
+  const { logout, isLoggingOut } = useAuth();
 
   return (
     <aside 
@@ -154,14 +156,20 @@ export function Sidebar({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) {
               </div>
             </div>
             <button
-              onClick={() => {
-                localStorage.removeItem('dev-user');
-                navigate('/auth');
+              onClick={async () => {
+                try {
+                  await logout();
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  // Fallback to manual redirect if logout fails
+                  window.location.href = '/auth';
+                }
               }}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={isLoggingOut}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
               title="Logout"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className={`h-4 w-4 ${isLoggingOut ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
