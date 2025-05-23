@@ -196,7 +196,7 @@ export const bookings = pgTable("bookings", {
 export const bookingGuides = pgTable("booking_guides", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull().references(() => bookings.id),
-  guideId: integer("guide_id").notNull().references(() => users.id),
+  guideId: varchar("guide_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -220,6 +220,7 @@ export const documents = pgTable("documents", {
   bookingId: integer("booking_id").references(() => bookings.id),
   customerId: integer("customer_id").references(() => customers.id),
   guideId: integer("guide_id").references(() => users.id),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -233,6 +234,7 @@ export const payments = pgTable("payments", {
   paymentMethod: text("payment_method"),
   transactionId: text("transaction_id"),
   qbInvoiceId: text("qb_invoice_id"),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -250,13 +252,14 @@ export const settings = pgTable("settings", {
   qbRefreshToken: text("qb_refresh_token"),
   qbRealmId: text("qb_realm_id"),
   bookingLink: text("booking_link"),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Activities table for recent activity tracking
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: varchar("user_id").references(() => users.id),
   action: text("action").notNull(),
   details: json("details"),
   createdAt: timestamp("created_at").defaultNow(),
