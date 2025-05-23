@@ -368,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log activity
       await storage.createActivity({
-        userId: req.user.id,
+        userId: req.user?.id || '0',
         action: 'Created new location',
         details: { locationId: location.id, name: location.name }
       });
