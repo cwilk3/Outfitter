@@ -165,6 +165,7 @@ export async function registerUser(req: Request, res: Response) {
       phone,
       role: role as 'admin' | 'guide'
     });
+    console.log('Created user:', newUser);
 
     // Create outfitter for this user
     const outfitter = await storage.createOutfitter({
@@ -172,13 +173,15 @@ export async function registerUser(req: Request, res: Response) {
       email: email,
       isActive: true
     });
+    console.log('Created outfitter:', outfitter);
 
     // Link user to outfitter
-    await storage.createUserOutfitter({
+    const userOutfitter = await storage.createUserOutfitter({
       userId: newUser.id,
       outfitterId: outfitter.id,
       role: role as 'admin' | 'guide'
     });
+    console.log('Created user-outfitter relationship:', userOutfitter);
 
     // Generate token
     const token = generateToken(newUser, outfitter.id);
