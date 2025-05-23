@@ -43,18 +43,18 @@ export interface IStorage {
   getExperiencesForGuide(guideId: string): Promise<Experience[]>;
 
   // Location operations
-  getLocation(id: number): Promise<Location | undefined>;
-  createLocation(location: InsertLocation): Promise<Location>;
-  updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
-  deleteLocation(id: number): Promise<void>;
-  listLocations(activeOnly?: boolean): Promise<Location[]>;
+  getLocation(id: number, outfitterId: number): Promise<Location | undefined>;
+  createLocation(location: InsertLocation & { outfitterId: number }): Promise<Location>;
+  updateLocation(id: number, location: Partial<InsertLocation>, outfitterId: number): Promise<Location | undefined>;
+  deleteLocation(id: number, outfitterId: number): Promise<void>;
+  listLocations(outfitterId: number, activeOnly?: boolean): Promise<Location[]>;
 
   // Experience operations
-  getExperience(id: number): Promise<Experience | undefined>;
-  createExperience(experience: InsertExperience): Promise<Experience>;
-  updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
-  deleteExperience(id: number): Promise<void>;
-  listExperiences(locationId?: number): Promise<Experience[]>;
+  getExperience(id: number, outfitterId: number): Promise<Experience | undefined>;
+  createExperience(experience: InsertExperience & { outfitterId: number }): Promise<Experience>;
+  updateExperience(id: number, experience: Partial<InsertExperience>, outfitterId: number): Promise<Experience | undefined>;
+  deleteExperience(id: number, outfitterId: number): Promise<void>;
+  listExperiences(outfitterId: number, locationId?: number): Promise<Experience[]>;
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
@@ -70,10 +70,10 @@ export interface IStorage {
   deleteExperienceAddon(id: number): Promise<void>;
   
   // Customer operations
-  getCustomer(id: number): Promise<Customer | undefined>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
-  updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
-  listCustomers(search?: string): Promise<Customer[]>;
+  getCustomer(id: number, outfitterId: number): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer & { outfitterId: number }): Promise<Customer>;
+  updateCustomer(id: number, customer: Partial<InsertCustomer>, outfitterId: number): Promise<Customer | undefined>;
+  listCustomers(outfitterId: number, search?: string): Promise<Customer[]>;
   
   // Booking operations
   getBooking(id: number): Promise<Booking | undefined>;
@@ -272,11 +272,11 @@ export class DatabaseStorage implements IStorage {
     await db.delete(locations).where(eq(locations.id, id));
   }
   
-  async listLocations(activeOnly: boolean = false): Promise<Location[]> {
-    let query = db.select().from(locations);
+  async listLocations(outfitterId: number, activeOnly: boolean = false): Promise<Location[]> {
+    let query = db.select().from(locations).where(eq(locations.outfitterId, outfitterId));
     
     if (activeOnly) {
-      query = query.where(eq(locations.isActive, true));
+      query = query.where(and(eq(locations.outfitterId, outfitterId), eq(locations.isActive, true)));
     }
     
     return await query.orderBy(locations.name);
