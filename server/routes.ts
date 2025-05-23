@@ -11,9 +11,14 @@ import {
   loginUser, 
   registerUser, 
   logoutUser, 
-  getCurrentUser,
-  type AuthenticatedRequest 
+  getCurrentUser
 } from "./emailAuth";
+
+// Authentication request interface 
+interface AuthenticatedRequest extends Request {
+  user?: any;
+  outfitterId?: number;
+}
 import { 
   insertUserSchema, 
   insertExperienceSchema, 
