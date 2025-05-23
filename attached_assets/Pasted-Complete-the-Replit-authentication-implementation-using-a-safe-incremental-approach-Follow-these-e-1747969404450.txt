@@ -1,0 +1,42 @@
+Complete the Replit authentication implementation using a safe, incremental approach. Follow these exact steps in order:
+
+Phase 0: Pre-Implementation Verification
+0. Before starting, verify all required environment variables are present and correct
+
+Test that the current dev system works perfectly (login, logout, all features)
+Create a backup plan - document exactly how to revert each change
+Confirm database schema is ready for multi-tenant data isolation
+Phase 1: Enable Replit OAuth (Test First)
+
+Create a test endpoint to verify Replit auth setup works
+Enable only the /api/login route first
+Test login flow works before proceeding
+Enable /api/callback route and test
+Only after both work, update /api/auth/user to use real auth
+Keep dev auth as fallback during this phase
+Phase 2: Data Isolation Implementation
+7. Add outfitterId filtering to storage methods one table at a time
+
+Add middleware to inject outfitterId from authenticated user
+Update API endpoints to automatically scope queries by outfitterId
+Test each change to ensure no data cross-pollution
+Additional Safety Measures:
+
+After each step, run the app and verify it still works completely
+If any step breaks existing functionality, immediately revert and ask for guidance
+Document what each change does before implementing it
+Test with multiple user scenarios (admin, guide roles)
+Verify data isolation by checking actual database queries include outfitterId filtering
+Critical Stop Points:
+
+If authentication setup fails, stop and debug before proceeding
+If data shows up across outfitters, immediately halt and fix
+If any existing feature breaks, revert the last change and reassess
+Requirements:
+
+Test each step before moving to next
+Never break the working dev system until replacement is proven
+Ask permission before any major changes
+Stop immediately if any step fails and ask for guidance
+End result: Fully functional multi-tenant app with real Replit authentication
+Success criteria: Real Replit users can login, see only their outfitter's data, logout works perfectly, zero data cross-pollution between outfitters.
