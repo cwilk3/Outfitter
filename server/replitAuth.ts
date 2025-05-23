@@ -71,15 +71,6 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  try {
-    const config = await getOidcConfig();
-    console.log("OAuth config loaded successfully");
-  } catch (error) {
-    console.error("OAuth config error:", error);
-    // Continue without OAuth routes for now
-    return;
-  }
-
   const config = await getOidcConfig();
 
   const verify: VerifyFunction = async (
@@ -99,7 +90,7 @@ export async function setupAuth(app: Express) {
         name: `replitauth:${domain}`,
         config,
         scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/auth/callback`,
+        callbackURL: `https://${domain}/api/auth/callback`,
       },
       verify,
     );
@@ -109,21 +100,21 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  app.get("/auth/replit", (req, res, next) => {
+  app.get("/api/auth/replit", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
-  app.get("/auth/callback", (req, res, next) => {
+  app.get("/api/auth/callback", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
-      failureRedirect: "/auth/replit",
+      failureRedirect: "/api/auth/replit",
     })(req, res, next);
   });
 
-  app.get("/auth/logout", (req, res) => {
+  app.get("/api/auth/logout", (req, res) => {
     req.logout(() => {
       res.redirect(
         client.buildEndSessionUrl(config, {
