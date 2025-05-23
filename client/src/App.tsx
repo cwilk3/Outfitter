@@ -68,6 +68,30 @@ function ProtectedRoutes() {
   );
 }
 
+function AuthRoute() {
+  const { isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+          <p className="text-gray-500 text-sm font-medium">Loading, please wait...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, redirect to dashboard
+  if (isAuthenticated) {
+    window.location.href = "/";
+    return null;
+  }
+
+  // Show auth page for unauthenticated users
+  return <AuthPage />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -76,7 +100,7 @@ function App() {
         <Switch>
           {/* Public routes */}
           <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
-          <Route path="/auth" component={AuthPage} />
+          <Route path="/auth" component={AuthRoute} />
           <Route path="/onboarding" component={OnboardingPage} />
           
           {/* Protected routes */}
