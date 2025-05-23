@@ -60,7 +60,7 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
     }
 
     // Get user's role from database
-    const userWithRole = await storage.getUserWithRole(user.claims.sub);
+    const userWithRole = await storage.getUserWithRole(user.id);
     if (!userWithRole) {
       return res.status(401).json({ message: "User not found" });
     }
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const decoded = require('./emailAuth').verifyToken(token);
+      const decoded = verifyToken(token);
       console.log('Direct auth check - decoded:', decoded);
       
       if (!decoded) {
@@ -220,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User-Outfitter Association routes
   app.get('/api/user-outfitters', requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).claims.sub;
+      const userId = (req.user as any).id;
       const userOutfitters = await storage.getUserOutfitters(userId);
       res.json(userOutfitters);
     } catch (error) {
