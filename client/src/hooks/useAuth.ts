@@ -69,6 +69,16 @@ export function useAuth() {
   const currentUser = user || fallbackUser;
   const currentLoading = isLoading || (!user && fallbackLoading);
 
+  // Debug logging
+  console.log('Auth State Debug:', {
+    user,
+    fallbackUser,
+    currentUser,
+    isAuthenticated: !!currentUser,
+    isLoading,
+    fallbackLoading
+  });
+
   return {
     user: currentUser,
     isLoading: currentLoading,
