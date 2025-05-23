@@ -93,17 +93,14 @@ const adminOnly = hasRole('admin');
 const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit OAuth authentication (keeping for backward compatibility during transition)
-  await setupAuth(app);
-  
-  // New Email/Password Authentication Routes
+  // Email/Password Authentication Routes
   app.post('/api/auth/login', loginUser);
   app.post('/api/auth/register', registerUser);
   app.post('/api/auth/logout', logoutUser);
   app.get('/api/auth/me', requireAuth, getCurrentUser);
   
-  // Auth routes - Updated to support both authentication systems
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Legacy route for backward compatibility
+  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
