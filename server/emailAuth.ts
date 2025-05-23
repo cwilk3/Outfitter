@@ -138,6 +138,7 @@ export async function loginUser(req: Request, res: Response) {
 
 // Register endpoint
 export async function registerUser(req: Request, res: Response) {
+  console.log('REGISTER FUNCTION CALLED');
   try {
     const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
 
