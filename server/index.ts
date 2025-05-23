@@ -1,8 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { 
+  setupProductionSecurity, 
+  validateProductionEnvironment, 
+  logSecurityRecommendations 
+} from "./security";
 
 const app = express();
+
+// Production Environment Validation
+try {
+  validateProductionEnvironment();
+} catch (error) {
+  console.error('Environment validation failed:', error.message);
+  // Continue in development mode but warn about missing production configs
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+}
+
+// Security Configuration for Production
+if (process.env.NODE_ENV === 'production') {
+  setupProductionSecurity(app);
+  logSecurityRecommendations();
+}
+
 // Increase the JSON request body size limit to 10MB (for image uploads)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
@@ -40,12 +63,42 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  // Production-Grade Error Handling
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Log error details for monitoring
+    console.error(`Error ${status} on ${req.method} ${req.path}:`, {
+      message: err.message,
+      stack: isProduction ? undefined : err.stack,
+      user: req.user?.userId || 'anonymous',
+      timestamp: new Date().toISOString()
+    });
 
-    res.status(status).json({ message });
-    throw err;
+    // Send appropriate error response
+    if (isProduction) {
+      // Production: Don't expose internal error details
+      const message = status < 500 ? err.message : 'Internal Server Error';
+      res.status(status).json({ 
+        error: true,
+        message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Development: Include detailed error information
+      res.status(status).json({
+        error: true,
+        message: err.message || "Internal Server Error",
+        stack: err.stack,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Don't throw the error again in production
+    if (!isProduction) {
+      throw err;
+    }
   });
 
   // importantly only setup vite in development and after

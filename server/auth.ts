@@ -6,9 +6,16 @@ import { db } from './db';
 import { users, refreshTokens } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secure-jwt-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '15m'; // Short-lived access tokens
+// JWT Configuration - Production Ready
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET environment variable is required. ' +
+    'Generate a secure secret: openssl rand -base64 32'
+  );
+}
+
+const JWT_EXPIRES_IN = '15m'; // Short-lived access tokens for security
 const REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export interface JWTPayload {
