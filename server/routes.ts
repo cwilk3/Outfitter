@@ -95,7 +95,7 @@ const guideOrAdmin = hasRole('guide');
 export async function registerRoutes(app: Express): Promise<Server> {
   // Email/Password Authentication Routes
   app.post('/api/auth/login', loginUser);
-  app.post('/api/auth/register', registerUser);
+  app.post('/api/auth/email-register', registerUser);
   app.post('/api/auth/logout', logoutUser);
   app.get('/api/auth/me', async (req, res) => {
     console.log('Direct auth check - cookies:', req.cookies);

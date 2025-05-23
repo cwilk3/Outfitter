@@ -47,7 +47,7 @@ export function useAuth() {
       companyName: string;
       phone?: string;
     }) => {
-      return apiRequest('POST', '/api/auth/register', userData);
+      return apiRequest('POST', '/api/auth/email-register', userData);
     },
     onSuccess: (userData) => {
       // Directly set the user data in cache after successful registration
