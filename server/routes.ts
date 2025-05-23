@@ -88,10 +88,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit OAuth authentication
   await setupAuth(app);
   
-  // Auth routes - Replit OAuth user endpoint
-  app.get('/api/auth/user', replitAuth, async (req: any, res) => {
+  // Auth routes - Dev authentication endpoint
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
