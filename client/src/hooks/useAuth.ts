@@ -29,7 +29,7 @@ export function useAuth() {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      return apiRequest('/api/auth/login', 'POST', credentials);
+      return apiRequest('POST', '/api/auth/login', credentials);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -47,7 +47,7 @@ export function useAuth() {
       companyName: string;
       phone?: string;
     }) => {
-      return apiRequest('/api/auth/register', 'POST', userData);
+      return apiRequest('POST', '/api/auth/register', userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
@@ -58,7 +58,7 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/auth/logout', 'POST');
+      return apiRequest('POST', '/api/auth/logout');
     },
     onSuccess: () => {
       queryClient.clear(); // Clear all cached data
