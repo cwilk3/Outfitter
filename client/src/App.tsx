@@ -21,21 +21,51 @@ import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
-function ProtectedRoutes() {
-  // Dev mode - we always authenticate
-  const { isLoading } = useAuth();
+function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          <p className="text-gray-500 text-sm font-medium">Loading, please wait...</p>
+  return (
+    <Switch>
+      {isLoading || !isAuthenticated ? (
+        <Route path="/" component={LandingPage} />
+      ) : (
+        <>
+          <Route path="/" component={ProtectedRoutes} />
+        </>
+      )}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="max-w-md w-full space-y-8 p-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Welcome to Outfitter
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Professional hunting and fishing guide management
+          </p>
+        </div>
+        <div className="mt-8 space-y-6">
+          <div>
+            <a
+              href="/api/login"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Sign in to continue
+            </a>
+          </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
+function ProtectedRoutes() {
   return (
     <OutfitterProvider>
       <AppLayout>
@@ -74,9 +104,9 @@ function App() {
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           
-          {/* Protected routes */}
+          {/* Protected routes with authentication */}
           <Route path="/*">
-            <ProtectedRoutes />
+            <Router />
           </Route>
         </Switch>
       </TooltipProvider>
