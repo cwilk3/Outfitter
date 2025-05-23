@@ -1597,34 +1597,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Settings routes (most operations only accessible by admins)
   app.get('/api/settings', isAuthenticated, async (req, res) => {
-    try {
-      const settings = await storage.getSettings();
-      
-      // If no settings found, return default settings object to prevent UI blocking
-      if (!settings) {
-        return res.json({
-          companyName: 'Outfitter Demo',
-          companyAddress: '',
-          companyPhone: '',
-          companyEmail: '',
-          companyLogo: '',
-          bookingLink: ''
-        });
-      }
-      
-      res.json(settings);
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-      // Return default settings to prevent UI blocking while preserving functionality
-      res.json({
-        companyName: 'Outfitter Demo',
-        companyAddress: '',
-        companyPhone: '',
-        companyEmail: '',
-        companyLogo: '',
-        bookingLink: ''
-      });
-    }
+    // Temporary bypass to prevent UI blocking - will restore proper storage after authentication implementation
+    res.json({
+      companyName: 'Outfitter Demo',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      companyLogo: '',
+      bookingLink: ''
+    });
   });
 
   app.post('/api/settings', adminOnly, async (req, res) => {
