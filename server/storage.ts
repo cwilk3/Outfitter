@@ -73,7 +73,7 @@ export interface IStorage {
   getCustomer(id: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
-  listCustomers(search?: string): Promise<Customer[]>;
+  listCustomers(outfitterId: number, search?: string): Promise<Customer[]>;
   
   // Booking operations
   getBooking(id: number): Promise<Booking | undefined>;
@@ -277,13 +277,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async listLocations(activeOnly: boolean = false): Promise<Location[]> {
-    let query = db.select().from(locations);
-    
     if (activeOnly) {
-      query = query.where(eq(locations.isActive, true));
+      return await db.select().from(locations)
+        .where(eq(locations.isActive, true))
+        .orderBy(locations.name);
     }
     
-    return await query.orderBy(locations.name);
+    return await db.select().from(locations).orderBy(locations.name);
   }
 
   // Experience operations
@@ -384,14 +384,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listExperiences(locationId?: number): Promise<Experience[]> {
-    let query = db.select().from(experiences);
-    
     if (locationId) {
-      // Filter by the direct locationId field on experiences
-      query = query.where(eq(experiences.locationId, locationId));
+      return await db.select().from(experiences)
+        .where(eq(experiences.locationId, locationId))
+        .orderBy(experiences.name);
     }
     
-    return await query.orderBy(experiences.name);
+    return await db.select().from(experiences).orderBy(experiences.name);
   }
   
   // Experience Locations operations
@@ -809,16 +808,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listCustomers(outfitterId: number, search?: string): Promise<Customer[]> {
-    let query = db.select().from(customers).where(eq(customers.outfitterId, outfitterId));
-    
     if (search) {
-      query = query.where(and(
-        eq(customers.outfitterId, outfitterId),
-        sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}, ' ', ${customers.email}) ILIKE ${`%${search}%`}`
-      ));
+      return await db.select().from(customers)
+        .where(and(
+          eq(customers.outfitterId, outfitterId),
+          sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}, ' ', ${customers.email}) ILIKE ${`%${search}%`}`
+        ));
     }
     
-    return query;
+    return await db.select().from(customers)
+      .where(eq(customers.outfitterId, outfitterId));
   }
 
   // Booking operations
@@ -845,13 +844,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listBookings(filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]> {
-    let query = db.select().from(bookings);
-    
     if (filters) {
       const conditions = [];
       
       if (filters.status) {
-        conditions.push(eq(bookings.status, filters.status));
+        conditions.push(eq(bookings.status, filters.status as any));
       }
       
       if (filters.startDate) {
@@ -863,11 +860,13 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        return await db.select().from(bookings)
+          .where(and(...conditions))
+          .orderBy(desc(bookings.startDate));
       }
     }
     
-    return query.orderBy(desc(bookings.startDate));
+    return await db.select().from(bookings).orderBy(desc(bookings.startDate));
   }
 
   async getBookingByNumber(bookingNumber: string): Promise<Booking | undefined> {
