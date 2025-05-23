@@ -108,6 +108,23 @@ export interface IStorage {
   
   // Dashboard operations
   getDashboardStats(): Promise<any>;
+  
+  // User operations (for authentication)
+  getUserWithRole(id: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
+  
+  // Outfitter operations (for multi-tenancy)
+  createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
+  getOutfitter(id: number): Promise<Outfitter | undefined>;
+  updateOutfitter(id: number, outfitter: Partial<InsertOutfitter>): Promise<Outfitter | undefined>;
+  listOutfitters(): Promise<Outfitter[]>;
+  
+  // UserOutfitter operations (for user-outfitter relationships)
+  createUserOutfitter(userOutfitter: InsertUserOutfitter): Promise<UserOutfitter>;
+  getUserOutfitters(userId: string): Promise<UserOutfitter[]>;
+  
+  // Guide operations
+  getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
   getUpcomingBookings(limit?: number): Promise<any[]>;
 }
 
@@ -1391,7 +1408,7 @@ export class MemStorage implements IStorage {
 
   private seedData() {
     // Add an admin user
-    const adminUser: InsertUser = {
+    const adminUser: UpsertUser = {
       id: '1',
       firstName: 'John',
       lastName: 'Smith',
@@ -1401,7 +1418,7 @@ export class MemStorage implements IStorage {
     this.upsertUser(adminUser);
     
     // Add a guide user
-    const guideUser: InsertUser = {
+    const guideUser: UpsertUser = {
       id: '2',
       firstName: 'Mike',
       lastName: 'Johnson',
