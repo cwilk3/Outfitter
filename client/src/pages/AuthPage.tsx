@@ -72,6 +72,8 @@ export default function AuthPage() {
         title: "Welcome back!",
         description: "You've been successfully logged in.",
       });
+      // Redirect to dashboard after successful login
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -89,6 +91,8 @@ export default function AuthPage() {
         title: "Account created successfully!",
         description: "Welcome to Outfitter. You're now logged in.",
       });
+      // Redirect to dashboard after successful registration
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Registration failed",
