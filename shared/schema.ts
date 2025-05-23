@@ -138,7 +138,7 @@ export const experienceLocations = pgTable("experience_locations", {
 export const experienceGuides = pgTable("experience_guides", {
   id: serial("id").primaryKey(),
   experienceId: integer("experience_id").notNull().references(() => experiences.id),
-  guideId: varchar("guide_id").notNull().references(() => users.id),
+  guideId: integer("guide_id").notNull().references(() => users.id),
   isPrimary: boolean("is_primary").default(false), // Whether this is the primary guide for the experience
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -197,7 +197,7 @@ export const bookings = pgTable("bookings", {
 export const bookingGuides = pgTable("booking_guides", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull().references(() => bookings.id),
-  guideId: varchar("guide_id").notNull().references(() => users.id),
+  guideId: integer("guide_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -220,7 +220,7 @@ export const documents = pgTable("documents", {
   size: integer("size").notNull(),
   bookingId: integer("booking_id").references(() => bookings.id),
   customerId: integer("customer_id").references(() => customers.id),
-  guideId: varchar("guide_id").references(() => users.id),
+  guideId: integer("guide_id").references(() => users.id),
   outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

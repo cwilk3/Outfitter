@@ -15,6 +15,13 @@
       "when": 1748011729805,
       "tag": "0001_eminent_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748013603238,
+      "tag": "0002_jazzy_rictor",
+      "breakpoints": true
     }
   ]
 }
