@@ -35,15 +35,15 @@ import {
   insertExperienceGuideSchema
 } from "@shared/schema";
 
-// Development authentication middleware
-const isAuthenticated = (req: Request, res: Response, next: Function) => {
-  // For development, simulate a user in the request
-  (req as any).user = {
-    id: 'dev-user-1',
-    claims: { sub: 'dev-user-1' }
-  };
-  return next();
-};
+// Development authentication middleware - DISABLED for production email auth
+// const isAuthenticated = (req: Request, res: Response, next: Function) => {
+//   // For development, simulate a user in the request
+//   (req as any).user = {
+//     id: 'dev-user-1',
+//     claims: { sub: 'dev-user-1' }
+//   };
+//   return next();
+// };
 
 // Role-based permission middleware
 const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: Response, next: Function) => {
