@@ -20,7 +20,8 @@ export const roleEnum = pgEnum('role', ['admin', 'guide']);
 // User table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   phone: text("phone"),
@@ -390,6 +391,13 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const upsertUserSchema = createInsertSchema(users).omit({ 
+  createdAt: true,
+  updatedAt: true
+});
+
+// Schema for creating users with password (email/password auth)
+export const createUserWithPasswordSchema = createInsertSchema(users).omit({
+  id: true,
   createdAt: true,
   updatedAt: true
 });

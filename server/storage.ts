@@ -17,9 +17,11 @@ import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUserWithPassword(user: { email: string; passwordHash: string; firstName?: string | null; lastName?: string | null; phone?: string | null; role?: 'admin' | 'guide' }): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
-  getUserWithRole(userId: string): Promise<{role: 'admin' | 'guide', outfitterId: number} | undefined>;
+  getUserWithRole(userId: string): Promise<User & {outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
   
   // Outfitter operations
@@ -132,6 +134,36 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUserWithPassword(userData: { 
+    email: string; 
+    passwordHash: string; 
+    firstName?: string | null; 
+    lastName?: string | null; 
+    phone?: string | null; 
+    role?: 'admin' | 'guide' 
+  }): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: Math.random().toString(36).substring(2, 15),
+        email: userData.email,
+        passwordHash: userData.passwordHash,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: userData.role || 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
     return user;
   }
 
