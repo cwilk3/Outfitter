@@ -31,6 +31,7 @@ export interface IStorage {
   listOutfitters(): Promise<Outfitter[]>;
   
   // User-Outfitter relationship operations
+  createUserOutfitter(data: InsertUserOutfitter): Promise<UserOutfitter>;
   addUserToOutfitter(userId: string, outfitterId: number, role: 'admin' | 'guide'): Promise<UserOutfitter>;
   getUserOutfitters(userId: string): Promise<(UserOutfitter & { outfitter: Outfitter })[]>;
   getOutfitterUsers(outfitterId: number): Promise<(UserOutfitter & { user: User })[]>;
@@ -191,17 +192,27 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserWithRole(userId: string): Promise<{role: 'admin' | 'guide', outfitterId: number} | undefined> {
-    const [userOutfitter] = await db
+  async getUserWithRole(userId: string): Promise<User & {outfitterId: number} | undefined> {
+    const [result] = await db
       .select({
-        role: userOutfitters.role,
+        id: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+        profileImageUrl: users.profileImageUrl,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
         outfitterId: userOutfitters.outfitterId
       })
-      .from(userOutfitters)
-      .where(eq(userOutfitters.userId, userId))
+      .from(users)
+      .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+      .where(eq(users.id, userId))
       .limit(1);
     
-    return userOutfitter;
+    return result;
   }
 
   async listUsers(role?: string): Promise<User[]> {
@@ -242,6 +253,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // User-Outfitter relationship operations
+  async createUserOutfitter(data: InsertUserOutfitter): Promise<UserOutfitter> {
+    const [userOutfitter] = await db
+      .insert(userOutfitters)
+      .values(data)
+      .returning();
+    return userOutfitter;
+  }
+
   async addUserToOutfitter(userId: string, outfitterId: number, role: 'admin' | 'guide'): Promise<UserOutfitter> {
     const [userOutfitter] = await db
       .insert(userOutfitters)

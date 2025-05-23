@@ -12,6 +12,14 @@ import path from "path";
 // Import authentication middleware
 import { setupAuth, isAuthenticated as replitAuth } from "./replitAuth";
 import { 
+  requireAuth, 
+  loginUser, 
+  registerUser, 
+  logoutUser, 
+  getCurrentUser,
+  type AuthenticatedRequest 
+} from "./emailAuth";
+import { 
   insertUserSchema, 
   insertExperienceSchema, 
   insertCustomerSchema, 
@@ -85,10 +93,16 @@ const adminOnly = hasRole('admin');
 const guideOrAdmin = hasRole('guide');
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit OAuth authentication
+  // Setup Replit OAuth authentication (keeping for backward compatibility during transition)
   await setupAuth(app);
   
-  // Auth routes - Dev authentication endpoint
+  // New Email/Password Authentication Routes
+  app.post('/api/auth/login', loginUser);
+  app.post('/api/auth/register', registerUser);
+  app.post('/api/auth/logout', logoutUser);
+  app.get('/api/auth/me', requireAuth, getCurrentUser);
+  
+  // Auth routes - Updated to support both authentication systems
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
