@@ -1600,15 +1600,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettings();
       
-      // If no settings found, return empty object instead of 404
+      // If no settings found, return default settings object to prevent UI blocking
       if (!settings) {
-        return res.json({});
+        return res.json({
+          companyName: 'Outfitter Demo',
+          companyAddress: '',
+          companyPhone: '',
+          companyEmail: '',
+          companyLogo: '',
+          bookingLink: ''
+        });
       }
       
       res.json(settings);
     } catch (error) {
       console.error('Error fetching settings:', error);
-      res.status(500).json({ message: 'Failed to fetch settings' });
+      // Return default settings to prevent UI blocking while preserving functionality
+      res.json({
+        companyName: 'Outfitter Demo',
+        companyAddress: '',
+        companyPhone: '',
+        companyEmail: '',
+        companyLogo: '',
+        bookingLink: ''
+      });
     }
   });
 
