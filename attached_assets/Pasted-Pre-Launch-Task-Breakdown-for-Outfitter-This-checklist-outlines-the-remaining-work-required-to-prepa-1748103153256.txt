@@ -1,0 +1,78 @@
+Pre-Launch Task Breakdown for Outfitter
+This checklist outlines the remaining work required to prepare the Outfitter SaaS platform for production launch. It prioritizes core stability, mobile responsiveness, remaining feature work, and UI/UX refinement based on recent architecture assessments and functionality audits.
+
+🥇 1. Fix Stability & Architecture Risks
+Ensure the backend is modular, consistent, and maintainable.
+
+ ✅ Remove activity tracking and associated DB constraints (done)
+
+ 🔨 Modularize backend routes — split the 1900+ line file into logical domains (e.g. /auth, /locations, /dashboard)
+
+ 🚨 Standardize backend error response format — return consistent shape like { success: false, message: "" }
+
+ 🧪 Add missing edge case validation (especially around API inputs)
+
+ 🧹 Remove duplicate method definitions in the storage interface (clean up internal logic)
+
+🥈 2. Mobile UI Refinement
+Ensure the app is fully usable and polished on mobile.
+
+ 📱 Make all key flows mobile-responsive (auth, dashboard, location management)
+
+ ✅ Use Tailwind responsive classes to fix spacing, layout, and font scaling
+
+ 🧪 Test UX on iOS Safari and Android Chrome for layout and input handling
+
+🥉 3. Build Final MVP Features
+Add only scoped, launch-critical functionality that supports core use cases.
+
+ 🧩 Implement any remaining MVP features required for onboarding or retention
+
+ ⚠️ Follow existing tenant/auth architecture patterns
+
+ 📦 Ensure features meet multi-tenant data isolation standards
+
+🧼 4. UI Feedback & Loading States
+Improve perceived performance and user trust during transitions and form interactions.
+
+ ⏳ Add loading indicators for queries, auth transitions, and form submissions
+
+ 💬 Improve error messages to be human-readable and friendly
+
+ ✅ Use toasts, inline form errors, and banners for feedback cues
+
+🛠️ 5. Refactor for Maintainability
+Increase code readability and reusability to support future dev work.
+
+ 🧹 Split large components into smaller, single-responsibility pieces
+
+ ♻️ Refactor repetitive forms into reusable components
+
+ 🧰 Replace prop drilling with context or compositional patterns
+
+ 🔧 Fix lingering any types and tighten TypeScript usage throughout backend and frontend
+
+🌟 6. Improve UI Hierarchy & Navigation
+Enhance usability and visual clarity to support onboarding and complex workflows.
+
+ 🎨 Improve visual hierarchy using font weight, contrast, and spacing
+
+ ✨ Add subtle micro-interactions (hover, tap, or transition feedback)
+
+ 🧭 Make navigation more intuitive — especially around switching tenants, accessing settings, etc.
+
+🧪 7. QA & Documentation Prep
+Ensure the app is test-ready and the architecture is documented for future contributors.
+
+ ✅ Perform full QA test pass (desktop + mobile) covering core flows
+
+ 📋 Verify error logs and traces are functional in dev/staging
+
+ 📝 Update internal documentation (README or Notion) to reflect:
+
+Route architecture (post-modularization)
+
+Multi-tenant logic
+
+Any reusable frontend components or hooks
+
