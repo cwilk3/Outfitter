@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Customer } from "@/types";
+import { Customer, InsertCustomer } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Card,
   CardContent,
@@ -57,8 +58,8 @@ import {
   User
 } from "lucide-react";
 
-// Define form validation schema
-const customerSchema = z.object({
+// Define form validation schema that matches InsertCustomer but excludes outfitterId (added automatically)
+const customerFormSchema = z.object({
   firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -70,10 +71,11 @@ const customerSchema = z.object({
   notes: z.string().optional(),
 });
 
-type CustomerFormValues = z.infer<typeof customerSchema>;
+type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 export default function Customers() {
   const { toast } = useToast();
+  const { user } = useAuth(); // Get current user for outfitterId
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
@@ -95,7 +97,7 @@ export default function Customers() {
 
   // Form handling
   const form = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema),
+    resolver: zodResolver(customerFormSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -109,10 +111,22 @@ export default function Customers() {
     },
   });
 
-  // Create customer mutation
+  // Create customer mutation with outfitterId injection (SAFEGUARD: session-derived only)
   const createMutation = useMutation({
-    mutationFn: (newCustomer: CustomerFormValues) => 
-      apiRequest('POST', '/api/customers', newCustomer),
+    mutationFn: (newCustomer: CustomerFormValues) => {
+      // SAFEGUARD: Must have user and outfitterId from session
+      if (!user?.outfitterId) {
+        throw new Error('Authentication required - no outfitter context found');
+      }
+      
+      // Create InsertCustomer object with session-derived outfitterId
+      const customerData: InsertCustomer = {
+        ...newCustomer,
+        outfitterId: user.outfitterId // SAFEGUARD: Always from authenticated session
+      };
+      
+      return apiRequest('POST', '/api/customers', customerData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       toast({
@@ -132,7 +146,7 @@ export default function Customers() {
     },
   });
 
-  // Update customer mutation
+  // Update customer mutation (SAFEGUARD: no outfitterId injection needed for updates)
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: CustomerFormValues }) => 
       apiRequest('PATCH', `/api/customers/${id}`, data),
