@@ -115,14 +115,14 @@ export default function Customers() {
   const createMutation = useMutation({
     mutationFn: (newCustomer: CustomerFormValues) => {
       // SAFEGUARD: Must have user and outfitterId from session
-      if (!user?.outfitterId) {
+      if (!user || !(user as any).outfitterId) {
         throw new Error('Authentication required - no outfitter context found');
       }
       
       // Create InsertCustomer object with session-derived outfitterId
       const customerData: InsertCustomer = {
         ...newCustomer,
-        outfitterId: user.outfitterId // SAFEGUARD: Always from authenticated session
+        outfitterId: (user as any).outfitterId // SAFEGUARD: Always from authenticated session
       };
       
       return apiRequest('POST', '/api/customers', customerData);
