@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { storage } from '../storage';
 import { 
   requireAuth, 
@@ -8,18 +9,44 @@ import {
   getCurrentUser
 } from '../emailAuth';
 import { asyncHandler, throwError } from '../utils/asyncHandler';
+import { validate, commonSchemas } from '../middleware/validation';
 
 const router = Router();
 
-// Email authentication routes
-router.post('/email-register', (req: Request, res: Response) => {
-  console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
-  console.log('registerUser function type:', typeof registerUser);
-  console.log('registerUser function:', !!registerUser);
-  return registerUser(req, res);
-});
+// Validation schemas for authentication
+const authValidation = {
+  loginSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(1, 'Password is required')
+  }),
+  
+  registerSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(8, 'Password must be at least 8 characters')
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+    phone: commonSchemas.phone,
+    role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional()
+  })
+};
 
-router.post('/login', loginUser);
+// Email authentication routes with validation
+router.post('/email-register', 
+  validate({ body: authValidation.registerSchema }),
+  (req: Request, res: Response) => {
+    console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
+    console.log('registerUser function type:', typeof registerUser);
+    console.log('registerUser function:', !!registerUser);
+    return registerUser(req, res);
+  }
+);
+
+router.post('/login', 
+  validate({ body: authValidation.loginSchema }),
+  loginUser
+);
+
 router.post('/logout', logoutUser);
 
 // Auth check endpoint
