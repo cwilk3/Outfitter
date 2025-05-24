@@ -1,11 +1,11 @@
 import {
   users, experiences, customers, bookings, bookingGuides, documents, payments, settings, locations, 
-  experienceLocations, experienceAddons, experienceGuides, addonInventoryDates, outfitters, userOutfitters,
+  experienceLocations, experienceAddons, experienceGuides, addonInventoryDates, outfitters, userOutfitters, activities,
   type User, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
-  type Location, type InsertLocation,
+  type Location, type InsertLocation, type Activity, type InsertActivity,
   type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
   type ExperienceGuide, type InsertExperienceGuide, type Outfitter, type InsertOutfitter,
   type UserOutfitter, type InsertUserOutfitter
@@ -1824,6 +1824,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       id: idStr,
       email: userData.email || null,
+      passwordHash: userData.passwordHash || '$2b$12$defaulthash',
       firstName: userData.firstName || null,
       lastName: userData.lastName || null,
       phone: userData.phone || null,

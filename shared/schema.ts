@@ -240,6 +240,16 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Activities table for tracking user actions
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  details: jsonb("details"),
+  userId: varchar("user_id").references(() => users.id),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Settings table
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
@@ -449,6 +459,11 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true
 });
 
+export const insertActivitySchema = createInsertSchema(activities).omit({ 
+  id: true,
+  createdAt: true
+});
+
 export const insertSettingsSchema = createInsertSchema(settings).omit({ 
   id: true,
   updatedAt: true
@@ -547,6 +562,9 @@ export type InsertOutfitter = z.infer<typeof insertOutfitterSchema>;
 
 export type UserOutfitter = typeof userOutfitters.$inferSelect;
 export type InsertUserOutfitter = z.infer<typeof insertUserOutfitterSchema>;
+
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 // User insert type
 export type UserInsert = typeof users.$inferInsert;
