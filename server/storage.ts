@@ -92,7 +92,7 @@ export interface IStorage {
   getDocument(id: number): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined>;
-  listDocuments(filter?: { bookingId?: number, customerId?: number, guideId?: number }): Promise<Document[]>;
+  listDocuments(filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]>;
   deleteDocument(id: number): Promise<void>;
   
   // Payment operations
@@ -552,7 +552,7 @@ export class DatabaseStorage implements IStorage {
     // Preprocess numeric fields
     const processedData = {
       ...addonData,
-      price: typeof addonData.price === 'number' ? addonData.price.toString() : addonData.price,
+      price: addonData.price,
       // Make sure inventory fields are properly initialized
       inventory: addonData.inventory || 0,
       maxPerBooking: addonData.maxPerBooking || 0
@@ -569,9 +569,7 @@ export class DatabaseStorage implements IStorage {
     // Preprocess numeric fields if present
     const processedData = {
       ...addonData,
-      price: addonData.price !== undefined && typeof addonData.price === 'number' 
-        ? addonData.price.toString() 
-        : addonData.price,
+      price: addonData.price,
       // Handle inventory fields properly
       inventory: addonData.inventory !== undefined ? addonData.inventory : undefined,
       maxPerBooking: addonData.maxPerBooking !== undefined ? addonData.maxPerBooking : undefined,
@@ -972,7 +970,7 @@ export class DatabaseStorage implements IStorage {
     return document;
   }
 
-  async listDocuments(filter?: { bookingId?: number, customerId?: number, guideId?: number }): Promise<Document[]> {
+  async listDocuments(filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]> {
     let query = db.select().from(documents);
     
     if (filter) {
@@ -991,11 +989,11 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        query = query.where(and(...conditions)) as any;
       }
     }
     
-    return query.orderBy(desc(documents.createdAt));
+    return await query.orderBy(desc(documents.createdAt));
   }
 
   async deleteDocument(id: number): Promise<void> {
