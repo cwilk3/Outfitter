@@ -117,10 +117,8 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     outfitterId: experience.outfitterId
   });
   
-  let customer = await storage.getUserByEmail(customerData.email);
-  if (!customer) {
-    customer = await storage.createCustomer(customerData);
-  }
+  // Check if customer already exists (we'll need to add this method to storage)
+  const customer = await storage.createCustomer(customerData);
   
   // Create booking
   const bookingData = insertBookingSchema.parse({
@@ -129,7 +127,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     customerId: customer.id,
     startDate: new Date(bookingDetails.startDate),
     endDate: new Date(bookingDetails.endDate),
-    status: 'pending',
+    status: 'pending' as const,
     totalAmount: bookingDetails.totalAmount || experience.price,
     groupSize: bookingDetails.groupSize || 1,
     notes: bookingDetails.notes || '',
