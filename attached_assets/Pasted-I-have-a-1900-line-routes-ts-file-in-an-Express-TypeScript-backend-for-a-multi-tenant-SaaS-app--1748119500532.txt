@@ -1,0 +1,115 @@
+I have a 1900+ line `routes.ts` file in an Express + TypeScript backend for a multi-tenant SaaS app. I want to modularize it safely and cleanly, without breaking functionality or changing any route behavior.
+
+────────────────────────────────────
+✅ CONTEXT
+────────────────────────────────────
+- Backend uses: Express.js, TypeScript, Drizzle ORM, PostgreSQL
+- Multi-tenant architecture: `outfitterId` filtering and middleware
+- JWT auth with `requireAuth` middleware
+- Uses `addOutfitterContext` middleware for outfitter isolation
+- Auth flow is secure and stable — do not change
+- Routes follow `/api/<resource>` structure (e.g., `/api/bookings`)
+
+────────────────────────────────────
+🎯 GOAL
+────────────────────────────────────
+Modularize `routes.ts` by splitting it into multiple domain-specific route modules, with no logic changes, regressions, or broken paths.
+
+────────────────────────────────────
+🛠️ STEPS TO COMPLETE
+────────────────────────────────────
+1. Create a `server/routes/` folder (if not already present)
+2. Move route logic into these files:
+   - `auth.ts`
+   - `bookings.ts`
+   - `customers.ts`
+   - `locations.ts`
+   - `experiences.ts`
+   - `guides.ts`
+3. In each new file:
+   - Use `Express.Router()`
+   - Import and apply `requireAuth` and `addOutfitterContext` as needed
+   - Migrate only routes for that domain from original `routes.ts`
+   - Export the router as default
+
+4. Replace `routes.ts` with the following:
+
+```ts
+// server/routes.ts
+import express from 'express';
+import authRouter from './routes/auth';
+import bookingsRouter from './routes/bookings';
+import customersRouter from './routes/customers';
+import locationsRouter from './routes/locations';
+import experiencesRouter from './routes/experiences';
+import guidesRouter from './routes/guides';
+
+const app = express();
+
+app.use('/api/auth', authRouter);
+app.use('/api/bookings', bookingsRouter);
+app.use('/api/customers', customersRouter);
+app.use('/api/locations', locationsRouter);
+app.use('/api/experiences', experiencesRouter);
+app.use('/api/guides', guidesRouter);
+
+export default app;
+
+5. Add this async error handler to DRY up route error handling:
+// utils/asyncHandler.ts
+export const asyncHandler = fn => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+
+Use it like:
+router.get('/some-path', asyncHandler(async (req, res) => {
+  // handler code
+}));
+
+6. In your main server file (server.ts or index.ts), ensure you have a global error fallback:
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong.' });
+});
+
+🧪 EMERGENCY SAFEGUARDS
+ ────────────────────────────────────
+Keep a full backup of routes.ts before modularizing
+
+
+Do not change route paths, names, or auth structure
+
+
+Add logging to each new file if needed for debugging
+
+
+Use integration tests or Postman to validate unchanged behavior
+
+
+────────────────────────────────────
+ 🚫 DO NOT:
+ ────────────────────────────────────
+Refactor logic or add new features
+
+
+Use any in TypeScript
+
+
+Alter authentication or outfitter context middleware
+
+
+Break route contracts
+
+
+────────────────────────────────────
+ ✅ DELIVERABLES
+ ────────────────────────────────────
+server/routes/ folder with clean, working route modules
+
+
+Updated routes.ts with domain router imports
+
+
+Verified unchanged API behavior
+
+
+Begin now. Let me know once it's done, or if you encounter any issues.
