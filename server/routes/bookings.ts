@@ -110,44 +110,37 @@ router.patch('/:id',
   })
 );
 
-// Booking Guides routes
-router.get('/:bookingId/guides', asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = parseInt(req.params.bookingId);
-  
-  if (isNaN(bookingId)) {
-    throwError('Invalid booking ID', 400);
-  }
-  
-  const guides = await storage.listBookingGuides(bookingId);
-  res.json(guides);
-}));
+// Booking Guides routes with validation
+router.get('/:bookingId/guides', 
+  validate({ params: z.object({ bookingId: z.string().regex(/^\d+$/).transform(Number) }) }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { bookingId } = req.params;
+    const guides = await storage.listBookingGuides(bookingId);
+    res.json(guides);
+  })
+);
 
-router.post('/:bookingId/guides', asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = parseInt(req.params.bookingId);
-  
-  if (isNaN(bookingId)) {
-    throwError('Invalid booking ID', 400);
-  }
-  
-  const validatedData = insertBookingGuideSchema.parse({
-    ...req.body,
-    bookingId
-  });
-  
-  const bookingGuide = await storage.assignGuideToBooking(validatedData);
-  res.status(201).json(bookingGuide);
-}));
+router.post('/:bookingId/guides', 
+  validate({ 
+    params: z.object({ bookingId: z.string().regex(/^\d+$/).transform(Number) }),
+    body: insertBookingGuideSchema.omit({ bookingId: true })
+  }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { bookingId } = req.params;
+    const validatedData = { ...req.body, bookingId };
+    
+    const bookingGuide = await storage.assignGuideToBooking(validatedData);
+    res.status(201).json(bookingGuide);
+  })
+);
 
-router.delete('/:bookingId/guides/:guideId', asyncHandler(async (req: Request, res: Response) => {
-  const bookingId = parseInt(req.params.bookingId);
-  const guideId = parseInt(req.params.guideId);
-  
-  if (isNaN(bookingId) || isNaN(guideId)) {
-    throwError('Invalid booking or guide ID', 400);
-  }
-  
-  await storage.removeGuideFromBooking(bookingId, guideId);
-  res.status(204).end();
-}));
+router.delete('/:bookingId/guides/:guideId', 
+  validate({ params: bookingValidation.bookingGuideParams }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { bookingId, guideId } = req.params;
+    await storage.removeGuideFromBooking(bookingId, guideId);
+    res.status(204).end();
+  })
+);
 
 export default router;

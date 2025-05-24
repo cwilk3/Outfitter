@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { storage } from '../storage';
 import { requireAuth } from '../emailAuth';
 import { addOutfitterContext } from '../outfitterContext';
-import { asyncHandler } from '../utils/asyncHandler';
+import { asyncHandler, throwError } from '../utils/asyncHandler';
 import { insertExperienceSchema, insertExperienceAddonSchema, insertExperienceLocationSchema } from '@shared/schema';
+import { validate, commonSchemas, businessRules } from '../middleware/validation';
 
 const router = Router();
 
