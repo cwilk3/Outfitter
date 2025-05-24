@@ -7,7 +7,7 @@ import {
   logoutUser, 
   getCurrentUser
 } from '../emailAuth';
-import { asyncHandler, throwError } from '../utils/asyncHandler';
+import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
 
@@ -23,30 +23,35 @@ router.post('/login', loginUser);
 router.post('/logout', logoutUser);
 
 // Auth check endpoint
-router.get('/me', asyncHandler(async (req: Request, res: Response) => {
+router.get('/me', asyncHandler(async (req, res) => {
   console.log('Direct auth check - cookies:', req.cookies);
   const token = req.cookies?.token;
   if (!token) {
-    throwError('No token found', 401);
+    return res.status(401).json({ error: 'No token found' });
   }
   
-  const { verifyToken } = await import('../emailAuth');
-  const decoded = verifyToken(token);
-  console.log('Direct auth check - decoded:', decoded);
-  
-  if (!decoded) {
-    throwError('Invalid token', 401);
+  try {
+    const { verifyToken } = await import('../emailAuth');
+    const decoded = verifyToken(token);
+    console.log('Direct auth check - decoded:', decoded);
+    
+    if (!decoded) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    const user = await storage.getUserWithRole(decoded.userId);
+    console.log('Direct auth check - user found:', user);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    const { passwordHash, ...userResponse } = user;
+    res.json(userResponse);
+  } catch (error) {
+    console.error('Direct auth check error:', error);
+    res.status(401).json({ error: 'Authentication failed' });
   }
-  
-  const user = await storage.getUserWithRole(decoded.userId);
-  console.log('Direct auth check - user found:', user);
-  
-  if (!user) {
-    throwError('User not found', 401);
-  }
-  
-  const { passwordHash, ...userResponse } = user;
-  res.json(userResponse);
 }));
 
 // Legacy auth check for frontend compatibility

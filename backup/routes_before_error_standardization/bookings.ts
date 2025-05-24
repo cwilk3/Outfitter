@@ -1,8 +1,9 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import { z } from 'zod';
 import { storage } from '../storage';
 import { requireAuth } from '../emailAuth';
 import { addOutfitterContext } from '../outfitterContext';
-import { asyncHandler, throwError } from '../utils/asyncHandler';
+import { asyncHandler } from '../utils/asyncHandler';
 import { insertBookingSchema, insertBookingGuideSchema } from '@shared/schema';
 
 const router = Router();

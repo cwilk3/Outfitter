@@ -1,7 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import apiRoutes from './routes/index';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Import User type from shared schema
 import type { User } from "@shared/schema";
@@ -19,11 +18,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   console.log('=== MODULARIZED ROUTES REGISTERED SUCCESSFULLY ===');
   
-  // 404 handler for unmatched routes
-  app.use(notFoundHandler);
-  
-  // Centralized error handler (must be last)
-  app.use(errorHandler);
+  // Global error handler
+  app.use((err: any, req: Request, res: Response, next: Function) => {
+    console.error('Global error handler:', err.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Something went wrong.' 
+    });
+  });
 
   const httpServer = createServer(app);
   return httpServer;
