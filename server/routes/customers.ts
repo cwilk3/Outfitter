@@ -13,7 +13,7 @@ router.use(requireAuth, addOutfitterContext);
 // Get all customers with optional search
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const search = req.query.search as string | undefined;
-  const outfitterId = req.outfitterId;
+  const outfitterId = (req as any).outfitterId;
   const customers = await storage.listCustomers(outfitterId, search);
   res.json(customers);
 }));

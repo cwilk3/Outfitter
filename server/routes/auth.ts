@@ -45,7 +45,7 @@ router.get('/me', asyncHandler(async (req: Request, res: Response) => {
     throwError('User not found', 401);
   }
   
-  const { passwordHash, ...userResponse } = user;
+  const { passwordHash, ...userResponse } = user as any;
   res.json(userResponse);
 }));
 

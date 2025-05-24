@@ -11,13 +11,13 @@ const router = Router();
 router.use(requireAuth, addOutfitterContext);
 
 // Get all bookings for outfitter
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const bookings = await storage.listBookings();
   res.json(bookings);
 }));
 
 // Create new booking
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', asyncHandler(async (req: Request, res: Response) => {
   const validatedData = insertBookingSchema.parse(req.body);
   const booking = await storage.createBooking(validatedData);
   
@@ -58,14 +58,24 @@ router.patch('/:id', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // Booking Guides routes
-router.get('/:bookingId/guides', asyncHandler(async (req, res) => {
+router.get('/:bookingId/guides', asyncHandler(async (req: Request, res: Response) => {
   const bookingId = parseInt(req.params.bookingId);
+  
+  if (isNaN(bookingId)) {
+    throwError('Invalid booking ID', 400);
+  }
+  
   const guides = await storage.listBookingGuides(bookingId);
   res.json(guides);
 }));
 
-router.post('/:bookingId/guides', asyncHandler(async (req, res) => {
+router.post('/:bookingId/guides', asyncHandler(async (req: Request, res: Response) => {
   const bookingId = parseInt(req.params.bookingId);
+  
+  if (isNaN(bookingId)) {
+    throwError('Invalid booking ID', 400);
+  }
+  
   const validatedData = insertBookingGuideSchema.parse({
     ...req.body,
     bookingId
@@ -75,9 +85,13 @@ router.post('/:bookingId/guides', asyncHandler(async (req, res) => {
   res.status(201).json(bookingGuide);
 }));
 
-router.delete('/:bookingId/guides/:guideId', asyncHandler(async (req, res) => {
+router.delete('/:bookingId/guides/:guideId', asyncHandler(async (req: Request, res: Response) => {
   const bookingId = parseInt(req.params.bookingId);
   const guideId = parseInt(req.params.guideId);
+  
+  if (isNaN(bookingId) || isNaN(guideId)) {
+    throwError('Invalid booking or guide ID', 400);
+  }
   
   await storage.removeGuideFromBooking(bookingId, guideId);
   res.status(204).end();
