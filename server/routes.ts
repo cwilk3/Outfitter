@@ -30,7 +30,7 @@ import {
   insertDocumentSchema, 
   insertPaymentSchema, 
   insertSettingsSchema,
-  insertActivitySchema,
+
   insertLocationSchema,
   insertExperienceLocationSchema,
   insertExperienceAddonSchema,
