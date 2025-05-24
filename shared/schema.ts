@@ -257,20 +257,12 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Activities table for recent activity tracking
-export const activities = pgTable("activities", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
-  action: text("action").notNull(),
-  details: json("details"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+
 
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   bookingGuides: many(bookingGuides),
   experienceGuides: many(experienceGuides),
-  activities: many(activities),
   documents: many(documents),
 }));
 
@@ -377,12 +369,7 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
-export const activitiesRelations = relations(activities, ({ one }) => ({
-  user: one(users, {
-    fields: [activities.userId],
-    references: [users.id],
-  }),
-}));
+
 
 // Zod Schemas for insertion
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -467,10 +454,7 @@ export const insertSettingsSchema = createInsertSchema(settings).omit({
   updatedAt: true
 });
 
-export const insertActivitySchema = createInsertSchema(activities).omit({ 
-  id: true,
-  createdAt: true
-});
+
 
 export const insertLocationSchema = createInsertSchema(locations).omit({ 
   id: true,
@@ -543,8 +527,7 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 
-export type Activity = typeof activities.$inferSelect;
-export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
 
 // Outfitter types
 export const insertOutfitterSchema = createInsertSchema(outfitters).omit({ 
