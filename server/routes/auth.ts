@@ -12,7 +12,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 const router = Router();
 
 // Email authentication routes
-router.post('/email-register', (req, res) => {
+router.post('/email-register', (req: Request, res: Response) => {
   console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
   console.log('registerUser function type:', typeof registerUser);
   console.log('registerUser function:', !!registerUser);

@@ -13,7 +13,7 @@ router.use(requireAuth, addOutfitterContext);
 
 // Get all bookings for outfitter
 router.get('/', asyncHandler(async (req, res) => {
-  const bookings = await storage.getBookings();
+  const bookings = await storage.listBookings();
   res.json(bookings);
 }));
 
