@@ -199,7 +199,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async listUsers(role?: string): Promise<User[]> {
+  async listUsers(role?: 'admin' | 'guide'): Promise<User[]> {
     if (role) {
       return db.select().from(users).where(eq(users.role, role));
     }
@@ -934,7 +934,7 @@ export class DatabaseStorage implements IStorage {
     return bookingGuide;
   }
 
-  async removeGuideFromBooking(bookingId: number, guideId: number): Promise<void> {
+  async removeGuideFromBooking(bookingId: number, guideId: string): Promise<void> {
     await db
       .delete(bookingGuides)
       .where(
@@ -1508,7 +1508,6 @@ export class MemStorage implements IStorage {
       duration: 2,
       price: '1200',
       capacity: 4,
-      location: 'Mountain Lake',
       category: 'duck_hunting',
       locationId: 1 // Texas Ranch
     };
