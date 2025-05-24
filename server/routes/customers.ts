@@ -46,7 +46,7 @@ router.get('/',
   asyncHandler(async (req: Request, res: Response) => {
     const { search } = req.query;
     const outfitterId = (req as any).outfitterId;
-    const customers = await storage.listCustomers(outfitterId, search);
+    const customers = await storage.listCustomers(outfitterId, typeof search === 'string' ? search : undefined);
     res.json(customers);
   })
 );
@@ -56,7 +56,7 @@ router.get('/:id',
   validate({ params: customerValidation.customerIdParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const customer = await storage.getCustomer(id);
+    const customer = await storage.getCustomer(parseInt(id));
     
     if (!customer) {
       throwError('Customer not found', 404);
@@ -83,7 +83,7 @@ router.patch('/:id',
   }),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updatedCustomer = await storage.updateCustomer(id, req.body);
+    const updatedCustomer = await storage.updateCustomer(parseInt(id), req.body);
     
     if (!updatedCustomer) {
       throwError('Customer not found', 404);

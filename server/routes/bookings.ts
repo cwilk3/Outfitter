@@ -100,7 +100,7 @@ router.patch('/:id',
   }),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updatedBooking = await storage.updateBooking(id, req.body);
+    const updatedBooking = await storage.updateBooking(parseInt(id), req.body);
     
     if (!updatedBooking) {
       throwError('Booking not found', 404);
@@ -115,7 +115,7 @@ router.get('/:bookingId/guides',
   validate({ params: z.object({ bookingId: z.string().regex(/^\d+$/).transform(Number) }) }),
   asyncHandler(async (req: Request, res: Response) => {
     const { bookingId } = req.params;
-    const guides = await storage.listBookingGuides(bookingId);
+    const guides = await storage.listBookingGuides(parseInt(bookingId));
     res.json(guides);
   })
 );
@@ -138,7 +138,7 @@ router.delete('/:bookingId/guides/:guideId',
   validate({ params: bookingValidation.bookingGuideParams }),
   asyncHandler(async (req: Request, res: Response) => {
     const { bookingId, guideId } = req.params;
-    await storage.removeGuideFromBooking(bookingId, guideId);
+    await storage.removeGuideFromBooking(parseInt(bookingId), guideId);
     res.status(204).end();
   })
 );
