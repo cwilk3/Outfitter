@@ -85,7 +85,7 @@ export interface IStorage {
   listBookings(filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]>;
   getBookingByNumber(bookingNumber: string): Promise<Booking | undefined>;
   assignGuideToBooking(bookingGuide: InsertBookingGuide): Promise<BookingGuide>;
-  removeGuideFromBooking(bookingId: number, guideId: number): Promise<void>;
+  removeGuideFromBooking(bookingId: number, guideId: string): Promise<void>;
   listBookingGuides(bookingId: number): Promise<BookingGuide[]>;
   
   // Document operations
@@ -1519,7 +1519,6 @@ export class MemStorage implements IStorage {
       duration: 3,
       price: '3500',
       capacity: 2,
-      location: 'Western Ridge',
       category: 'other_hunting',
       locationId: 2 // Oklahoma Lodge
     };
@@ -1531,7 +1530,6 @@ export class MemStorage implements IStorage {
       duration: 2,
       price: '850',
       capacity: 3,
-      location: 'Clear Lake',
       category: 'bass_fishing',
       locationId: 3 // Kansas Fields
     };
@@ -1543,7 +1541,6 @@ export class MemStorage implements IStorage {
       duration: 3,
       price: '2500',
       capacity: 4, 
-      location: 'Oak Forest',
       category: 'deer_hunting',
       locationId: 1 // Texas Ranch
     };
@@ -1555,7 +1552,6 @@ export class MemStorage implements IStorage {
       duration: 1,
       price: '600',
       capacity: 2,
-      location: 'Clear Creek',
       category: 'trout_fishing',
       locationId: 2 // Oklahoma Lodge
     };
@@ -2140,7 +2136,7 @@ export class MemStorage implements IStorage {
     return bookingGuide;
   }
 
-  async removeGuideFromBooking(bookingId: number, guideId: number): Promise<void> {
+  async removeGuideFromBooking(bookingId: number, guideId: string): Promise<void> {
     const bookingGuidesToDelete = Array.from(this.bookingGuides.entries())
       .filter(([_, bg]) => bg.bookingId === bookingId && bg.guideId === guideId);
     
