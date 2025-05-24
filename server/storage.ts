@@ -1,11 +1,11 @@
 import {
-  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, activities, locations, 
+  users, experiences, customers, bookings, bookingGuides, documents, payments, settings, locations, 
   experienceLocations, experienceAddons, experienceGuides, addonInventoryDates, outfitters, userOutfitters,
   type User, type UpsertUser, type Experience, type InsertExperience, 
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
-  type Activity, type InsertActivity, type Location, type InsertLocation,
+  type Location, type InsertLocation,
   type ExperienceLocation, type InsertExperienceLocation, type ExperienceAddon, type InsertExperienceAddon,
   type ExperienceGuide, type InsertExperienceGuide, type Outfitter, type InsertOutfitter,
   type UserOutfitter, type InsertUserOutfitter
@@ -105,9 +105,7 @@ export interface IStorage {
   getSettings(): Promise<Settings | undefined>;
   updateSettings(settings: InsertSettings): Promise<Settings>;
   
-  // Activity operations
-  createActivity(activity: InsertActivity): Promise<Activity>;
-  listActivities(limit?: number): Promise<Activity[]>;
+
   
   // Dashboard operations
   getDashboardStats(): Promise<any>;
@@ -1075,28 +1073,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Activity operations
-  async createActivity(activityData: InsertActivity): Promise<Activity> {
-    // TODO: Temporarily disabled to prevent foreign key errors
-    // Re-enable after authentication middleware fix
-    console.log('Activity logging temporarily disabled:', activityData);
-    return {
-      id: 0,
-      userId: activityData.userId,
-      action: activityData.action,
-      details: activityData.details,
-      createdAt: new Date()
-    };
-    // const [activity] = await db
-    //   .insert(activities)
-    //   .values(activityData)
-    //   .returning();
-    // return activity;
-  }
 
-  async listActivities(limit: number = 10): Promise<Activity[]> {
-    return db.select().from(activities).orderBy(desc(activities.createdAt)).limit(limit);
-  }
 
   // Dashboard operations
   async getDashboardStats(): Promise<any> {
@@ -2290,20 +2267,7 @@ export class MemStorage implements IStorage {
     return this.settings;
   }
 
-  // Activity operations
-  async createActivity(activityData: InsertActivity): Promise<Activity> {
-    const id = this.currentIds.activity++;
-    const now = new Date();
-    const activity: Activity = { ...activityData, id, createdAt: now };
-    this.activities.set(id, activity);
-    return activity;
-  }
 
-  async listActivities(limit: number = 10): Promise<Activity[]> {
-    return Array.from(this.activities.values())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
-  }
 
   // Dashboard operations
   async getDashboardStats(): Promise<any> {

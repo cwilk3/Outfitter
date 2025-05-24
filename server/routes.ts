@@ -268,12 +268,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertUserSchema.parse(req.body);
       const user = await storage.createUser(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Created new user',
-        details: { userId: user.id, email: user.email }
-      });
       
       res.status(201).json(user);
     } catch (error) {
@@ -299,12 +293,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated user',
-        details: { userId: updatedUser.id, email: updatedUser.email }
-      });
       
       res.json(updatedUser);
     } catch (error) {
@@ -371,14 +359,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[LOCATION_CREATE] Created location:', JSON.stringify(location, null, 2));
       
-      // TODO: Re-enable activity logging after authentication middleware fix
-      // await storage.createActivity({
-      //   userId: req.user?.id || '0',
-      //   action: 'Created new location',
-      //   details: { locationId: location.id, name: location.name }
-      // });
-      
-      res.status(201).json(location);
     } catch (error) {
       console.error('Error creating location:', error);
       
@@ -422,12 +402,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('[LOCATION_UPDATE] Updated location:', JSON.stringify(updatedLocation, null, 2));
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0', 
-        action: 'Updated location',
-        details: { locationId: updatedLocation.id, name: updatedLocation.name }
-      });
       
       res.json(updatedLocation);
     } catch (error) {
@@ -460,12 +434,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.deleteLocation(id);
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Deleted location',
-        details: { locationId: id, name: location.name }
-      });
       
       res.status(200).json({ message: 'Location deleted successfully' });
     } catch (error) {
@@ -510,12 +478,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const addon = await storage.createExperienceAddon(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 0, // Should be the authenticated user's ID
-        action: 'Created experience add-on',
-        details: { addonId: addon.id, name: addon.name, experienceId: addon.experienceId }
-      });
       
       res.status(201).json(addon);
     } catch (error) {
@@ -541,12 +503,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Experience add-on not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 0, // Should be the authenticated user's ID
-        action: 'Updated experience add-on',
-        details: { addonId: updatedAddon.id, name: updatedAddon.name }
-      });
       
       res.json(updatedAddon);
     } catch (error) {
@@ -571,12 +527,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.deleteExperienceAddon(id);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 0, // Should be the authenticated user's ID
-        action: 'Deleted experience add-on',
-        details: { addonId: id, name: addon.name }
-      });
       
       res.status(204).send();
     } catch (error) {
@@ -691,12 +641,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No add-ons to create for this new experience");
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Created new experience',
-        details: { experienceId: experience.id, name: experience.name }
-      });
       
       res.status(201).json(experience);
     } catch (error) {
@@ -843,12 +787,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // So we'll just log the error and continue
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Updated experience',
-        details: { experienceId: updatedExperience.id, name: updatedExperience.name }
-      });
       
       res.json(updatedExperience);
     } catch (error) {
@@ -873,12 +811,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.deleteExperience(id);
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Deleted experience',
-        details: { experienceId: id, name: experience.name }
-      });
       
       res.status(200).json({ message: 'Experience deleted successfully' });
     } catch (error) {
@@ -904,12 +836,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertExperienceLocationSchema.parse(req.body);
       const experienceLocation = await storage.addExperienceLocation(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Associated location with experience',
-        details: { 
-          experienceId: experienceLocation.experienceId, 
           locationId: experienceLocation.locationId 
         }
       });
@@ -945,12 +871,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.removeExperienceLocation(experienceId, locationId);
       
-      // Log activity
-      await storage.createActivity({
-        userId: req.user?.id || '0',
-        action: 'Removed location from experience',
-        details: { experienceId, locationId }
-      });
       
       res.status(200).json({ message: 'Location removed from experience successfully' });
     } catch (error) {
@@ -1067,11 +987,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Record activity
-      await storage.createActivity({
-        action: 'assign_guide',
-        userId: req.user?.id || 'system',
-        details: `Assigned guide ${guide.guideId} to experience ${guide.experienceId}`
-      });
       
       res.status(201).json(guide);
     } catch (error) {
@@ -1119,11 +1034,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Record activity
-      await storage.createActivity({
-        action: 'update_guide_assignment',
-        userId: req.user?.id || 'system',
-        details: `Updated guide assignment for experience ${updatedGuide.experienceId}`
-      });
       
       res.json(updatedGuide);
     } catch (error) {
@@ -1160,11 +1070,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[GUIDE DELETION] Deletion verified successful for ID: ${id}`);
       
       // Record activity
-      await storage.createActivity({
-        action: 'remove_guide',
-        userId: req.user?.id || 'system',
-        details: `Removed guide assignment with ID ${id} (guide: ${assignment.guideId}, experience: ${assignment.experienceId})`
-      });
       
       // Return success with more details
       return res.status(200).json({ 
@@ -1223,12 +1128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertCustomerSchema.parse(req.body);
       const customer = await storage.createCustomer(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Created new customer',
-        details: { customerId: customer.id, name: `${customer.firstName} ${customer.lastName}` }
-      });
       
       res.status(201).json(customer);
     } catch (error) {
@@ -1254,12 +1153,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Customer not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated customer',
-        details: { customerId: updatedCustomer.id, name: `${updatedCustomer.firstName} ${updatedCustomer.lastName}` }
-      });
       
       res.json(updatedCustomer);
     } catch (error) {
@@ -1338,12 +1231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Created new booking',
-        details: { bookingId: booking.id, bookingNumber: booking.bookingNumber }
-      });
       
       res.status(201).json(booking);
     } catch (error) {
@@ -1369,12 +1256,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Booking not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated booking',
-        details: { bookingId: updatedBooking.id, bookingNumber: updatedBooking.bookingNumber }
-      });
       
       res.json(updatedBooking);
     } catch (error) {
@@ -1410,12 +1291,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const bookingGuide = await storage.assignGuideToBooking(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Assigned guide to booking',
-        details: { bookingId: bookingGuide.bookingId, guideId: bookingGuide.guideId }
-      });
       
       res.status(201).json(bookingGuide);
     } catch (error) {
@@ -1436,12 +1311,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.removeGuideFromBooking(bookingId, guideId);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Removed guide from booking',
-        details: { bookingId, guideId }
-      });
       
       res.status(204).end();
     } catch (error) {
@@ -1496,12 +1365,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertDocumentSchema.parse(req.body);
       const document = await storage.createDocument(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Uploaded document',
-        details: { documentId: document.id, name: document.name }
-      });
       
       res.status(201).json(document);
     } catch (error) {
@@ -1527,12 +1390,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Document not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated document',
-        details: { documentId: updatedDocument.id, name: updatedDocument.name }
-      });
       
       res.json(updatedDocument);
     } catch (error) {
@@ -1557,12 +1414,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.deleteDocument(id);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Deleted document',
-        details: { documentId: id, name: document.name }
-      });
       
       res.status(204).end();
     } catch (error) {
@@ -1604,12 +1455,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertPaymentSchema.parse(req.body);
       const payment = await storage.createPayment(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Created payment',
-        details: { paymentId: payment.id, amount: payment.amount, bookingId: payment.bookingId }
-      });
       
       res.status(201).json(payment);
     } catch (error) {
@@ -1635,12 +1480,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Payment not found' });
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated payment',
-        details: { paymentId: updatedPayment.id, status: updatedPayment.status }
-      });
       
       res.json(updatedPayment);
     } catch (error) {
@@ -1672,12 +1511,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertSettingsSchema.parse(req.body);
       const settings = await storage.updateSettings(validatedData);
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Updated settings',
-        details: { settingsId: settings.id }
-      });
       
       res.json(settings);
     } catch (error) {
@@ -1691,17 +1524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Activity routes
-  app.get('/api/activities', requireAuth, async (req, res) => {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const activities = await storage.listActivities(limit);
-      res.json(activities);
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      res.status(500).json({ message: 'Failed to fetch activities' });
-    }
-  });
+
 
   // Dashboard routes
   app.get('/api/dashboard/stats', requireAuth, async (req, res) => {
@@ -1754,12 +1577,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         qbInvoiceId: mockQbInvoiceId
       });
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Should be the authenticated user's ID
-        action: 'Generated QuickBooks invoice',
-        details: { bookingId: booking.id, invoiceId: mockQbInvoiceId }
-      });
       
       res.json({
         success: true,
@@ -1958,12 +1775,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Using admin user ID for system actions
-        action: 'Public booking created',
-        details: {
-          bookingNumber,
           experienceName: experience.name,
           locationName: location.name,
           customerName: customerName,
@@ -2119,12 +1930,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get experience details
       const experienceInfo = await storage.getExperience(parseInt(experienceId));
       
-      // Log activity
-      await storage.createActivity({
-        userId: 1, // Using admin user ID for system actions
-        action: 'Public booking created',
-        details: {
-          bookingNumber,
           experienceName: experienceInfo?.name || 'Unknown Experience',
           customerName: `${customerDetails.firstName} ${customerDetails.lastName}`,
           customerEmail: customerDetails.email,
