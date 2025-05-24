@@ -19,11 +19,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   console.log('=== MODULARIZED ROUTES REGISTERED SUCCESSFULLY ===');
   
-  // 404 handler for unmatched routes
-  app.use(notFoundHandler);
-  
-  // Centralized error handler (must be last)
-  app.use(errorHandler);
+  // Note: 404 and error handlers are added AFTER Vite setup in index.ts
+  // This ensures the React frontend is served for non-API routes
 
   const httpServer = createServer(app);
   return httpServer;
