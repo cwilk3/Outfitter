@@ -110,23 +110,9 @@ export interface IStorage {
   // Dashboard operations
   getDashboardStats(): Promise<any>;
   
-  // User operations (for authentication)
-  getUserWithRole(id: string): Promise<User | undefined>;
+  // Additional methods needed by routes (avoid duplication with main interface)
   createUser(user: UpsertUser): Promise<User>;
-  
-  // Outfitter operations (for multi-tenancy)
-  createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
-  getOutfitter(id: number): Promise<Outfitter | undefined>;
-  updateOutfitter(id: number, outfitter: Partial<InsertOutfitter>): Promise<Outfitter | undefined>;
-  listOutfitters(): Promise<Outfitter[]>;
-  
-  // UserOutfitter operations (for user-outfitter relationships)
-  createUserOutfitter(userOutfitter: InsertUserOutfitter): Promise<UserOutfitter>;
-  getUserOutfitters(userId: string): Promise<UserOutfitter[]>;
-  
-  // Guide operations
   getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
-  getUpcomingBookings(limit?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1169,6 +1155,22 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result;
+  }
+
+  // Missing methods required by IStorage interface
+  async createUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  async getGuideAssignmentsByGuideId(guideId: string): Promise<ExperienceGuide[]> {
+    return await db
+      .select()
+      .from(experienceGuides)
+      .where(eq(experienceGuides.guideId, guideId));
   }
 }
 
