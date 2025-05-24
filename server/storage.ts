@@ -858,11 +858,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listCustomers(outfitterId: number, search?: string): Promise<Customer[]> {
-    if (search) {
+    if (search && search.trim()) {
       return await db.select().from(customers)
         .where(and(
           eq(customers.outfitterId, outfitterId),
-          sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}, ' ', ${customers.email}) ILIKE ${`%${search}%`}`
+          sql`CONCAT(COALESCE(${customers.firstName}, ''), ' ', COALESCE(${customers.lastName}, ''), ' ', ${customers.email}) ILIKE ${`%${search}%`}`
         ));
     }
     
@@ -902,11 +902,13 @@ export class DatabaseStorage implements IStorage {
       }
       
       if (filters.startDate) {
-        conditions.push(gte(bookings.startDate, filters.startDate));
+        const startDate = filters.startDate instanceof Date ? filters.startDate : new Date(filters.startDate);
+        conditions.push(gte(bookings.startDate, startDate));
       }
       
       if (filters.endDate) {
-        conditions.push(lte(bookings.endDate, filters.endDate));
+        const endDate = filters.endDate instanceof Date ? filters.endDate : new Date(filters.endDate);
+        conditions.push(lte(bookings.endDate, endDate));
       }
       
       if (conditions.length > 0) {
