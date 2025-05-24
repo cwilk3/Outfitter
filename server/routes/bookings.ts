@@ -44,15 +44,14 @@ router.post('/', asyncHandler(async (req, res) => {
 }));
 
 // Update booking
-router.patch('/:id', asyncHandler(async (req, res) => {
+router.patch('/:id', asyncHandler(async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
-  // Allowing partial updates
   const validatedData = insertBookingSchema.partial().parse(req.body);
   
   const updatedBooking = await storage.updateBooking(id, validatedData);
   
   if (!updatedBooking) {
-    return res.status(404).json({ message: 'Booking not found' });
+    throwError('Booking not found', 404);
   }
   
   res.json(updatedBooking);
