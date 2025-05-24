@@ -525,7 +525,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(experiences)
       .set({
-        locationId: null,
+        locationId: undefined,
         updatedAt: new Date()
       })
       .where(eq(experiences.id, experienceId));
@@ -1201,6 +1201,7 @@ export class MemStorage implements IStorage {
     document: 1,
     payment: 1,
     activity: 1,
+    user: 1,
   };
   
   constructor() {
@@ -1284,7 +1285,7 @@ export class MemStorage implements IStorage {
     if (existingAssignment) {
       console.log(`[GUIDE_STORAGE] Guide ${data.guideId} is already assigned to experience ${data.experienceId}, updating instead`);
       // Update the existing assignment instead of creating a new one
-      existingAssignment.isPrimary = data.isPrimary;
+      existingAssignment.isPrimary = data.isPrimary ?? null;
       existingAssignment.updatedAt = new Date();
       this.experienceGuides.set(existingAssignment.id, existingAssignment);
       return existingAssignment;
@@ -2065,8 +2066,10 @@ export class MemStorage implements IStorage {
     return updatedCustomer;
   }
 
-  async listCustomers(search?: string): Promise<Customer[]> {
-    const customers = Array.from(this.customers.values());
+  async listCustomers(outfitterId: number, search?: string): Promise<Customer[]> {
+    const customers = Array.from(this.customers.values()).filter(customer => 
+      customer.outfitterId === outfitterId
+    );
     
     if (search) {
       const searchLower = search.toLowerCase();
