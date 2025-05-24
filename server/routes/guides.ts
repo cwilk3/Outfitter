@@ -47,10 +47,14 @@ router.post('/assign/:experienceId', adminOnly, asyncHandler(async (req: Request
   console.log(`[GUIDE ASSIGNMENT] Starting guide assignment for experience ID: ${experienceId}`);
   console.log(`[GUIDE ASSIGNMENT] Request body:`, JSON.stringify(req.body, null, 2));
   
+  if (isNaN(experienceId)) {
+    throwError('Invalid experience ID', 400);
+  }
+  
   // Check if experience exists
   const existingExperience = await storage.getExperience(experienceId);
   if (!existingExperience) {
-    return res.status(404).json({ error: 'Experience not found' });
+    throwError('Experience not found', 404);
   }
   
   const validatedData = insertExperienceGuideSchema.parse({
@@ -71,11 +75,15 @@ router.put('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res:
     isPrimary: req.body.isPrimary === true
   };
   
+  if (isNaN(id)) {
+    throwError('Invalid assignment ID', 400);
+  }
+  
   // Update guide assignment
   const updatedGuide = await storage.updateGuideAssignment(id, updateData);
   
   if (!updatedGuide) {
-    return res.status(404).json({ error: 'Guide assignment not found' });
+    throwError('Guide assignment not found', 404);
   }
   
   res.json(updatedGuide);
@@ -85,9 +93,13 @@ router.put('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res:
 router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   
+  if (isNaN(id)) {
+    throwError('Invalid assignment ID', 400);
+  }
+  
   const assignment = await storage.getExperienceGuideById(id);
   if (!assignment) {
-    return res.status(404).json({ error: 'Guide assignment not found' });
+    throwError('Guide assignment not found', 404);
   }
   
   await storage.removeGuideFromExperience(id);

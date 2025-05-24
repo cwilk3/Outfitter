@@ -117,7 +117,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     outfitterId: experience.outfitterId
   });
   
-  let customer = await storage.getCustomerByEmail(customerData.email);
+  let customer = await storage.getUserByEmail(customerData.email);
   if (!customer) {
     customer = await storage.createCustomer(customerData);
   }
