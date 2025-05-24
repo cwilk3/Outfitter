@@ -1453,6 +1453,7 @@ export class MemStorage implements IStorage {
       firstName: 'John',
       lastName: 'Smith',
       email: 'admin@outfitter.com',
+      passwordHash: '$2b$12$defaulthash', // Default hash for seed data
       role: 'admin',
     };
     this.upsertUser(adminUser);
@@ -1463,6 +1464,7 @@ export class MemStorage implements IStorage {
       firstName: 'Mike',
       lastName: 'Johnson',
       email: 'mike@outfitter.com',
+      passwordHash: '$2b$12$defaulthash', // Default hash for seed data
       role: 'guide',
     };
     this.upsertUser(guideUser);
@@ -1682,7 +1684,7 @@ export class MemStorage implements IStorage {
       startDate: tomorrow,
       endDate: new Date(tomorrow.getTime() + 2 * 24 * 60 * 60 * 1000),
       status: 'confirmed',
-      totalAmount: 1200,
+      totalAmount: '1200',
       groupSize: 2,
     };
     this.createBooking(booking1);
@@ -1694,7 +1696,7 @@ export class MemStorage implements IStorage {
       startDate: nextWeek,
       endDate: new Date(nextWeek.getTime() + 3 * 24 * 60 * 60 * 1000),
       status: 'deposit_paid',
-      totalAmount: 3500,
+      totalAmount: '3500',
       groupSize: 4,
     };
     this.createBooking(booking2);
@@ -1709,7 +1711,7 @@ export class MemStorage implements IStorage {
       startDate: twoWeeksFromNow,
       endDate: new Date(twoWeeksFromNow.getTime() + 2 * 24 * 60 * 60 * 1000),
       status: 'confirmed',
-      totalAmount: 850,
+      totalAmount: '850',
       groupSize: 3,
     };
     this.createBooking(booking3);
@@ -1717,18 +1719,18 @@ export class MemStorage implements IStorage {
     // Assign guides to bookings
     this.assignGuideToBooking({
       bookingId: 1,
-      guideId: 2,
+      guideId: '2',
     });
     
     this.assignGuideToBooking({
       bookingId: 2,
-      guideId: 2,
+      guideId: '2',
     });
     
     // Add payments
     this.createPayment({
       bookingId: 1,
-      amount: 1200,
+      amount: '1200',
       status: 'completed',
       paymentMethod: 'credit_card',
       transactionId: 'tx_12345',
@@ -1736,7 +1738,7 @@ export class MemStorage implements IStorage {
     
     this.createPayment({
       bookingId: 2,
-      amount: 1750,
+      amount: '1750',
       status: 'completed',
       paymentMethod: 'credit_card',
       transactionId: 'tx_23456',
