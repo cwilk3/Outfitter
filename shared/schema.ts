@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   profileImageUrl: varchar("profile_image_url"),
   role: roleEnum("role").notNull().default('guide'),
+  outfitterId: integer("outfitter_id").references(() => outfitters.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
