@@ -836,10 +836,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertExperienceLocationSchema.parse(req.body);
       const experienceLocation = await storage.addExperienceLocation(validatedData);
       
-          locationId: experienceLocation.locationId 
-        }
-      });
-      
       res.status(201).json(experienceLocation);
     } catch (error) {
       console.error('Error creating experience-location association:', error);
@@ -1775,15 +1771,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-          experienceName: experience.name,
-          locationName: location.name,
-          customerName: customerName,
-          customerEmail: customerEmail,
-          startDate: startDate,
-          endDate: endDate
-        }
-      });
-      
       // Return success with booking details
       res.status(201).json({ 
         success: true, 
@@ -1795,7 +1782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Simulate sending email notification
-      console.log(`Email notification would be sent to ${customerEmail} for booking ${bookingNumber}`);
+      console.log(`Email notification would be sent to ${customer.email} for booking ${booking.bookingNumber}`);
       
     } catch (error) {
       console.error('Error creating public booking:', error);
@@ -1930,32 +1917,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get experience details
       const experienceInfo = await storage.getExperience(parseInt(experienceId));
       
-          experienceName: experienceInfo?.name || 'Unknown Experience',
-          customerName: `${customerDetails.firstName} ${customerDetails.lastName}`,
-          customerEmail: customerDetails.email,
-          startDate: bookingDetails.startDate,
-          endDate: bookingDetails.endDate
-        }
-      });
-      
       // Return success with booking details
       res.status(201).json({ 
         success: true, 
-        message: 'Booking created successfully',
-        bookingNumber,
-        experienceName: experienceInfo?.name || 'Unknown Experience',
-        startDate: bookingDetails.startDate,
-        endDate: bookingDetails.endDate,
-        guests: bookingDetails.guests,
-        totalAmount: payment?.totalAmount || experienceDetails.price,
-        booking: {
-          ...booking,
-          customer
-        }
+        message: 'Booking created successfully'
       });
-      
-      // Simulate sending email notification
-      console.log(`Email notification would be sent to ${customerDetails.email} for booking ${bookingNumber}`);
       
     } catch (error) {
       console.error('Error creating public booking:', error);
