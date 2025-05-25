@@ -1,0 +1,73 @@
+URGENT FULL AUDIT & FIX REQUEST: LOCATION CREATION & MULTI-TENANT ISOLATION
+
+We are encountering a critical multi-tenant data isolation issue related to the creation of new locations in our SaaS platform:
+
+ISSUE SUMMARY:
+New locations are being created with outfitterId = NULL instead of the logged-in user’s outfitterId (1).
+
+This breaks multi-tenant security checks, causing authorized delete operations to fail (null !== 1).
+
+The root cause appears to be duplicate POST /api/locations routes:
+
+One in the modular router (correct, fixed)
+
+Another in the main routes.ts file (taking priority, not setting outfitterId)
+
+The POST requests are hitting the wrong route, bypassing tenant assignment logic.
+
+Logs confirm creation success but missing debug info indicating outfitterId assignment.
+
+ROOT CAUSE:
+Duplicate POST route handlers causing new locations to be created without proper outfitterId injection.
+
+EMERGENCY PROTOCOL: TENANT DATA ISOLATION BREACH RISK
+Situation:
+Duplicate POST routes cause tenant data isolation failures, risking data leakage and authorization breaches.
+
+Immediate Actions:
+
+Stop new location creation in production until fixed.
+
+Audit all location records with outfitterId IS NULL:
+
+sql
+Copy
+Edit
+SELECT * FROM locations WHERE outfitter_id IS NULL;
+Temporarily disable the duplicate POST route in main routes.ts.
+
+Patch existing null outfitterId records after fix:
+
+sql
+Copy
+Edit
+UPDATE locations SET outfitter_id = 1 WHERE outfitter_id IS NULL;
+(Adjust outfitterId per tenant)
+5. Review all route handlers to prevent duplicates for critical endpoints.
+6. Deploy fix and test thoroughly to ensure tenant isolation restored.
+
+Monitoring:
+
+Log any new creations with null outfitterId
+
+Monitor failed delete attempts due to tenant mismatch
+
+Confirm multi-tenant security is intact post-fix
+
+TASKS:
+Find and remove or disable the duplicate POST /api/locations route in the main routes.ts file that bypasses outfitterId assignment.
+
+Ensure the modular router’s POST /api/locations route is the only active creation endpoint and correctly injects outfitterId from the authenticated user.
+
+Add logging to confirm outfitterId assignment on creation.
+
+Audit the database for any locations with null outfitterId and report counts.
+
+Provide SQL fix script for updating null outfitterId records.
+
+Test full creation → deletion cycle with UI to confirm cache and authorization correctness.
+
+Confirm no other entity routes suffer from duplicate handlers or missing tenant assignment.
+
+Report back with detailed findings, steps taken, and confirmation of fix effectiveness.
+
