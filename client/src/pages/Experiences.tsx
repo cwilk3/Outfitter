@@ -703,7 +703,7 @@ export default function Experiences() {
     form.reset({
       name: experience.name,
       description: experience.description,
-      duration: experience.duration,
+      duration: Math.ceil(experience.duration / 24), // Convert hours to days
       price: experience.price,
       capacity: experience.capacity,
       category: experience.category as any,
@@ -904,7 +904,7 @@ export default function Experiences() {
         name: data.name || "Untitled Experience",
         description: data.description || "No description provided",
         locationId: 1, // CRITICAL: Always use a valid locationId
-        duration: parseInt(String(data.duration || 1)),
+        duration: parseInt(String(data.duration || 1)) * 24, // Convert days to hours
         price: parseFloat(String(data.price || 0)),
         capacity: parseInt(String(data.capacity || 1)),
         category: data.category || "other_hunting",
