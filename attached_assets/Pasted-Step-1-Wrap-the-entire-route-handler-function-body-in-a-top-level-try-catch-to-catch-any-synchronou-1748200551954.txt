@@ -1,0 +1,80 @@
+Step 1: Wrap the entire route handler function body in a top-level try-catch to catch any synchronous error anywhere in the handler
+Example:
+
+ts
+Copy
+Edit
+router.post('/bookings', asyncHandler(async (req, res) => {
+  try {
+    // entire current route handler code here
+  } catch (err) {
+    console.error('🔥 Uncaught route error:', err);
+    return res.status(500).json({ message: 'Internal Server Error', error: err instanceof Error ? err.message : String(err) });
+  }
+}));
+Purpose:
+This will ensure no error escapes your handler unlogged, including those thrown outside your smaller try-catches.
+
+Step 2: Log immediately before and after each critical statement
+Insert console.log() calls right before each parse call and any calculation involving totalAmount.
+
+ts
+Copy
+Edit
+console.log('About to validate customer data:', customerDetails);
+customerData = insertCustomerSchema.parse({ ...customerDetails, outfitterId: experience.outfitterId });
+console.log('Customer data validated successfully');
+
+console.log('Preparing booking data with totalAmount:', totalAmount, typeof totalAmount);
+bookingData = insertBookingSchema.parse({ /* booking data */ });
+console.log('Booking data validated successfully');
+Step 3: Confirm and fix type of totalAmount
+Check that totalAmount variable in your route handler is a string before passing to the booking schema parser.
+
+From your JSON payload, "totalAmount" is a string already, but somewhere it might be converted to number.
+
+If you find it’s a number, coerce it to string before parsing:
+
+ts
+Copy
+Edit
+const totalAmountStr = String(totalAmount);
+Pass this to booking schema parse instead of the raw totalAmount.
+
+Step 4: Double-check your insertBookingSchema for totalAmount field type
+Make sure the schema expects the right type:
+
+ts
+Copy
+Edit
+totalAmount: z.string(),  // or z.number() but be consistent with your input
+If schema expects string, input must be string.
+
+Step 5: Clear build cache and redeploy
+If using TypeScript or build tools, clear cache, rebuild, and redeploy to be sure line numbers match and the latest code is running.
+
+Success Criteria for Your Testing & My Review
+The top-level try-catch catches any validation or runtime error — you should see "🔥 Uncaught route error:" with full error details in logs if anything goes wrong.
+
+When you POST a booking request:
+
+If validation passes:
+Logs show successful validation steps for customer and booking data.
+
+If validation fails:
+Logs show exactly which parse failed and why, with your detailed error response JSON (400) sent.
+
+The original Zod error about totalAmount is either resolved by type coercion or the error is fully caught and logged with clear debug info.
+
+You provide me with your new logs showing either success or the full captured error trace.
+
+Summary of What You Should Send Next to Me (for final review)
+Updated route code with top-level try-catch and logging as above
+
+Confirmation of totalAmount type before schema parse
+
+Logs from your next booking POST test (success or error)
+
+If error persists, full updated error stack trace and logs
+
+This will finally expose the "hidden" error and let us fix it once and for all.

@@ -91,10 +91,11 @@ router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
 
 // POST endpoint for creating public bookings
 router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
-  console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
-  console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
-  console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
-  console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
+  try {
+    console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
+    console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
+    console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
+    console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
   
   const { 
     experienceId, 
@@ -186,10 +187,13 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   // Create or find customer
   let customerData;
   try {
+    console.log('📝 About to validate customer data:', customerDetails);
+    console.log('📝 Experience for customer validation:', { id: experience.id, outfitterId: experience.outfitterId });
     customerData = insertCustomerSchema.parse({
       ...customerDetails,
       outfitterId: experience.outfitterId
     });
+    console.log('✅ Customer data validated successfully');
   } catch (error) {
     console.error('❌ [CRITICAL ERROR] Crash during customer data validation:', error);
     console.error('❌ [DEBUG VALUES] customerDetails:', customerDetails);
@@ -206,6 +210,11 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
   
+  // Type checking and conversion for totalAmount
+  console.log('📝 Preparing booking data with totalAmount:', totalAmount, 'type:', typeof totalAmount);
+  const totalAmountStr = String(totalAmount);
+  console.log('📝 Converted totalAmount to string:', totalAmountStr, 'type:', typeof totalAmountStr);
+
   let bookingData: any;
   try {
     console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
@@ -217,14 +226,15 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
       startDate: new Date(bookingDetails.startDate),
       endDate: new Date(bookingDetails.endDate),
       status: 'pending',
-      totalAmount,
-      totalAmountType: typeof totalAmount,
+      totalAmount: totalAmountStr,
+      totalAmountType: typeof totalAmountStr,
       groupSize,
       groupSizeType: typeof groupSize,
       notes: bookingDetails.notes || '',
       outfitterId: experience.outfitterId
     });
 
+    console.log('📝 About to validate booking data with insertBookingSchema');
     // Create booking
     bookingData = insertBookingSchema.parse({
       bookingNumber: bookingNumber,
@@ -233,16 +243,18 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
       startDate: new Date(bookingDetails.startDate),
       endDate: new Date(bookingDetails.endDate),
       status: 'pending' as const,
-      totalAmount: totalAmount.toString(),
+      totalAmount: totalAmountStr,
       groupSize: groupSize,
       notes: bookingDetails.notes || '',
       outfitterId: experience.outfitterId
     });
+    console.log('✅ Booking data validated successfully');
   } catch (error) {
     console.error('❌ [CRITICAL ERROR] Crash during booking data construction or validation:', error);
     console.error('❌ [DEBUG VALUES] customer:', customer);
     console.error('❌ [DEBUG VALUES] experience:', experience);
     console.error('❌ [DEBUG VALUES] totalAmount:', totalAmount, typeof totalAmount);
+    console.error('❌ [DEBUG VALUES] totalAmountStr:', totalAmountStr, typeof totalAmountStr);
     console.error('❌ [DEBUG VALUES] groupSize:', groupSize, typeof groupSize);
     return res.status(400).json({
       message: 'Failed to construct booking data',
@@ -301,6 +313,14 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   // Simulate sending email notification
   console.log(`Email notification would be sent to ${customer.email} for booking ${booking.bookingNumber}`);
   console.log('🔵 ========== PUBLIC BOOKING REQUEST END ==========\n');
+  
+  } catch (err) {
+    console.error('🔥 Uncaught route error:', err);
+    return res.status(500).json({ 
+      message: 'Internal Server Error', 
+      error: err instanceof Error ? err.message : String(err) 
+    });
+  }
 }));
 
 export default router;
