@@ -545,26 +545,25 @@ export class DatabaseStorage implements IStorage {
     experienceLocation: InsertExperienceLocation,
     outfitterIdFromAuth: number // New parameter: Pass the outfitterId directly from auth
   ): Promise<{ id: number, experienceId: number, locationId: number, createdAt?: Date | null } | undefined> { // Changed return type to allow undefined
-    console.log(`📍 addExperienceLocation called with: Experience ID ${experienceLocation.experienceId}, Location ID ${experienceLocation.locationId}, Outfitter ID from Auth: ${outfitterIdFromAuth}`);
+
 
     // Step 1: Fetch the experience to check its current outfitterId
     const experience = await db.select().from(experiences).where(eq(experiences.id, experienceLocation.experienceId)).limit(1);
     const currentExperience = experience[0];
 
     if (!currentExperience) {
-      console.error(`📍 ERROR: Experience ${experienceLocation.experienceId} not found in addExperienceLocation`);
       return undefined; // Experience not found
     }
 
     // Step 2: Tenant isolation and outfitterId assignment logic
     // CRITICAL: If currentExperience.outfitterId is NULL, we set it to outfitterIdFromAuth
     if (currentExperience.outfitterId === null || currentExperience.outfitterId === undefined) {
-      console.log(`📍 Experience ${currentExperience.id} has NULL outfitterId. Assigning ${outfitterIdFromAuth}.`);
+
       // This is the crucial part: set the outfitterId for newly created experiences
       currentExperience.outfitterId = outfitterIdFromAuth;
     } else if (currentExperience.outfitterId !== outfitterIdFromAuth) {
       // If the experience already has an outfitterId and it doesn't match the current user's outfitterId, block the operation.
-      console.warn(`[TENANT-BLOCK] Unauthorized attempt to update experience ${experienceLocation.experienceId}. User outfitterId: ${outfitterIdFromAuth}, Experience outfitterId: ${currentExperience.outfitterId}`);
+
       return undefined; // Not authorized to update this experience
     }
 
@@ -580,11 +579,10 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     if (!updatedExperience) {
-      console.error(`📍 ERROR: Failed to update experience ${experienceLocation.experienceId} with location and outfitterId`);
       return undefined;
     }
 
-    console.log(`📍 Successfully updated experience ${updatedExperience.id} with locationId ${updatedExperience.locationId} and outfitterId ${updatedExperience.outfitterId}`);
+
 
     // Return in the format expected by the existing code
     return {
