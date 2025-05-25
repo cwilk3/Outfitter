@@ -122,13 +122,20 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ message: 'Experience not found' });
   }
 
-  // Calculate total amount: use provided total or calculate price * guests
-  const calculatedTotal = experience.price * groupSize;
-  const totalAmount = (bookingDetails.totalAmount && bookingDetails.totalAmount > 0) 
-    ? bookingDetails.totalAmount 
-    : calculatedTotal;
+  // Extract totalAmount from bookingDetails or payment object
+  const rawTotalAmount = bookingDetails.totalAmount ?? req.body.payment?.totalAmount ?? null;
+  const parsedTotalAmount = rawTotalAmount ? Number(rawTotalAmount) : null;
 
-  console.log(`[PUBLIC_BOOKING] Price calculation: ${experience.price} × ${groupSize} = ${calculatedTotal}, final total: ${totalAmount}`);
+  // Convert experience price from decimal string to number
+  const experiencePrice = Number(experience.price);
+
+  // Logging for debug
+  console.log(`Experience price: ${experiencePrice}, Group size: ${groupSize}, Parsed total amount: ${parsedTotalAmount}`);
+
+  // Calculate totalAmount with fallback and validation
+  const totalAmount = (parsedTotalAmount && parsedTotalAmount > 0) 
+    ? parsedTotalAmount 
+    : experiencePrice * groupSize;
   
   // Create or find customer
   const customerData = insertCustomerSchema.parse({
