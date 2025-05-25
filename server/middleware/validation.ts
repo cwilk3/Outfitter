@@ -115,7 +115,7 @@ export const businessRules = {
   capacity: z.number().int().min(1, 'Capacity must be at least 1').max(1000, 'Capacity cannot exceed 1000'),
 
   // Validate price format
-  price: z.number().nonnegative('Price must be non-negative').multipleOf(0.01, 'Price must have at most 2 decimal places'),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid price format'),
 
   // Validate duration in hours
   duration: z.number().positive('Duration must be positive').max(168, 'Duration cannot exceed 168 hours (1 week)'),
