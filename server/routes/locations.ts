@@ -33,6 +33,12 @@ const adminOnly = hasRole('admin');
 // Apply auth and outfitter context to all location routes
 router.use(requireAuth, addOutfitterContext);
 
+// Debug middleware to track all requests to this router
+router.use((req, res, next) => {
+  console.log(`🔍 [LOCATIONS ROUTER] ${req.method} ${req.path} - Route Hit!`);
+  next();
+});
+
 // Get all locations (guides can view, filtered by activeOnly)
 router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) => {
   const activeOnly = req.query.activeOnly === 'true';
