@@ -196,6 +196,21 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
   
+  console.log('\n🔍 [DEBUG] Booking object before validation:', {
+    bookingNumber,
+    experienceId,
+    customerId: customer.id,
+    startDate: new Date(bookingDetails.startDate),
+    endDate: new Date(bookingDetails.endDate),
+    status: 'pending',
+    totalAmount,
+    totalAmountType: typeof totalAmount,
+    groupSize,
+    groupSizeType: typeof groupSize,
+    notes: bookingDetails.notes || '',
+    outfitterId: experience.outfitterId
+  });
+  
   // Create booking
   const bookingData = insertBookingSchema.parse({
     bookingNumber: bookingNumber,
