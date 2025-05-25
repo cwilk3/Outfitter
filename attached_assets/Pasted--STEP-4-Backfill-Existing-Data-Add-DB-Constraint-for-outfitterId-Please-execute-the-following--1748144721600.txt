@@ -1,0 +1,100 @@
+✅ STEP 4: Backfill Existing Data & Add DB Constraint for outfitterId
+Please execute the following:
+
+🛠️ 1. Backfill All Existing Locations
+ts
+Copy
+Edit
+// Script to backfill any existing locations with null outfitterId
+const { prisma } = require('../lib/prisma');
+
+async function backfillLocations() {
+  const fallbackOutfitterId = 1; // TEMP: Assign known admin's outfitterId
+
+  const brokenLocations = await prisma.location.findMany({
+    where: {
+      outfitterId: null,
+    },
+  });
+
+  console.log(`🔍 Found ${brokenLocations.length} locations with null outfitterId`);
+
+  for (const loc of brokenLocations) {
+    await prisma.location.update({
+      where: { id: loc.id },
+      data: { outfitterId: fallbackOutfitterId },
+    });
+    console.log(`✅ Fixed Location ID ${loc.id} → outfitterId: ${fallbackOutfitterId}`);
+  }
+
+  console.log('🎉 All broken locations backfilled');
+}
+
+backfillLocations().catch((e) => {
+  console.error('🔥 Backfill failed', e);
+  process.exit(1);
+});
+🛡️ 2. Add Database Constraint: Prevent NULL outfitterId
+sql
+Copy
+Edit
+-- Add a NOT NULL constraint to enforce tenant isolation at DB level
+ALTER TABLE "Location"
+ALTER COLUMN "outfitterId" SET NOT NULL;
+If Prisma is used, ensure the schema.prisma reflects this:
+
+prisma
+Copy
+Edit
+model Location {
+  id           Int      @id @default(autoincrement())
+  name         String
+  address      String
+  city         String
+  state        String
+  zip          String
+  description  String?
+  images       Json?
+  isActive     Boolean  @default(true)
+  outfitterId  Int      // ❗Ensure this is NOT NULL
+  outfitter    Outfitter @relation(fields: [outfitterId], references: [id])
+}
+Then run:
+
+bash
+Copy
+Edit
+npx prisma migrate dev --name enforce-outfitter-tenant
+🚨 EMERGENCY PROTOCOLS
+If any errors occur during the backfill or migration:
+
+STOP immediately.
+
+Do not enforce the NOT NULL constraint until data is clean.
+
+Report log errors to me and copy any stack traces.
+
+If constraint fails to apply, roll back with:
+
+sql
+Copy
+Edit
+ALTER TABLE "Location"
+ALTER COLUMN "outfitterId" DROP NOT NULL;
+✅ SUCCESS CRITERIA
+✅ All existing Location rows have valid outfitterId values
+
+✅ Prisma schema updated (no more nullable outfitterId)
+
+✅ DB enforces tenant isolation (constraint applied)
+
+✅ No Prisma or SQL errors during migrate step
+
+🔁 ONCE COMPLETE
+Please return the exact log output from:
+
+The backfill script
+
+The Prisma migration or SQL alter command
+
+A new test location created manually (confirm outfitterId still auto-attaches)
