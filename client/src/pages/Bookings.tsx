@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDistance } from "date-fns";
 import { Booking, Customer, Experience } from "@/types";
 import { useRole } from "@/hooks/useRole";
+import { formatDate } from "@/lib/utils";
 
 import {
   Table,
@@ -113,14 +114,7 @@ export default function Bookings() {
     return filteredBookings.slice(startIndex, startIndex + perPage);
   }, [filteredBookings, currentPage, perPage]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
