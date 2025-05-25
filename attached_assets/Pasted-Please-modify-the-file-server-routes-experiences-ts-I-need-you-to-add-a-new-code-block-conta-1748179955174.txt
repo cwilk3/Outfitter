@@ -1,0 +1,176 @@
+Please modify the file `server/routes/experiences.ts`.
+
+I need you to **add a new code block** containing routes for POST, PATCH, and DELETE operations for add-ons, nested under specific experiences.
+
+Please **insert the following code block** into `server/routes/experiences.ts`. A good place would be after any existing `router.get` routes for experiences/addons, and before the `export default router;` line at the end of the file.
+
+---
+
+```typescript
+// --- NEW NESTED ADDON ROUTES (Matching Frontend's New Pattern) ---
+
+// GET /api/experiences/:experienceId/addons
+// (If this exact GET route is not already explicitly defined in your file
+// under the new pattern, you should add it to handle fetching add-ons
+// for a specific experience. If you have an old GET /addons/:experienceId,
+// you might want to move its logic here to consolidate and be consistent.)
+router.get('/:experienceId/addons', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const outfitterId = req.outfitterId; // Assuming outfitterId is injected by your auth middleware
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  // Tenant isolation: Verify the experience belongs to the authenticated outfitter
+  const experience = await db.experience.findFirst({
+    where: { id: experienceId, outfitterId: outfitterId }
+  });
+
+  if (!experience) {
+    // Return 404 for not found or 401/403 for unauthorized, depending on desired security messaging
+    return res.status(404).json({ message: 'Experience not found or not authorized' });
+  }
+
+  const addons = await db.addon.findMany({
+    where: { experienceId: experienceId }
+  });
+
+  res.json(addons);
+}));
+
+
+// POST /api/experiences/:experienceId/addons (CREATE new addon for a specific experience)
+router.post('/:experienceId/addons', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const outfitterId = req.outfitterId; // Assuming outfitterId is injected by auth middleware
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  // 1. Validate input data using Zod (ensure z and asyncHandler are imported)
+  const addonCreateSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    description: z.string().optional().nullable(),
+    price: z.number().min(0, "Price must be non-negative"),
+    isOptional: z.boolean().default(true),
+    inventory: z.number().int().min(0).optional().nullable(),
+    maxPerBooking: z.number().int().min(0).optional().nullable(),
+  });
+
+  const parsedBody = addonCreateSchema.safeParse(req.body);
+
+  if (!parsedBody.success) {
+    return res.status(400).json({ errors: parsedBody.error.errors });
+  }
+  const addonData = parsedBody.data;
+
+  // 2. Tenant isolation: Verify the experience exists and belongs to the authenticated outfitter
+  const experience = await db.experience.findFirst({
+    where: { id: experienceId, outfitterId: outfitterId }
+  });
+
+  if (!experience) {
+    return res.status(404).json({ message: 'Experience not found or not authorized' });
+  }
+
+  // 3. Create the new add-on linked to this experience
+  const newAddon = await db.addon.create({
+    data: {
+      ...addonData,
+      experienceId: experienceId,
+    },
+  });
+
+  res.status(201).json(newAddon);
+}));
+
+// PATCH /api/experiences/:experienceId/addons/:addonId (UPDATE a specific addon within an experience)
+router.patch('/:experienceId/addons/:addonId', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const addonId = parseInt(req.params.addonId);
+  const outfitterId = req.outfitterId;
+
+  if (isNaN(experienceId) || isNaN(addonId)) {
+    return res.status(400).json({ message: 'Invalid experience or add-on ID' });
+  }
+
+  // 1. Validate input data for update (partial schema allowed)
+  const addonUpdateSchema = z.object({
+    name: z.string().min(1, "Name is required").optional(),
+    description: z.string().optional().nullable(),
+    price: z.number().min(0, "Price must be non-negative").optional(),
+    isOptional: z.boolean().optional(),
+    inventory: z.number().int().min(0).optional().nullable(),
+    maxPerBooking: z.number().int().min(0).optional().nullable(),
+  }).partial(); // .partial() allows only some fields to be present for updates
+
+  const parsedBody = addonUpdateSchema.safeParse(req.body);
+
+  if (!parsedBody.success) {
+    return res.status(400).json({ errors: parsedBody.error.errors });
+  }
+  const updateData = parsedBody.data;
+
+  // Ensure there's actually data to update
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ message: 'No fields provided for update' });
+  }
+
+  // 2. Tenant isolation: Verify the add-on belongs to the correct experience AND outfitter
+  const existingAddon = await db.addon.findFirst({
+    where: {
+      id: addonId,
+      experienceId: experienceId, // Ensure it's for this specific experience
+      experience: {             // And ensure that experience belongs to the outfitter
+        outfitterId: outfitterId,
+      },
+    },
+  });
+
+  if (!existingAddon) {
+    return res.status(404).json({ message: 'Add-on not found or not authorized for this experience' });
+  }
+
+  // 3. Update the add-on
+  const updatedAddon = await db.addon.update({
+    where: { id: addonId },
+    data: updateData,
+  });
+
+  res.json(updatedAddon);
+}));
+
+// DELETE /api/experiences/:experienceId/addons/:addonId (DELETE a specific addon within an experience)
+router.delete('/:experienceId/addons/:addonId', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const addonId = parseInt(req.params.addonId);
+  const outfitterId = req.outfitterId;
+
+  if (isNaN(experienceId) || isNaN(addonId)) {
+    return res.status(400).json({ message: 'Invalid experience or add-on ID' });
+  }
+
+  // 1. Tenant isolation: Verify the add-on belongs to the correct experience AND outfitter before deleting
+  const existingAddon = await db.addon.findFirst({
+    where: {
+      id: addonId,
+      experienceId: experienceId, // Ensure it's for this specific experience
+      experience: {             // And ensure that experience belongs to the outfitter
+        outfitterId: outfitterId,
+      },
+    },
+  });
+
+  if (!existingAddon) {
+    return res.status(404).json({ message: 'Add-on not found or not authorized for this experience' });
+  }
+
+  // 2. Delete the add-on
+  await db.addon.delete({
+    where: { id: addonId },
+  });
+
+  res.status(204).send(); // 204 No Content for successful deletion
+}));

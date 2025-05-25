@@ -119,4 +119,144 @@ router.get('/:experienceId/guides', asyncHandler(async (req: Request, res: Respo
   res.json(guides);
 }));
 
+// --- NEW NESTED ADDON ROUTES (Matching Frontend's New Pattern) ---
+
+// GET /api/experiences/:experienceId/addons (NEW PATTERN)
+router.get('/:experienceId/addons', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    console.log('🚫 [TENANT-BLOCK] Experience access denied', { 
+      experienceId, 
+      userOutfitterId: outfitterId, 
+      experienceOutfitterId: experience?.outfitterId 
+    });
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
+  console.log('✅ [TENANT-VERIFIED] Fetching addons', { experienceId, outfitterId });
+  const addons = await storage.getExperienceAddons(experienceId);
+  res.json(addons || []);
+}));
+
+// POST /api/experiences/:experienceId/addons (NEW PATTERN - THIS WAS MISSING!)
+router.post('/:experienceId/addons', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    console.log('🚫 [TENANT-BLOCK] Experience access denied for addon creation', { 
+      experienceId, 
+      userOutfitterId: outfitterId, 
+      experienceOutfitterId: experience?.outfitterId 
+    });
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
+  // Parse and validate addon data
+  const addonData = {
+    ...req.body,
+    experienceId: experienceId
+  };
+  
+  const validatedData = insertExperienceAddonSchema.parse(addonData);
+  
+  console.log('✅ [TENANT-VERIFIED] Creating addon', { experienceId, outfitterId, addonData: validatedData });
+  const addon = await storage.createExperienceAddon(validatedData);
+  
+  console.log('📋 [SUCCESS] Addon created', { addonId: addon.id, experienceId });
+  res.status(201).json(addon);
+}));
+
+// PATCH /api/experiences/:experienceId/addons/:addonId (NEW PATTERN)
+router.patch('/:experienceId/addons/:addonId', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const addonId = parseInt(req.params.addonId);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId) || isNaN(addonId)) {
+    return res.status(400).json({ message: 'Invalid experience or addon ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
+  // Verify addon belongs to this experience
+  const existingAddon = await storage.getExperienceAddon(addonId);
+  if (!existingAddon || existingAddon.experienceId !== experienceId) {
+    return res.status(404).json({ message: 'Addon not found for this experience' });
+  }
+
+  const validatedData = insertExperienceAddonSchema.partial().parse(req.body);
+  const updatedAddon = await storage.updateExperienceAddon(addonId, validatedData);
+  
+  if (!updatedAddon) {
+    return res.status(404).json({ message: 'Experience add-on not found' });
+  }
+  
+  res.json(updatedAddon);
+}));
+
+// DELETE /api/experiences/:experienceId/addons/:addonId (NEW PATTERN)
+router.delete('/:experienceId/addons/:addonId', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const addonId = parseInt(req.params.addonId);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId) || isNaN(addonId)) {
+    return res.status(400).json({ message: 'Invalid experience or addon ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
+  // Verify addon exists and belongs to this experience
+  const existingAddon = await storage.getExperienceAddon(addonId);
+  if (!existingAddon || existingAddon.experienceId !== experienceId) {
+    return res.status(404).json({ message: 'Addon not found for this experience' });
+  }
+
+  await storage.deleteExperienceAddon(addonId);
+  res.status(204).end();
+}));
+
 export default router;
