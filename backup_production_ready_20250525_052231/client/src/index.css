@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Base colors */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+
+  /* Hunter green theme */
+  --primary: 121 39% 27%; /* Hunter green */
+  --primary-foreground: 0 0% 100%;
+  
+  --muted: 120 16% 93%;
+  --muted-foreground: 120 5% 45%;
+  
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  
+  --secondary: 84 39% 56%; /* Forest green (accent) */
+  --secondary-foreground: 0 0% 100%;
+  
+  --accent: 33 67% 28%; /* Rustic brown */
+  --accent-foreground: 0 0% 100%;
+  
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --ring: 121 39% 27%;
+  --radius: 0.5rem;
+  
+  /* Chart colors */
+  --chart-1: 121 39% 27%;
+  --chart-2: 84 39% 56%;
+  --chart-3: 33 67% 28%;
+  --chart-4: 196 80% 53%;
+  --chart-5: 43 96% 58%;
+  
+  /* Sidebar specific colors */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 240 10% 3.9%;
+  --sidebar-primary: 121 39% 27%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 120 16% 93%;
+  --sidebar-accent-foreground: 240 10% 3.9%;
+  --sidebar-border: 240 5.9% 90%;
+  --sidebar-ring: 121 39% 27%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  
+  /* Hunter green theme in dark mode */
+  --primary: 121 39% 27%; /* Preserving hunter green in dark mode */
+  --primary-foreground: 0 0% 100%;
+  
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  
+  --secondary: 84 39% 46%; /* Slightly darker forest green for dark mode */
+  --secondary-foreground: 0 0% 100%;
+  
+  --accent: 33 47% 23%; /* Darker rustic brown for dark mode */
+  --accent-foreground: 0 0% 100%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --ring: 121 39% 27%;
+  
+  /* Sidebar specific colors for dark mode */
+  --sidebar-background: 240 10% 6%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 121 39% 27%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 121 39% 27%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-semibold;
+  }
+
+  /* Calendar overrides */
+  .fc-event {
+    @apply cursor-pointer;
+  }
+  
+  .fc-toolbar-title {
+    @apply font-heading;
+  }
+  
+  .fc-button-primary {
+    @apply bg-primary hover:bg-primary-dark;
+  }
+}
+
+/* Custom component styles */
+.sidebar-item.active {
+  @apply border-l-[3px] border-primary bg-primary/10;
+}
+
+.calendar-grid td {
+  @apply h-24 overflow-hidden;
+}
+
+.calendar-event {
+  @apply border-l-2 text-xs overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+/* React Big Calendar custom styles */
+.rbc-event {
+  @apply py-0 px-1 text-xs font-medium rounded leading-tight;
+}
+
+.rbc-event-content {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  line-height: 1.2;
+  max-height: 2.4em;
+}
+
+.rbc-event-label {
+  @apply hidden;
+}
+
+.rbc-day-slot .rbc-event {
+  @apply min-h-[1.5em] flex items-center;
+}
+
+.rbc-month-view .rbc-event {
+  @apply my-[1px];
+}
+
+@media (max-width: 768px) {
+  .calendar-grid td {
+    @apply h-16;
+  }
+}
