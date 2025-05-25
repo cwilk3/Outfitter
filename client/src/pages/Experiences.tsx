@@ -937,7 +937,7 @@ export default function Experiences() {
             console.log("Fetching existing add-ons for experience:", selectedExperience.id);
             
             // Use direct fetch to get better debugging information
-            const addonResponse = await fetch(`/api/experience-addons/${selectedExperience.id}`);
+            const addonResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons`);
             if (!addonResponse.ok) {
               console.error(`Error fetching add-ons: ${addonResponse.status} ${addonResponse.statusText}`);
               throw new Error(`Failed to fetch add-ons: ${addonResponse.statusText}`);

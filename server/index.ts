@@ -22,6 +22,69 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.use(cookieParser());
 
+// CRITICAL FIX: Add experience-addons route with alternative pattern to bypass Vite
+app.get('/api/experiences/:experienceId/addons', async (req: any, res) => {
+  console.log('🔥 [DIRECT-ROUTE] Experience-addons route hit!', { experienceId: req.params.experienceId });
+  
+  try {
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Import auth dependencies
+    const { verifyToken } = await import('./emailAuth');
+    const { storage } = await import('./storage');
+    
+    // Extract token from cookies
+    const token = req.cookies?.token;
+    if (!token) {
+      console.log('🚫 [AUTH-FAIL] No token found');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // Verify token directly
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      console.log('🚫 [AUTH-FAIL] Invalid token');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    const user = await storage.getUser(decoded.userId);
+    if (!user) {
+      console.log('🚫 [AUTH-FAIL] User not found');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    const outfitterId = user.outfitterId;
+    const experienceId = parseInt(req.params.experienceId);
+    
+    console.log('✅ [AUTH-SUCCESS]', { userId: user.id, outfitterId, experienceId });
+    
+    if (!outfitterId) {
+      console.log('🚫 [AUTH-FAIL] No outfitterId');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // Tenant isolation check
+    const experience = await storage.getExperience(experienceId);
+    if (!experience || experience.outfitterId !== outfitterId) {
+      console.log('🚫 [TENANT-BLOCK] Experience access denied', { 
+        experienceId, 
+        userOutfitterId: outfitterId, 
+        experienceOutfitterId: experience?.outfitterId 
+      });
+      return res.status(404).json({ error: "Experience not found" });
+    }
+    
+    console.log('✅ [TENANT-VERIFIED] Fetching addons', { experienceId, outfitterId });
+    const addons = await storage.getExperienceAddons(experienceId);
+    console.log('📋 [SUCCESS] Addons returned', { count: addons?.length });
+    
+    return res.json(addons || []);
+  } catch (error) {
+    console.error('❌ [ERROR] Direct route failed:', error);
+    return res.status(500).json({ error: "Failed to fetch experience addons" });
+  }
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
