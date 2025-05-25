@@ -442,7 +442,33 @@ export class DatabaseStorage implements IStorage {
 
 
   async deleteExperience(id: number): Promise<void> {
-    await db.delete(experiences).where(eq(experiences.id, id));
+    console.log(`[STORAGE] Deleting experience ID: ${id}`);
+    
+    // Step 1: Delete all associated add-ons for this experience
+    // Use a transaction to ensure atomicity: either all or none are deleted.
+    await db.transaction(async (tx) => {
+      // First, get all addon IDs related to this experience
+      const addonsToDelete = await tx.select({ id: experienceAddons.id }).from(experienceAddons).where(eq(experienceAddons.experienceId, id));
+      
+      // Delete each addon, which should also delete its inventory dates if configured with cascade or handled in deleteExperienceAddon
+      for (const addon of addonsToDelete) {
+        console.log(`[STORAGE] Deleting associated addon ID: ${addon.id}`);
+        await tx.delete(addonInventoryDates).where(eq(addonInventoryDates.addonId, addon.id)); // Delete inventory dates first
+        await tx.delete(experienceAddons).where(eq(experienceAddons.id, addon.id)); // Then delete the addon
+      }
+      
+      // Step 2: Delete the experience-location associations
+      await tx.delete(experienceLocations).where(eq(experienceLocations.experienceId, id));
+
+      // Step 3: Delete any guide assignments for this experience
+      await tx.delete(experienceGuides).where(eq(experienceGuides.experienceId, id));
+
+      // Step 4: Delete the experience itself
+      console.log(`[STORAGE] Finally deleting experience ID: ${id}`);
+      await tx.delete(experiences).where(eq(experiences.id, id));
+    });
+
+    console.log(`[STORAGE] Successfully deleted experience ID: ${id} and all related data.`);
   }
 
   async listExperiences(locationId?: number): Promise<Experience[]> {

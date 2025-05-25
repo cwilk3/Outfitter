@@ -1,0 +1,55 @@
+This diagnosis is crystal clear and excellent! The foreign key constraint violation is the root cause of the deletion failure.
+
+Please modify the `server/storage.ts` file.
+
+Locate the `async deleteExperience(...)` function. You need to **replace its entire content with the following revised implementation**. This new implementation will:
+1.  First, delete all associated add-ons for the given experience ID.
+2.  Then, delete the experience itself.
+
+**Replace the entire `async deleteExperience(...)` function in `server/storage.ts` with this code:**
+
+```typescript
+// In server/storage.ts (within DatabaseStorage class)
+async deleteExperience(id: number): Promise<void> {
+  console.log(`[STORAGE] Deleting experience ID: ${id}`);
+  
+  // Step 1: Delete all associated add-ons for this experience
+  // Use a transaction to ensure atomicity: either all or none are deleted.
+  await db.transaction(async (tx) => {
+    // Delete add-on inventory dates associated with addons of this experience
+    // This is crucial if addonInventoryDates has a FK to experienceAddons
+    // You might need to add a method like `deleteAddonInventoryDatesByExperience` in storage
+    // Or, get all addon IDs for this experience and then delete their inventory dates.
+    // For simplicity, let's assume `deleteExperienceAddon` cascades or `experienceAddons` has no FK to `addonInventoryDates`
+    // Or, if `addonInventoryDates` has a FK to `experienceAddons.id` with CASCADE DELETE, this is fine.
+    // Given your `deleteExperienceAddon` includes deleting `addonInventoryDates`,
+    // let's explicitly list addon IDs and call `deleteExperienceAddon` for each.
+
+    // First, get all addon IDs related to this experience
+    const addonsToDelete = await tx.select({ id: experienceAddons.id }).from(experienceAddons).where(eq(experienceAddons.experienceId, id));
+    
+    // Delete each addon, which should also delete its inventory dates if configured with cascade or handled in deleteExperienceAddon
+    for (const addon of addonsToDelete) {
+      console.log(`[STORAGE] Deleting associated addon ID: ${addon.id}`);
+      await tx.delete(addonInventoryDates).where(eq(addonInventoryDates.addonId, addon.id)); // Delete inventory dates first
+      await tx.delete(experienceAddons).where(eq(experienceAddons.id, addon.id)); // Then delete the addon
+    }
+    
+    // Step 2: Delete the experience-location associations
+    // Your `removeExperienceLocation` sets locationId to undefined, so we need to delete the entry directly.
+    // However, if the experience has a direct locationId, you might just nullify it instead of deleting a junction.
+    // Based on your `removeExperienceLocation` in storage.ts, it UPDATES experiences.locationId to undefined (null).
+    // So, this step might be redundant if the experience itself is being deleted.
+    // If you had a junction table for experienceLocations and it needs to be cleared:
+    await tx.delete(experienceLocations).where(eq(experienceLocations.experienceId, id));
+
+    // Step 3: Delete any guide assignments for this experience
+    await tx.delete(experienceGuides).where(eq(experienceGuides.experienceId, id));
+
+    // Step 4: Delete the experience itself
+    console.log(`[STORAGE] Finally deleting experience ID: ${id}`);
+    await tx.delete(experiences).where(eq(experiences.id, id));
+  });
+
+  console.log(`[STORAGE] Successfully deleted experience ID: ${id} and all related data.`);
+}
