@@ -1,0 +1,83 @@
+Goal:
+Fix all TypeScript compilation errors related to tenant isolation, implement proper tenant-aware database queries, and fully secure the vulnerable routes by enforcing outfitterId filtering.
+
+Step-by-step Implementation Plan:
+
+Review & Resolve TypeScript Interface Conflicts
+
+Analyze the TS errors reported around storage interfaces and database query typings.
+
+Adjust or extend interfaces and types so tenant filtering parameters (outfitterId) are included and correctly typed.
+
+Ensure no type conflicts remain before proceeding.
+
+Refactor Vulnerable Routes to Enforce Tenant Isolation
+
+For each vulnerable route (bookings delete guide, dashboard update, guides delete assignment), modify SQL or ORM queries to include a WHERE outfitter_id = req.user.outfitterId condition.
+
+Replace any direct data access without tenant filtering.
+
+Maintain all authentication and authorization middleware as is.
+
+Implement Unit and Integration Tests
+
+Add tests that confirm:
+
+Operations succeed only when the outfitterId matches the logged-in user’s.
+
+Operations fail or return 403/404 if tenant ID does not match.
+
+Run existing tests to confirm no regressions.
+
+Emergency Protocol in Code
+
+Before your tenant checks and DB calls, retain an emergency patch that logs and blocks any suspicious or unfiltered access attempts.
+
+Log detailed audit info for any blocked access.
+
+Compile and Build
+
+Compile the TypeScript codebase ensuring zero errors.
+
+Build the project and confirm no runtime errors related to typings or tenant logic.
+
+Manual Verification
+
+Test all three previously vulnerable routes manually:
+
+Confirm that actions succeed only for proper tenant.
+
+Confirm cross-tenant operations are blocked.
+
+Confirm no fallback to emergency patch is triggered on valid requests.
+
+Remove Temporary Emergency Patches
+
+After verification, remove the forced 403 emergency blocks.
+
+Ensure routes function with proper tenant isolation intact.
+
+Success Criteria for Review:
+
+TypeScript compilation completes with no errors.
+
+Tenant filtering applied in all vulnerable SQL/ORM queries.
+
+Unit/integration tests validate tenant isolation.
+
+Manual testing confirms routes behave as expected: allowed only for matching outfitterId.
+
+Emergency blocks no longer triggered for valid tenant requests.
+
+Clear audit logs are generated only for suspicious or blocked requests.
+
+Emergency Protocol:
+
+If any compilation or test failures occur during implementation, immediately revert to last known good commit with emergency patches active.
+
+If any suspicious route access is detected during testing, logs must clearly identify the request and block further execution.
+
+Keep backup of all code and database state before and after changes.
+
+Notify immediately if any data integrity or tenant leakage issues appear.
+

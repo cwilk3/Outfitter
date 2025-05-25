@@ -117,10 +117,7 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
   
-  // Tenant-aware booking operations
-  removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<boolean>;
-  getExperienceGuideByIdWithTenant(experienceId: number, guideId: string, outfitterId: number): Promise<any>;
-  removeGuideFromExperienceWithTenant(experienceId: number, guideId: string, outfitterId: number): Promise<boolean>;
+
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1181,74 +1178,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(experienceGuides.guideId, guideId));
   }
 
-  // Tenant-aware booking operations
-  async removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<boolean> {
-    // First verify booking belongs to outfitter
-    const [booking] = await db
-      .select()
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.id, bookingId),
-          eq(bookings.outfitterId, outfitterId)
-        )
-      );
 
-    if (!booking) {
-      return false;
-    }
-
-    // Then delete the guide assignment
-    const result = await db
-      .delete(bookingGuides)
-      .where(
-        and(
-          eq(bookingGuides.bookingId, bookingId),
-          eq(bookingGuides.guideId, guideId)
-        )
-      );
-
-    return (result.rowCount || 0) > 0;
-  }
-
-  async getExperienceGuideByIdWithTenant(experienceId: number, guideId: string, outfitterId: number): Promise<any> {
-    const [guide] = await db
-      .select()
-      .from(experienceGuides)
-      .innerJoin(experiences, eq(experiences.id, experienceGuides.experienceId))
-      .where(
-        and(
-          eq(experienceGuides.experienceId, experienceId),
-          eq(experienceGuides.guideId, guideId),
-          eq(experiences.outfitterId, outfitterId)
-        )
-      );
-
-    return guide;
-  }
-
-  async removeGuideFromExperienceWithTenant(experienceId: number, guideId: string, outfitterId: number): Promise<boolean> {
-    const result = await db
-      .delete(experienceGuides)
-      .where(
-        and(
-          eq(experienceGuides.experienceId, experienceId),
-          eq(experienceGuides.guideId, guideId),
-          exists(
-            db.select()
-              .from(experiences)
-              .where(
-                and(
-                  eq(experiences.id, experienceId),
-                  eq(experiences.outfitterId, outfitterId)
-                )
-              )
-          )
-        )
-      );
-
-    return result.rowCount > 0;
-  }
 }
 
 export const storage = new DatabaseStorage();
