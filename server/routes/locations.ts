@@ -43,6 +43,13 @@ router.use((req, res, next) => {
 router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) => {
   const activeOnly = req.query.activeOnly === 'true';
   const locations = await storage.listLocations(activeOnly);
+  
+  // Disable caching to ensure fresh data after deletions
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  
   res.json(locations);
 }));
 
