@@ -66,11 +66,27 @@ export default function CalendarPage() {
           return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
         };
         
+        const startDate = normalizeDate(booking.startDate);
+        const endDate = normalizeDate(booking.endDate);
+        
+        // React Big Calendar treats end dates as exclusive, so we need to add 1 day
+        // to make it display the full date range correctly
+        const calendarEndDate = new Date(endDate);
+        calendarEndDate.setDate(calendarEndDate.getDate() + 1);
+        
+        console.log(`Calendar Event: ${title}`, {
+          originalStart: booking.startDate,
+          originalEnd: booking.endDate,
+          normalizedStart: startDate,
+          normalizedEnd: endDate,
+          calendarEnd: calendarEndDate
+        });
+
         return {
           id: booking.id,
           title: title,
-          start: normalizeDate(booking.startDate),
-          end: normalizeDate(booking.endDate),
+          start: startDate,
+          end: calendarEndDate, // Use the adjusted end date for calendar display
           allDay: true,
           resource: {
             booking,
