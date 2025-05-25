@@ -14,6 +14,64 @@ interface AuthenticatedRequest extends Request {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('=== REGISTERING MODULARIZED ROUTES ===');
   
+  // PRIORITY FIX: Register DELETE route before modular routes to bypass Vite interference
+  app.delete('/api/locations/:id', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('🔥 [PRIORITY DELETE] Route hit - bypassing Vite!', { locationId: req.params.id });
+    
+    // Import dependencies dynamically to avoid circular imports
+    const { requireAuth } = await import('./emailAuth');
+    const { storage } = await import('./storage');
+    
+    // Manual authentication check
+    const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+      requireAuth(req as any, res, (error?: any) => {
+        if (error) {
+          resolve({ error: error.message || 'Authentication failed' });
+        } else {
+          resolve({ user: (req as any).user });
+        }
+      });
+    });
+    
+    if (authResult.error || !authResult.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    const user = authResult.user;
+    const id = parseInt(req.params.id);
+    
+    // Admin check
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    // Get location and verify ownership
+    const location = await storage.getLocation(id);
+    if (!location) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+    
+    if (location.outfitterId !== user.outfitterId) {
+      console.error('🚨 EMERGENCY PROTOCOL: Unauthorized deletion attempt', {
+        userId: user.id,
+        userOutfitterId: user.outfitterId,
+        locationOutfitterId: location.outfitterId
+      });
+      return res.status(404).json({ message: 'Location not found or unauthorized' });
+    }
+    
+    // Delete location
+    await storage.deleteLocation(id);
+    
+    console.log('✅ Location deleted successfully via priority route', {
+      userId: user.id,
+      locationId: id,
+      locationName: location.name
+    });
+    
+    res.status(200).json({ success: true, message: 'Location deleted successfully' });
+  });
+  
   // Mount all API routes under /api prefix
   app.use('/api', apiRoutes);
   
