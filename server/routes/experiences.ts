@@ -46,7 +46,7 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
   const user = (req as any).user;
   const experienceData = {
     ...validatedData,
-    outfitterId: user?.outfitterId
+    outfitterId: (req as any).outfitterId
   };
   const experience = await storage.createExperience(experienceData);
   res.status(201).json(experience);
