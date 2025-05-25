@@ -42,6 +42,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
 // Create new experience (admin only)
 router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('🎯 [ROUTE-HIT] Experience creation route reached!', { body: req.body, user: (req as any).user?.id });
   const validatedData = insertExperienceSchema.parse(req.body);
   const user = (req as any).user;
   const experienceData = {
