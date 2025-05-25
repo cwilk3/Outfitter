@@ -66,7 +66,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // Create new location (admin only)
-router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+router.post('/', adminOnly, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   console.log('[LOCATION_CREATE] Request body:', JSON.stringify(req.body, null, 2));
   
   // Check if images is an array
@@ -82,7 +82,23 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
   }
   
   const validatedData = insertLocationSchema.parse(req.body);
-  const location = await storage.createLocation(validatedData);
+  
+  // 🔒 MULTI-TENANT FIX: Inject outfitterId from authenticated user context
+  const locationDataWithTenant = {
+    ...validatedData,
+    outfitterId: req.user?.outfitterId
+  };
+  
+  console.log('[LOCATION_CREATE] Creating location with outfitterId:', req.user?.outfitterId);
+  
+  const location = await storage.createLocation(locationDataWithTenant);
+  
+  console.log('[LOCATION_CREATE] Created location:', { 
+    id: location.id, 
+    name: location.name, 
+    outfitterId: location.outfitterId 
+  });
+  
   res.status(201).json(location);
 }));
 
