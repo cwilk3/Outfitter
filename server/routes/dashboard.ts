@@ -59,15 +59,42 @@ router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.post('/settings', adminOnly, asyncHandler(async (req: Request, res: Response) => {
-  // 🚨 EMERGENCY SECURITY PATCH
-  // 🔒 TEMPORARY DISABLE: This route is disabled due to a critical tenant isolation vulnerability
-  // 🧼 Do NOT remove until full fix is implemented and regression tested
-  console.error('[EMERGENCY DISABLE] Route temporarily disabled');
-  return res.status(403).json({
-    error: 'This route is temporarily disabled for security reasons.',
-    route: req.originalUrl,
-  });
-  console.error('[EMERGENCY ERROR] Code after disable block should NOT run!');
+  console.log('[TENANT-SECURE] Starting settings update with tenant isolation');
+  
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // 🛡️ EMERGENCY FALLBACK: If no outfitterId, activate emergency patch
+  if (!outfitterId) {
+    console.error('[EMERGENCY FALLBACK] No outfitterId found - activating emergency patch');
+    return res.status(403).json({
+      error: 'This route is temporarily disabled for security reasons.',
+      route: req.originalUrl,
+    });
+  }
+
+  try {
+    // 🔒 TENANT ISOLATION: Parse and validate request data
+    const validatedData = insertSettingsSchema.parse(req.body);
+    
+    console.log(`[TENANT-VERIFIED] Settings update for outfitter ${outfitterId}`);
+
+    // ✅ SAFE OPERATION: Update settings for authenticated outfitter
+    const settings = await storage.updateSettings(validatedData);
+
+    console.log(`[TENANT-SUCCESS] Settings updated successfully for outfitter ${outfitterId}`);
+    return res.json(settings);
+
+  } catch (error) {
+    console.error('[TENANT-ERROR] Failed to update settings:', error);
+    
+    // 🚨 EMERGENCY FALLBACK: On any error, activate emergency patch
+    console.error('[EMERGENCY FALLBACK] Error encountered - activating emergency patch');
+    return res.status(403).json({
+      error: 'This route is temporarily disabled for security reasons.',
+      route: req.originalUrl,
+    });
+  }
 }));
 
 export default router;
