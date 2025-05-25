@@ -442,33 +442,48 @@ export class DatabaseStorage implements IStorage {
 
 
   async deleteExperience(id: number): Promise<void> {
-    console.log(`[STORAGE] Deleting experience ID: ${id}`);
+    console.log(`[STORAGE][DEBUG] Deleting experience ID: ${id} - ENTERING FUNCTION`);
     
-    // Step 1: Delete all associated add-ons for this experience
-    // Use a transaction to ensure atomicity: either all or none are deleted.
-    await db.transaction(async (tx) => {
-      // First, get all addon IDs related to this experience
-      const addonsToDelete = await tx.select({ id: experienceAddons.id }).from(experienceAddons).where(eq(experienceAddons.experienceId, id));
+    try {
+      console.log(`[STORAGE][DEBUG] Deleting experience ID: ${id} - ABOUT TO START TRANSACTION`);
       
-      // Delete each addon, which should also delete its inventory dates if configured with cascade or handled in deleteExperienceAddon
-      for (const addon of addonsToDelete) {
-        console.log(`[STORAGE] Deleting associated addon ID: ${addon.id}`);
-        await tx.delete(addonInventoryDates).where(eq(addonInventoryDates.addonId, addon.id)); // Delete inventory dates first
-        await tx.delete(experienceAddons).where(eq(experienceAddons.id, addon.id)); // Then delete the addon
-      }
+      await db.transaction(async (tx) => {
+        console.log(`[STORAGE][DEBUG] Deleting experience ID: ${id} - INSIDE TRANSACTION CALLBACK`);
+        
+        // Step 1: Delete all associated add-ons for this experience
+        const addonsToDelete = await tx.select({ id: experienceAddons.id }).from(experienceAddons).where(eq(experienceAddons.experienceId, id));
+        
+        console.log(`[STORAGE][DEBUG] Found ${addonsToDelete.length} addons to delete for experience ID: ${id}`);
+
+        for (const addon of addonsToDelete) {
+          console.log(`[STORAGE][DEBUG] Deleting associated addon ID: ${addon.id} and its inventory dates`);
+          await tx.delete(addonInventoryDates).where(eq(addonInventoryDates.addonId, addon.id));
+          await tx.delete(experienceAddons).where(eq(experienceAddons.id, addon.id));
+        }
+        
+        // Step 2: Delete the experience-location associations
+        console.log(`[STORAGE][DEBUG] Deleting experience-location associations for experience ID: ${id}`);
+        await tx.delete(experienceLocations).where(eq(experienceLocations.experienceId, id));
+    
+        // Step 3: Delete any guide assignments for this experience
+        console.log(`[STORAGE][DEBUG] Deleting guide assignments for experience ID: ${id}`);
+        await tx.delete(experienceGuides).where(eq(experienceGuides.experienceId, id));
+    
+        // Step 4: Delete the experience itself
+        console.log(`[STORAGE][DEBUG] Finally deleting experience ID: ${id}`);
+        await tx.delete(experiences).where(eq(experiences.id, id));
+        
+        console.log(`[STORAGE][DEBUG] Transaction for ID ${id} completed successfully.`);
+      });
       
-      // Step 2: Delete the experience-location associations
-      await tx.delete(experienceLocations).where(eq(experienceLocations.experienceId, id));
+      console.log(`[STORAGE][DEBUG] Deleting experience ID: ${id} - AFTER TRANSACTION BLOCK`);
 
-      // Step 3: Delete any guide assignments for this experience
-      await tx.delete(experienceGuides).where(eq(experienceGuides.experienceId, id));
-
-      // Step 4: Delete the experience itself
-      console.log(`[STORAGE] Finally deleting experience ID: ${id}`);
-      await tx.delete(experiences).where(eq(experiences.id, id));
-    });
-
-    console.log(`[STORAGE] Successfully deleted experience ID: ${id} and all related data.`);
+    } catch (error) {
+      console.error(`[STORAGE][ERROR] CRITICAL ERROR IN deleteExperience transaction for ID ${id}:`, error);
+      throw error;
+    }
+    
+    console.log(`[STORAGE][DEBUG] Successfully deleted experience ID: ${id} and all related data - EXITING FUNCTION.`);
   }
 
   async listExperiences(locationId?: number): Promise<Experience[]> {
