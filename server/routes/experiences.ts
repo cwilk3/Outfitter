@@ -54,9 +54,22 @@ router.get('/:id/locations', asyncHandler(async (req: Request, res: Response) =>
   res.json(locations);
 }));
 
-// Experience add-ons
+// Experience add-ons (existing pattern)
 router.get('/addons/:experienceId', asyncHandler(async (req: Request, res: Response) => {
   const experienceId = parseInt(req.params.experienceId);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
   const addons = await storage.getExperienceAddons(experienceId);
   res.json(addons);
 }));

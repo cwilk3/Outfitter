@@ -14,6 +14,60 @@ interface AuthenticatedRequest extends Request {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('=== REGISTERING MODULARIZED ROUTES ===');
   
+  // PRIORITY FIX: Register experience-addons route before modular routes to bypass Vite interference
+  app.get('/api/experience-addons/:experienceId', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('🔥 [PRIORITY EXPERIENCE-ADDONS] Route hit - bypassing Vite!', { experienceId: req.params.experienceId });
+    
+    // Import dependencies dynamically to avoid circular imports
+    const { requireAuth } = await import('./emailAuth');
+    const { addOutfitterContext } = await import('./outfitterContext');
+    const { storage } = await import('./storage');
+    
+    // Manual authentication check
+    const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+      requireAuth(req as any, res, (error?: any) => {
+        if (error) {
+          resolve({ error: error.message || 'Authentication failed' });
+        } else {
+          resolve({ user: (req as any).user });
+        }
+      });
+    });
+
+    if (authResult.error || !authResult.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Add outfitter context
+    await new Promise<void>((resolve) => {
+      addOutfitterContext(req as any, res, () => resolve());
+    });
+
+    const experienceId = parseInt(req.params.experienceId);
+    const user = (req as any).user;
+    const outfitterId = user?.outfitterId;
+
+    if (!outfitterId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    try {
+      // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+      const experience = await storage.getExperience(experienceId);
+      if (!experience || experience.outfitterId !== outfitterId) {
+        console.log('🚫 [TENANT-BLOCK] Experience access denied', { experienceId, userOutfitterId: outfitterId, experienceOutfitterId: experience?.outfitterId });
+        return res.status(404).json({ error: "Experience not found" });
+      }
+
+      console.log('✅ [TENANT-VERIFIED] Experience addons access granted', { experienceId, outfitterId });
+      const addons = await storage.getExperienceAddons(experienceId);
+      res.json(addons);
+    } catch (error) {
+      console.error('❌ Error fetching experience addons:', error);
+      res.status(500).json({ error: "Failed to fetch experience addons" });
+    }
+  });
+  
   // PRIORITY FIX: Register DELETE route before modular routes to bypass Vite interference
   app.delete('/api/locations/:id', async (req: AuthenticatedRequest, res: Response) => {
     console.log('🔥 [PRIORITY DELETE] Route hit - bypassing Vite!', { locationId: req.params.id });

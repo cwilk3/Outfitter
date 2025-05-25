@@ -9,6 +9,8 @@ import dashboardRouter from './dashboard';
 import publicRouter from './public';
 import { storage } from '../storage';
 import { addOutfitterContext } from '../outfitterContext';
+import { requireAuth } from '../emailAuth';
+import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
 
@@ -21,6 +23,7 @@ router.use('/experiences', experiencesRouter);
 router.use('/guides', guidesRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/public', publicRouter);
+
 
 // Settings routes (moved from dashboard to keep them at /api/settings)
 router.get('/settings', async (req, res) => {
