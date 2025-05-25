@@ -70,9 +70,7 @@ export default function CalendarPage() {
           id: booking.id,
           title: title,
           start: normalizeDate(booking.startDate),
-          // Adjust the end date by adding one day to correctly display multi-day events
-          // This is because React Big Calendar treats end dates as exclusive (not including the end date)
-          end: new Date(normalizeDate(booking.endDate).getTime() + 86400000), // Add 24 hours (86400000ms)
+          end: normalizeDate(booking.endDate),
           allDay: true,
           resource: {
             booking,
