@@ -208,7 +208,9 @@ export default function Locations() {
         title: 'Success',
         description: 'Location deleted successfully.',
       });
+      // Force fresh data fetch instead of using cache
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.refetchQueries({ queryKey: ['/api/locations'] });
       setIsDeleteAlertOpen(false);
       setLocationToDelete(null);
     },
