@@ -59,11 +59,10 @@ export default function CalendarPage() {
           ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
           : `Booking #${booking.bookingNumber}`;
         
-        // Fix timezone handling by ensuring dates are interpreted correctly
+        // Safe timezone-agnostic date parsing to avoid drift
         const normalizeDate = (dateString: string) => {
-          // Parse the date in a timezone-agnostic way by using YYYY-MM-DD format
-          const parts = new Date(dateString).toISOString().split('T')[0].split('-');
-          return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+          const [year, month, day] = dateString.split('-').map(Number);
+          return new Date(year, month - 1, day);
         };
         
         return {
