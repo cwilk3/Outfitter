@@ -204,7 +204,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     startDate: new Date(bookingDetails.startDate),
     endDate: new Date(bookingDetails.endDate),
     status: 'pending' as const,
-    totalAmount: totalAmount,
+    totalAmount: totalAmount.toString(),
     groupSize: groupSize,
     notes: bookingDetails.notes || '',
     outfitterId: experience.outfitterId
