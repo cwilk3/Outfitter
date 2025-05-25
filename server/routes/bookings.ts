@@ -137,40 +137,16 @@ router.post('/:bookingId/guides',
 );
 
 router.delete('/:bookingId/guides/:guideId', 
-  requireAuth,
   validate({ params: bookingValidation.bookingGuideParams }),
   asyncHandler(async (req: Request, res: Response) => {
-    console.log("[TENANT-AWARE] Deleting guide from booking with proper isolation");
-
-    const { bookingId, guideId } = req.params;
-    const user = (req as any).user;
-    const outfitterId = user?.outfitterId;
-
-    if (!outfitterId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
-    try {
-      // Use storage method with tenant isolation
-      const removed = await storage.removeGuideFromBookingWithTenant(
-        parseInt(bookingId),
-        guideId,
-        outfitterId
-      );
-
-      if (!removed) {
-        return res.status(404).json({
-          error: "Booking not found or not authorized",
-        });
-      }
-
-      return res.status(204).send(); // Success: guide removed
-    } catch (error) {
-      console.error('[TENANT-ERROR] Failed to remove guide from booking:', error);
-      return res.status(500).json({
-        error: "Failed to remove guide from booking"
-      });
-    }
+    // 🚨 EMERGENCY SECURITY PATCH
+    // 🔒 TEMPORARY DISABLE: This route is disabled due to a critical tenant isolation vulnerability
+    // 🧼 Do NOT remove until full fix is implemented and regression tested
+    console.error('[EMERGENCY DISABLE] Route temporarily disabled');
+    return res.status(403).json({
+      error: 'This route is temporarily disabled for security reasons.',
+      route: req.originalUrl,
+    });
   })
 );
 

@@ -11,7 +11,7 @@ import {
   type UserOutfitter, type InsertUserOutfitter
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, sql, like, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql, like, inArray, exists } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -1183,26 +1183,32 @@ export class DatabaseStorage implements IStorage {
 
   // Tenant-aware booking operations
   async removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<boolean> {
+    // First verify booking belongs to outfitter
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.id, bookingId),
+          eq(bookings.outfitterId, outfitterId)
+        )
+      );
+
+    if (!booking) {
+      return false;
+    }
+
+    // Then delete the guide assignment
     const result = await db
       .delete(bookingGuides)
       .where(
         and(
           eq(bookingGuides.bookingId, bookingId),
-          eq(bookingGuides.guideId, guideId),
-          exists(
-            db.select()
-              .from(bookings)
-              .where(
-                and(
-                  eq(bookings.id, bookingId),
-                  eq(bookings.outfitterId, outfitterId)
-                )
-              )
-          )
+          eq(bookingGuides.guideId, guideId)
         )
       );
 
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getExperienceGuideByIdWithTenant(experienceId: number, guideId: string, outfitterId: number): Promise<any> {
