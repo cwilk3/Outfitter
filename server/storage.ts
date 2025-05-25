@@ -40,9 +40,11 @@ export interface IStorage {
   // Experience Guide operations
   getExperienceGuides(experienceId: number): Promise<ExperienceGuide[]>;
   getExperienceGuideById(id: number): Promise<ExperienceGuide | undefined>;
+  getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<ExperienceGuide | undefined>;
   assignGuideToExperience(data: InsertExperienceGuide): Promise<ExperienceGuide>;
   updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined>;
   removeGuideFromExperience(id: number): Promise<void>;
+  removeGuideFromExperienceWithTenant(id: number, outfitterId: number): Promise<void>;
   getExperiencesForGuide(guideId: string): Promise<Experience[]>;
 
   // Location operations
@@ -86,6 +88,7 @@ export interface IStorage {
   getBookingByNumber(bookingNumber: string): Promise<Booking | undefined>;
   assignGuideToBooking(bookingGuide: InsertBookingGuide): Promise<BookingGuide>;
   removeGuideFromBooking(bookingId: number, guideId: string): Promise<void>;
+  removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<void>;
   listBookingGuides(bookingId: number): Promise<BookingGuide[]>;
   
   // Document operations

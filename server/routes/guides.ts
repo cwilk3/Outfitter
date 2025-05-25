@@ -92,17 +92,23 @@ router.put('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res:
 // Remove a guide from an experience (admin only)
 router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
+  const user = (req as any).user;
   
   if (isNaN(id)) {
     throwError('Invalid assignment ID', 400);
   }
   
-  const assignment = await storage.getExperienceGuideById(id);
+  if (!user || !user.outfitterId) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  // 🔒 TENANT ISOLATION: Verify assignment belongs to user's outfitter before deletion
+  const assignment = await storage.getExperienceGuideByIdWithTenant(id, user.outfitterId);
   if (!assignment) {
     throwError('Guide assignment not found', 404);
   }
   
-  await storage.removeGuideFromExperience(id);
+  await storage.removeGuideFromExperienceWithTenant(id, user.outfitterId);
   res.status(204).end();
 }));
 

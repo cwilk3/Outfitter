@@ -138,7 +138,14 @@ router.delete('/:bookingId/guides/:guideId',
   validate({ params: bookingValidation.bookingGuideParams }),
   asyncHandler(async (req: Request, res: Response) => {
     const { bookingId, guideId } = req.params;
-    await storage.removeGuideFromBooking(parseInt(bookingId), guideId);
+    const user = (req as any).user;
+    
+    if (!user || !user.outfitterId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    // 🔒 TENANT ISOLATION: Verify booking belongs to user's outfitter before deletion
+    await storage.removeGuideFromBookingWithTenant(parseInt(bookingId), guideId, user.outfitterId);
     res.status(204).end();
   })
 );
