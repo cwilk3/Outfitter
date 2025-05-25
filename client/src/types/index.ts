@@ -85,6 +85,7 @@ export interface Booking {
   endDate: string;
   status: 'pending' | 'confirmed' | 'deposit_paid' | 'paid' | 'completed' | 'cancelled';
   totalAmount: number;
+  groupSize: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
