@@ -56,7 +56,7 @@ export default function CalendarPage() {
         
         // Format the title to show hunt type, customer last name, group size
         const title = experience 
-          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
+          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
           : `Booking #${booking.bookingNumber}`;
         
         // Safe timezone-agnostic date parsing to avoid drift
@@ -69,9 +69,8 @@ export default function CalendarPage() {
           id: booking.id,
           title: title,
           start: normalizeDate(booking.startDate),
-          // Adjust the end date by adding one day to correctly display multi-day events
-          // This is because React Big Calendar treats end dates as exclusive (not including the end date)
-          end: new Date(normalizeDate(booking.endDate).getTime() + 86400000), // Add 24 hours (86400000ms)
+          // Use exact end date - BigCalendar will handle display correctly with allDay events
+          end: normalizeDate(booking.endDate),
           allDay: true,
           resource: {
             booking,

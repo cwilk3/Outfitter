@@ -1,0 +1,77 @@
+Hi team — I’ve completed a full debug sweep and identified the root causes behind the calendar not rendering bookings correctly and showing inaccurate event titles.
+
+🛠️ 1. Field Name Mismatch (Title Display Bug)
+In CalendarPage.tsx, the booking object uses groupSize, but the calendar is referencing booking.guests.
+
+Current (Buggy):
+
+ts
+Copy
+Edit
+const title = experience 
+  ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.guests || 0}`
+Fix:
+
+ts
+Copy
+Edit
+const title = experience 
+  ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
+This is why calendar events show “0” guests — the data exists but is being read from the wrong field.
+
+🧩 2. Date Parsing Risk (Schema Update Impact)
+After the schema change to timestamp(mode: 'date'), dates are stored in the database as pure dates (no time). The calendar may now misinterpret them due to outdated or unsafe parsing logic.
+
+Ensure:
+
+No use of new Date(string) without normalization
+
+All event dates are parsed using a safe, timezone-neutral method, e.g.:
+
+ts
+Copy
+Edit
+const normalizeDate = (dateStr: string) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+This ensures that dates like 2025-06-22 render as June 22, not shifted to June 21/23 based on timezones.
+
+✅ Success Criteria
+Test Case	Expected Outcome
+Booking created for June 22–24	Booking shows as June 22–24 in database, bookings tab, and calendar
+Booking group size = 4	Calendar title says Experience / LastName / 4
+Calendar loads	All valid bookings render with correct start/end dates
+Timezone consistency	No visible shifts (+/-1 day) across system
+
+🚨 Emergency Protocol (If Post-Fix Something Breaks)
+If bookings disappear from calendar OR start showing wrong dates again, do the following:
+
+Quick Revert:
+
+Temporarily remove endAccessor logic and revert to raw booking.endDate to eliminate +1 day issues.
+
+Fallback Parsing:
+
+Revert normalizeDate to use:
+
+ts
+Copy
+Edit
+new Date(dateString + 'T00:00:00')
+This forces safe midnight interpretation.
+
+Notify Me Immediately:
+
+I’ll help test and validate urgently.
+
+✅ Action Items
+ Replace booking.guests with booking.groupSize
+
+ Verify calendar date parsing works with timestamp(mode: 'date')
+
+ Confirm calendar shows all events accurately with correct date spans and titles
+
+Let me know once it’s deployed — I’ll QA right away.
+
+Thanks!
