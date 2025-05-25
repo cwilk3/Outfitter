@@ -88,29 +88,50 @@ router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
 
 // POST endpoint for creating public bookings
 router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
+  console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
   console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
-  console.log('[PUBLIC_BOOKING] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
   
   const { 
     experienceId, 
     customerDetails,
     bookingDetails,
     guests,  // Add guests field extraction
+    payment,
     selectedAddons = []
   } = req.body;
   
+  console.log('\n📋 [DEBUG] Extracted Fields:');
+  console.log(`   experienceId: ${experienceId}`);
+  console.log(`   customerDetails: ${JSON.stringify(customerDetails)}`);
+  console.log(`   bookingDetails: ${JSON.stringify(bookingDetails)}`);
+  console.log(`   guests (top-level): ${guests}`);
+  console.log(`   payment: ${JSON.stringify(payment)}`);
+  console.log(`   selectedAddons: ${JSON.stringify(selectedAddons)}`);
+  
   // Validate required fields
   if (!experienceId || !customerDetails || !bookingDetails) {
+    console.log('❌ [ERROR] Missing required fields validation failed');
     return res.status(400).json({ 
       message: 'Missing required fields: experienceId, customerDetails, and bookingDetails are required' 
     });
   }
 
   // Extract and validate guest count (handle both guests and groupSize fields)
-  const groupSize = guests || bookingDetails.groupSize || bookingDetails.guests || 1;
+  const guestFromTopLevel = guests;
+  const guestFromBookingDetails = bookingDetails.guests;
+  const groupSizeFromBookingDetails = bookingDetails.groupSize;
+  const finalGroupSize = guestFromTopLevel || guestFromBookingDetails || groupSizeFromBookingDetails || 1;
+
+  console.log('\n👥 [DEBUG] Guest Count Extraction:');
+  console.log(`   guests (top-level): ${guestFromTopLevel}`);
+  console.log(`   bookingDetails.guests: ${guestFromBookingDetails}`);
+  console.log(`   bookingDetails.groupSize: ${groupSizeFromBookingDetails}`);
+  console.log(`   Final groupSize: ${finalGroupSize}`);
 
   // Validate guest count is positive integer
-  if (!Number.isInteger(groupSize) || groupSize < 1) {
+  if (!Number.isInteger(finalGroupSize) || finalGroupSize < 1) {
+    console.log('❌ [ERROR] Guest count validation failed');
     return res.status(400).json({ 
       message: 'Guest count must be a positive integer (minimum 1)' 
     });
@@ -119,23 +140,44 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   // Check if experience exists
   const experience = await storage.getExperience(experienceId);
   if (!experience) {
+    console.log('❌ [ERROR] Experience not found');
     return res.status(404).json({ message: 'Experience not found' });
   }
 
+  console.log('\n🎯 [DEBUG] Experience Details:');
+  console.log(`   Experience ID: ${experience.id}`);
+  console.log(`   Experience Name: ${experience.name}`);
+  console.log(`   Experience Price (raw): ${experience.price}`);
+  console.log(`   Experience Price Type: ${typeof experience.price}`);
+
   // Extract totalAmount from bookingDetails or payment object
-  const rawTotalAmount = bookingDetails.totalAmount ?? req.body.payment?.totalAmount ?? null;
+  const totalFromBookingDetails = bookingDetails.totalAmount;
+  const totalFromPayment = req.body.payment?.totalAmount;
+  const rawTotalAmount = totalFromBookingDetails ?? totalFromPayment ?? null;
   const parsedTotalAmount = rawTotalAmount ? Number(rawTotalAmount) : null;
 
   // Convert experience price from decimal string to number
   const experiencePrice = Number(experience.price);
+  const calculatedFallbackTotal = experiencePrice * finalGroupSize;
 
-  // Logging for debug
-  console.log(`Experience price: ${experiencePrice}, Group size: ${groupSize}, Parsed total amount: ${parsedTotalAmount}`);
+  console.log('\n💰 [DEBUG] Total Amount Calculation:');
+  console.log(`   bookingDetails.totalAmount: ${totalFromBookingDetails}`);
+  console.log(`   payment.totalAmount: ${totalFromPayment}`);
+  console.log(`   rawTotalAmount: ${rawTotalAmount}`);
+  console.log(`   parsedTotalAmount: ${parsedTotalAmount}`);
+  console.log(`   Experience Price (converted): ${experiencePrice}`);
+  console.log(`   Calculated Fallback (${experiencePrice} × ${finalGroupSize}): ${calculatedFallbackTotal}`);
 
   // Calculate totalAmount with fallback and validation
-  const totalAmount = (parsedTotalAmount && parsedTotalAmount > 0) 
+  const finalTotalAmount = (parsedTotalAmount && parsedTotalAmount > 0) 
     ? parsedTotalAmount 
-    : experiencePrice * groupSize;
+    : calculatedFallbackTotal;
+
+  console.log(`   Final Total Amount Used: ${finalTotalAmount}`);
+  console.log(`   Total Source: ${(parsedTotalAmount && parsedTotalAmount > 0) ? 'PROVIDED' : 'CALCULATED'}`);
+
+  const groupSize = finalGroupSize;
+  const totalAmount = finalTotalAmount;
   
   // Create or find customer
   const customerData = insertCustomerSchema.parse({
@@ -146,9 +188,13 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   // Check if customer already exists (we'll need to add this method to storage)
   const customer = await storage.createCustomer(customerData);
   
+  console.log('\n📝 [DEBUG] Creating Booking Data:');
+  const bookingNumber = `PUB-${nanoid(8)}`;
+  console.log(`   Generated Booking Number: ${bookingNumber}`);
+  
   // Create booking
   const bookingData = insertBookingSchema.parse({
-    bookingNumber: `PUB-${nanoid(8)}`,
+    bookingNumber: bookingNumber,
     experienceId,
     customerId: customer.id,
     startDate: new Date(bookingDetails.startDate),
@@ -160,7 +206,24 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     outfitterId: experience.outfitterId
   });
   
+  console.log('   Final Booking Data for Database:');
+  console.log(`     bookingNumber: ${bookingData.bookingNumber}`);
+  console.log(`     experienceId: ${bookingData.experienceId}`);
+  console.log(`     customerId: ${bookingData.customerId}`);
+  console.log(`     startDate: ${bookingData.startDate}`);
+  console.log(`     endDate: ${bookingData.endDate}`);
+  console.log(`     status: ${bookingData.status}`);
+  console.log(`     totalAmount: ${bookingData.totalAmount}`);
+  console.log(`     groupSize: ${bookingData.groupSize}`);
+  console.log(`     outfitterId: ${bookingData.outfitterId}`);
+  
   const booking = await storage.createBooking(bookingData);
+  
+  console.log('\n✅ [SUCCESS] Booking Created in Database:');
+  console.log(`   Database Booking ID: ${booking.id}`);
+  console.log(`   Database Booking Number: ${booking.bookingNumber}`);
+  console.log(`   Database Total Amount: ${booking.totalAmount}`);
+  console.log(`   Database Group Size: ${booking.groupSize}`);
   
   // Get guides assigned to this experience and link them to the booking
   const guides = await storage.getExperienceGuides(booking.experienceId);
@@ -193,6 +256,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   
   // Simulate sending email notification
   console.log(`Email notification would be sent to ${customer.email} for booking ${booking.bookingNumber}`);
+  console.log('🔵 ========== PUBLIC BOOKING REQUEST END ==========\n');
 }));
 
 export default router;
