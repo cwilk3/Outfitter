@@ -1,0 +1,81 @@
+Fix silent Zod crash during booking creation in /api/public/bookings route
+
+✅ GOAL
+The insertBookingSchema.parse(...) call is currently outside the try-catch, so when it throws, it completely bypasses our logging. This must be moved inside the try block so we can capture and log Zod validation errors.
+
+🛠️ IMPLEMENTATION STEPS
+Go to:
+server/routes/public.ts
+
+Find this line (approx. line 197):
+
+ts
+Copy
+Edit
+try {
+  console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
+  ...
+}
+Move the following block inside that try-catch:
+
+ts
+Copy
+Edit
+const bookingData = insertBookingSchema.parse({
+  bookingNumber: bookingNumber,
+  experienceId,
+  customerId: customer.id,
+  startDate: new Date(bookingDetails.startDate),
+  endDate: new Date(bookingDetails.endDate),
+  status: 'pending' as const,
+  totalAmount: totalAmount.toString(),
+  groupSize: groupSize,
+  notes: bookingDetails.notes || '',
+  outfitterId: experience.outfitterId
+});
+Add this inside the catch block to log the error in full:
+
+ts
+Copy
+Edit
+console.error('❌ [CRITICAL ERROR] Crash during booking data construction or validation:', error);
+console.error('❌ [DEBUG VALUES] customer:', customer);
+console.error('❌ [DEBUG VALUES] experience:', experience);
+console.error('❌ [DEBUG VALUES] totalAmount:', totalAmount, typeof totalAmount);
+console.error('❌ [DEBUG VALUES] groupSize:', groupSize, typeof groupSize);
+return res.status(400).json({
+  message: 'Failed to construct booking data',
+  error: error instanceof Error ? error.message : String(error)
+});
+✅ SUCCESS CRITERIA
+✅ A test booking that would previously crash silently (e.g. PUB-31S7JhjP) now:
+
+Triggers the catch block if Zod fails
+
+Logs the following:
+
+[CRITICAL ERROR] Crash during booking data construction or validation
+
+DEBUG VALUES for customer, experience, totalAmount, and groupSize
+
+Returns a 400 response with an informative message, not a server crash
+
+📸 PROOF OF FIX (REQUIRED FOR REVIEW)
+Please copy-paste the following from the console/logs and API response:
+
+✅ The full error logs inside the catch block, including:
+
+[CRITICAL ERROR] Crash during booking data construction or validation
+
+DEBUG VALUES: customer, experience, totalAmount, groupSize
+
+✅ The JSON response returned to the client:
+
+json
+Copy
+Edit
+{
+  "message": "Failed to construct booking data",
+  "error": "..." // actual Zod or JS error message
+}
+Once you’ve done this, ping me with the proof and I’ll confirm the fix — and help interpret any new error we catch.

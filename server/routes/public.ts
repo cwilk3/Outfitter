@@ -213,25 +213,31 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
       notes: bookingDetails.notes || '',
       outfitterId: experience.outfitterId
     });
+
+    // Create booking
+    const bookingData = insertBookingSchema.parse({
+      bookingNumber: bookingNumber,
+      experienceId,
+      customerId: customer.id,
+      startDate: new Date(bookingDetails.startDate),
+      endDate: new Date(bookingDetails.endDate),
+      status: 'pending' as const,
+      totalAmount: totalAmount.toString(),
+      groupSize: groupSize,
+      notes: bookingDetails.notes || '',
+      outfitterId: experience.outfitterId
+    });
   } catch (error) {
-    console.error('❌ [CRITICAL ERROR] Crash during debug object creation:', error);
+    console.error('❌ [CRITICAL ERROR] Crash during booking data construction or validation:', error);
     console.error('❌ [DEBUG VALUES] customer:', customer);
     console.error('❌ [DEBUG VALUES] experience:', experience);
+    console.error('❌ [DEBUG VALUES] totalAmount:', totalAmount, typeof totalAmount);
+    console.error('❌ [DEBUG VALUES] groupSize:', groupSize, typeof groupSize);
+    return res.status(400).json({
+      message: 'Failed to construct booking data',
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
-  
-  // Create booking
-  const bookingData = insertBookingSchema.parse({
-    bookingNumber: bookingNumber,
-    experienceId,
-    customerId: customer.id,
-    startDate: new Date(bookingDetails.startDate),
-    endDate: new Date(bookingDetails.endDate),
-    status: 'pending' as const,
-    totalAmount: totalAmount.toString(),
-    groupSize: groupSize,
-    notes: bookingDetails.notes || '',
-    outfitterId: experience.outfitterId
-  });
   
   console.log('   Final Booking Data for Database:');
   console.log(`     bookingNumber: ${bookingData.bookingNumber}`);
