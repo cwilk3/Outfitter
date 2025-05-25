@@ -95,6 +95,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     experienceId, 
     customerDetails,
     bookingDetails,
+    guests,  // Add guests field extraction
     selectedAddons = []
   } = req.body;
   
@@ -104,12 +105,30 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
       message: 'Missing required fields: experienceId, customerDetails, and bookingDetails are required' 
     });
   }
+
+  // Extract and validate guest count (handle both guests and groupSize fields)
+  const groupSize = guests || bookingDetails.groupSize || bookingDetails.guests || 1;
+
+  // Validate guest count is positive integer
+  if (!Number.isInteger(groupSize) || groupSize < 1) {
+    return res.status(400).json({ 
+      message: 'Guest count must be a positive integer (minimum 1)' 
+    });
+  }
   
   // Check if experience exists
   const experience = await storage.getExperience(experienceId);
   if (!experience) {
     return res.status(404).json({ message: 'Experience not found' });
   }
+
+  // Calculate total amount: use provided total or calculate price * guests
+  const calculatedTotal = experience.price * groupSize;
+  const totalAmount = (bookingDetails.totalAmount && bookingDetails.totalAmount > 0) 
+    ? bookingDetails.totalAmount 
+    : calculatedTotal;
+
+  console.log(`[PUBLIC_BOOKING] Price calculation: ${experience.price} × ${groupSize} = ${calculatedTotal}, final total: ${totalAmount}`);
   
   // Create or find customer
   const customerData = insertCustomerSchema.parse({
@@ -128,8 +147,8 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     startDate: new Date(bookingDetails.startDate),
     endDate: new Date(bookingDetails.endDate),
     status: 'pending' as const,
-    totalAmount: bookingDetails.totalAmount || experience.price,
-    groupSize: bookingDetails.groupSize || 1,
+    totalAmount: totalAmount,
+    groupSize: groupSize,
     notes: bookingDetails.notes || '',
     outfitterId: experience.outfitterId
   });
