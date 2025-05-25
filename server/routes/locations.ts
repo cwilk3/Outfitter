@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { requireAuth } from '../emailAuth';
-import { addOutfitterContext } from '../outfitterContext';
+import { addOutfitterContext, AuthenticatedRequest } from '../outfitterContext';
 import { asyncHandler } from '../utils/asyncHandler';
 import { insertLocationSchema } from '@shared/schema';
 
@@ -85,6 +85,57 @@ router.patch('/:id', adminOnly, asyncHandler(async (req: Request, res: Response)
   }
   
   res.json(updatedLocation);
+}));
+
+// Delete location (admin only with multi-tenant safeguards)
+router.delete('/:id', adminOnly, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const id = parseInt(req.params.id);
+  const user = req.user;
+  
+  // SAFEGUARD: Verify user authentication and outfitterId
+  if (!user?.outfitterId) {
+    console.error('🚨 EMERGENCY PROTOCOL: Delete attempt without valid outfitterId', {
+      userId: user?.id,
+      locationId: id,
+      timestamp: new Date().toISOString()
+    });
+    return res.status(401).json({ message: 'Authentication required - no outfitter context found' });
+  }
+  
+  // SAFEGUARD: Get location to verify ownership before deletion
+  const location = await storage.getLocation(id);
+  
+  if (!location) {
+    return res.status(404).json({ message: 'Location not found' });
+  }
+  
+  // SAFEGUARD: Multi-tenant isolation check
+  if (location.outfitterId !== user.outfitterId) {
+    console.error('🚨 EMERGENCY PROTOCOL: Unauthorized deletion attempt detected', {
+      userId: user.id,
+      userOutfitterId: user.outfitterId,
+      locationId: id,
+      locationOutfitterId: location.outfitterId,
+      timestamp: new Date().toISOString()
+    });
+    return res.status(404).json({ message: 'Location not found or unauthorized' });
+  }
+  
+  // SAFEGUARD: Perform deletion only after all checks pass
+  await storage.deleteLocation(id);
+  
+  console.log('✅ Location deleted successfully', {
+    userId: user.id,
+    outfitterId: user.outfitterId,
+    locationId: id,
+    locationName: location.name,
+    timestamp: new Date().toISOString()
+  });
+  
+  res.status(200).json({ 
+    success: true, 
+    message: 'Location deleted successfully' 
+  });
 }));
 
 export default router;
