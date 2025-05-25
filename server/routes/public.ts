@@ -195,22 +195,29 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   console.log('\n📝 [DEBUG] Creating Booking Data:');
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
-  console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
   
-  console.log('\n🔍 [DEBUG] Booking object before validation:', {
-    bookingNumber,
-    experienceId,
-    customerId: customer.id,
-    startDate: new Date(bookingDetails.startDate),
-    endDate: new Date(bookingDetails.endDate),
-    status: 'pending',
-    totalAmount,
-    totalAmountType: typeof totalAmount,
-    groupSize,
-    groupSizeType: typeof groupSize,
-    notes: bookingDetails.notes || '',
-    outfitterId: experience.outfitterId
-  });
+  try {
+    console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
+    
+    console.log('\n🔍 [DEBUG] Booking object before validation:', {
+      bookingNumber,
+      experienceId,
+      customerId: customer.id,
+      startDate: new Date(bookingDetails.startDate),
+      endDate: new Date(bookingDetails.endDate),
+      status: 'pending',
+      totalAmount,
+      totalAmountType: typeof totalAmount,
+      groupSize,
+      groupSizeType: typeof groupSize,
+      notes: bookingDetails.notes || '',
+      outfitterId: experience.outfitterId
+    });
+  } catch (error) {
+    console.error('❌ [CRITICAL ERROR] Crash during debug object creation:', error);
+    console.error('❌ [DEBUG VALUES] customer:', customer);
+    console.error('❌ [DEBUG VALUES] experience:', experience);
+  }
   
   // Create booking
   const bookingData = insertBookingSchema.parse({
