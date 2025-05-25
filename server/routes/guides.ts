@@ -97,54 +97,37 @@ router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, r
   const user = (req as any).user;
   const outfitterId = user?.outfitterId;
 
-  // 🛡️ EMERGENCY FALLBACK: If no outfitterId, activate emergency patch
   if (!outfitterId) {
-    console.error('[EMERGENCY FALLBACK] No outfitterId found - activating emergency patch');
-    return res.status(403).json({
-      error: 'This route is temporarily disabled for security reasons.',
-      route: req.originalUrl,
-    });
+    return res.status(401).json({ error: "Authentication required" });
   }
 
   if (isNaN(id)) {
     return res.status(400).json({ error: 'Invalid assignment ID' });
   }
 
-  try {
-    // 🔒 TENANT ISOLATION: Verify assignment belongs to user's outfitter BEFORE any operations
-    const assignment = await storage.getExperienceGuideById(id);
-    
-    if (!assignment) {
-      console.warn(`[TENANT-BLOCK] Assignment not found - ID: ${id}, Outfitter: ${outfitterId}`);
-      return res.status(404).json({ error: 'Guide assignment not found' });
-    }
-
-    // Get the experience to verify outfitter ownership
-    const experience = await storage.getExperience(assignment.experienceId);
-    
-    if (!experience || experience.outfitterId !== outfitterId) {
-      console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Experience outfitter: ${experience?.outfitterId || 'NOT_FOUND'}`);
-      return res.status(404).json({ error: 'Guide assignment not found' });
-    }
-
-    console.log(`[TENANT-VERIFIED] Access granted - Outfitter ${outfitterId} removing assignment ${id}`);
-
-    // ✅ SAFE OPERATION: Now proceed with assignment removal
-    await storage.removeGuideFromExperience(id);
-
-    console.log(`[TENANT-SUCCESS] Assignment ${id} successfully removed for outfitter ${outfitterId}`);
-    return res.status(204).end();
-
-  } catch (error) {
-    console.error('[TENANT-ERROR] Failed to remove guide assignment:', error);
-    
-    // 🚨 EMERGENCY FALLBACK: On any error, activate emergency patch
-    console.error('[EMERGENCY FALLBACK] Error encountered - activating emergency patch');
-    return res.status(403).json({
-      error: 'This route is temporarily disabled for security reasons.',
-      route: req.originalUrl,
-    });
+  // 🔒 TENANT ISOLATION: Verify assignment belongs to user's outfitter BEFORE any operations
+  const assignment = await storage.getExperienceGuideById(id);
+  
+  if (!assignment) {
+    console.warn(`[TENANT-BLOCK] Assignment not found - ID: ${id}, Outfitter: ${outfitterId}`);
+    return res.status(404).json({ error: 'Guide assignment not found' });
   }
+
+  // Get the experience to verify outfitter ownership
+  const experience = await storage.getExperience(assignment.experienceId);
+  
+  if (!experience || experience.outfitterId !== outfitterId) {
+    console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Experience outfitter: ${experience?.outfitterId || 'NOT_FOUND'}`);
+    return res.status(404).json({ error: 'Guide assignment not found' });
+  }
+
+  console.log(`[TENANT-VERIFIED] Access granted - Outfitter ${outfitterId} removing assignment ${id}`);
+
+  // ✅ SAFE OPERATION: Now proceed with assignment removal
+  await storage.removeGuideFromExperience(id);
+
+  console.log(`[TENANT-SUCCESS] Assignment ${id} successfully removed for outfitter ${outfitterId}`);
+  return res.status(204).end();
 }));
 
 export default router;

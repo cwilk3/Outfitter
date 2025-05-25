@@ -146,44 +146,27 @@ router.delete('/:bookingId/guides/:guideId',
     const user = (req as any).user;
     const outfitterId = user?.outfitterId;
 
-    // 🛡️ EMERGENCY FALLBACK: If no outfitterId, activate emergency patch
     if (!outfitterId) {
-      console.error('[EMERGENCY FALLBACK] No outfitterId found - activating emergency patch');
-      return res.status(403).json({
-        error: 'This route is temporarily disabled for security reasons.',
-        route: req.originalUrl,
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // 🔒 TENANT ISOLATION: Verify booking belongs to user's outfitter BEFORE any operations
+    const booking = await storage.getBooking(parseInt(bookingId));
+    
+    if (!booking || booking.outfitterId !== outfitterId) {
+      console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Booking outfitter: ${booking?.outfitterId || 'NOT_FOUND'}`);
+      return res.status(404).json({
+        error: "Booking not found or not authorized",
       });
     }
 
-    try {
-      // 🔒 TENANT ISOLATION: Verify booking belongs to user's outfitter BEFORE any operations
-      const booking = await storage.getBooking(parseInt(bookingId));
-      
-      if (!booking || booking.outfitterId !== outfitterId) {
-        console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Booking outfitter: ${booking?.outfitterId || 'NOT_FOUND'}`);
-        return res.status(404).json({
-          error: "Booking not found or not authorized",
-        });
-      }
+    console.log(`[TENANT-VERIFIED] Access granted - Outfitter ${outfitterId} removing guide ${guideId} from booking ${bookingId}`);
 
-      console.log(`[TENANT-VERIFIED] Access granted - Outfitter ${outfitterId} removing guide ${guideId} from booking ${bookingId}`);
+    // ✅ SAFE OPERATION: Now proceed with guide removal
+    await storage.removeGuideFromBooking(parseInt(bookingId), guideId);
 
-      // ✅ SAFE OPERATION: Now proceed with guide removal
-      await storage.removeGuideFromBooking(parseInt(bookingId), guideId);
-
-      console.log(`[TENANT-SUCCESS] Guide ${guideId} successfully removed from booking ${bookingId} for outfitter ${outfitterId}`);
-      return res.status(204).send();
-
-    } catch (error) {
-      console.error('[TENANT-ERROR] Failed to remove guide from booking:', error);
-      
-      // 🚨 EMERGENCY FALLBACK: On any error, activate emergency patch
-      console.error('[EMERGENCY FALLBACK] Error encountered - activating emergency patch');
-      return res.status(403).json({
-        error: 'This route is temporarily disabled for security reasons.',
-        route: req.originalUrl,
-      });
-    }
+    console.log(`[TENANT-SUCCESS] Guide ${guideId} successfully removed from booking ${bookingId} for outfitter ${outfitterId}`);
+    return res.status(204).send();
   })
 );
 

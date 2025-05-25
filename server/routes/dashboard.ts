@@ -64,37 +64,20 @@ router.post('/settings', adminOnly, asyncHandler(async (req: Request, res: Respo
   const user = (req as any).user;
   const outfitterId = user?.outfitterId;
 
-  // 🛡️ EMERGENCY FALLBACK: If no outfitterId, activate emergency patch
   if (!outfitterId) {
-    console.error('[EMERGENCY FALLBACK] No outfitterId found - activating emergency patch');
-    return res.status(403).json({
-      error: 'This route is temporarily disabled for security reasons.',
-      route: req.originalUrl,
-    });
+    return res.status(401).json({ error: "Authentication required" });
   }
 
-  try {
-    // 🔒 TENANT ISOLATION: Parse and validate request data
-    const validatedData = insertSettingsSchema.parse(req.body);
-    
-    console.log(`[TENANT-VERIFIED] Settings update for outfitter ${outfitterId}`);
+  // 🔒 TENANT ISOLATION: Parse and validate request data
+  const validatedData = insertSettingsSchema.parse(req.body);
+  
+  console.log(`[TENANT-VERIFIED] Settings update for outfitter ${outfitterId}`);
 
-    // ✅ SAFE OPERATION: Update settings for authenticated outfitter
-    const settings = await storage.updateSettings(validatedData);
+  // ✅ SAFE OPERATION: Update settings for authenticated outfitter
+  const settings = await storage.updateSettings(validatedData);
 
-    console.log(`[TENANT-SUCCESS] Settings updated successfully for outfitter ${outfitterId}`);
-    return res.json(settings);
-
-  } catch (error) {
-    console.error('[TENANT-ERROR] Failed to update settings:', error);
-    
-    // 🚨 EMERGENCY FALLBACK: On any error, activate emergency patch
-    console.error('[EMERGENCY FALLBACK] Error encountered - activating emergency patch');
-    return res.status(403).json({
-      error: 'This route is temporarily disabled for security reasons.',
-      route: req.originalUrl,
-    });
-  }
+  console.log(`[TENANT-SUCCESS] Settings updated successfully for outfitter ${outfitterId}`);
+  return res.json(settings);
 }));
 
 export default router;
