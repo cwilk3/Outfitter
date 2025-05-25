@@ -211,6 +211,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     };
     
     console.log('🛡️ Safe customer data (whitelisted):', safeCustomerDetails);
+    console.log('🧭 [DEBUG] About to run insertCustomerSchema.parse in public.ts');
     customerData = insertCustomerSchema.parse(safeCustomerDetails);
     console.log('✅ Customer data validated successfully');
   } catch (error) {
@@ -223,7 +224,18 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const customer = await storage.createCustomer(customerData);
+  let customer;
+  try {
+    console.log('🧭 [DEBUG] About to run storage.createCustomer in public.ts');
+    customer = await storage.createCustomer(customerData);
+    console.log('✅ Customer created successfully');
+  } catch (error) {
+    console.error('❌ [CRITICAL ERROR] Crash during customer creation:', error);
+    return res.status(500).json({ 
+      message: 'Failed to create customer', 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
   
   console.log('\n📝 [DEBUG] Creating Booking Data:');
   const bookingNumber = `PUB-${nanoid(8)}`;
@@ -255,6 +267,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     });
 
     console.log('📝 About to validate booking data with insertBookingSchema');
+    console.log('🧭 [DEBUG] About to run insertBookingSchema.parse in public.ts');
     // Create booking
     bookingData = insertBookingSchema.parse({
       bookingNumber: bookingNumber,

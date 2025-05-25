@@ -1,0 +1,66 @@
+Step 1: Global Search
+Search the codebase for any schema definition or Zod usage that involves totalAmount.
+
+sh
+Copy
+Edit
+grep -r "totalAmount" ./shared
+grep -r "parse" ./server
+Look for unexpected places where parse() might be run before your route’s parse block.
+
+Step 2: Log Before Every Parse or Customer Creation
+Add a global log marker right before every single schema.parse(...) or createCustomer(...) or createBooking(...) function across your entire stack.
+
+Example:
+
+ts
+Copy
+Edit
+console.log('🧭 [DEBUG] About to run schema.parse in X file');
+This will tell you which one is throwing, since your current logs never reach the known validation blocks.
+
+Step 3: Wrap storage.createCustomer() in Try-Catch
+Right now you’re only try-catching the insertCustomerSchema.parse(...), but not the actual DB function. Do this:
+
+ts
+Copy
+Edit
+let customer;
+try {
+  customer = await storage.createCustomer(customerData);
+} catch (error) {
+  console.error('❌ [CRITICAL ERROR] Crash during customer creation:', error);
+  return res.status(500).json({ message: 'Failed to create customer', error: error instanceof Error ? error.message : String(error) });
+}
+If storage.createCustomer is invoking another schema parse behind the scenes (e.g. Drizzle schema inference), you’ll catch it here.
+
+✅ Success Criteria (Updated)
+ Top-level try-catch logs catch the real schema throwing the Zod error
+
+ You see logs like 🧭 [DEBUG] About to run schema.parse in X file before the error
+
+ The actual failing line gets isolated and confirmed (even if it's inside a storage or utility function)
+
+ You can trace the totalAmount path all the way to the unexpected schema expecting it as a string
+
+ Once removed or coerced, the booking proceeds to customer validation → booking validation → success
+
+When you post back next:
+
+📤 Send me:
+
+The full logs of where the new global debug statements stop
+
+The exact file + line number of the real failing schema.parse
+
+The definition of that schema (I’ll verify whether totalAmount should be there)
+
+We’re almost there — this will root out the last hidden parse silently exploding before your code even begins.
+
+
+
+
+
+
+
+
