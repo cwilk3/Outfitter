@@ -43,7 +43,12 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 // Create new experience (admin only)
 router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => {
   const validatedData = insertExperienceSchema.parse(req.body);
-  const experience = await storage.createExperience(validatedData);
+  const user = (req as any).user;
+  const experienceData = {
+    ...validatedData,
+    outfitterId: user?.outfitterId
+  };
+  const experience = await storage.createExperience(experienceData);
   res.status(201).json(experience);
 }));
 
