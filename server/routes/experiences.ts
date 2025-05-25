@@ -48,6 +48,12 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
     ...validatedData,
     outfitterId: (req as any).user?.outfitterId
   };
+  console.log('DEBUG: Experience Creation - outfitterId Context:', {
+    outfitterIdFromReqUser: (req as any).user?.outfitterId,
+    fullReqUserObject: (req as any).user,
+    outfitterIdFromReq: (req as any).outfitterId,
+    validatedDataOutfitterId: validatedData.outfitterId
+  });
   const experience = await storage.createExperience(experienceData);
   res.status(201).json(experience);
 }));
