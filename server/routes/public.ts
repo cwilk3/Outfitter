@@ -184,18 +184,29 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   const totalAmount = finalTotalAmount;
   
   // Create or find customer
-  const customerData = insertCustomerSchema.parse({
-    ...customerDetails,
-    outfitterId: experience.outfitterId
-  });
-  
-  // Check if customer already exists (we'll need to add this method to storage)
+  let customerData;
+  try {
+    customerData = insertCustomerSchema.parse({
+      ...customerDetails,
+      outfitterId: experience.outfitterId
+    });
+  } catch (error) {
+    console.error('❌ [CRITICAL ERROR] Crash during customer data validation:', error);
+    console.error('❌ [DEBUG VALUES] customerDetails:', customerDetails);
+    console.error('❌ [DEBUG VALUES] experience:', experience);
+    return res.status(400).json({
+      message: 'Failed to construct customer data',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+
   const customer = await storage.createCustomer(customerData);
   
   console.log('\n📝 [DEBUG] Creating Booking Data:');
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
   
+  let bookingData: any;
   try {
     console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
     
@@ -215,7 +226,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
     });
 
     // Create booking
-    const bookingData = insertBookingSchema.parse({
+    bookingData = insertBookingSchema.parse({
       bookingNumber: bookingNumber,
       experienceId,
       customerId: customer.id,

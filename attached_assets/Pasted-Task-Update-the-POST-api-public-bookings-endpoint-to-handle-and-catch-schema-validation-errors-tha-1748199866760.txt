@@ -1,0 +1,72 @@
+Task:
+Update the POST /api/public/bookings endpoint to handle and catch schema validation errors that occur during customer data parsing.
+
+Current Issue:
+The validation error thrown by insertCustomerSchema.parse() causes the server to crash before reaching the existing try-catch block around booking data parsing, resulting in no error logs or proper error responses.
+
+Required Changes:
+
+Add a dedicated try-catch block around the customer data parsing and creation step:
+
+ts
+Copy
+Edit
+let customerData;
+try {
+  customerData = insertCustomerSchema.parse({
+    ...customerDetails,
+    outfitterId: experience.outfitterId
+  });
+} catch (error) {
+  console.error('❌ [CRITICAL ERROR] Crash during customer data validation:', error);
+  console.error('❌ [DEBUG VALUES] customerDetails:', customerDetails);
+  console.error('❌ [DEBUG VALUES] experience:', experience);
+  return res.status(400).json({
+    message: 'Failed to construct customer data',
+    error: error instanceof Error ? error.message : String(error)
+  });
+}
+
+const customer = await storage.createCustomer(customerData);
+Keep the existing try-catch block for booking data parsing and creation as-is.
+
+Ensure all relevant debug logging is included for error diagnosis.
+
+Success Criteria:
+When sending booking requests with invalid or mismatched customer data, the API:
+
+Responds with 400 status and a clear JSON error message "Failed to construct customer data".
+
+Logs the full error and the problematic customerDetails and experience objects to the console.
+
+When sending booking requests with valid customer and booking data, the API:
+
+Successfully creates the booking.
+
+Logs debug info for customer creation and booking creation.
+
+Reaches the try-catch blocks without crashes.
+
+No silent crashes or missing logs occur in either scenario.
+
+Review Process:
+After deployment and testing:
+
+Provide me with:
+
+Sample logs from a failed customer validation (with errors and debug info printed).
+
+Sample logs from a successful booking creation.
+
+The exact error messages returned in the response for invalid customer data.
+
+I will verify:
+
+That the try-catch around customer parsing is catching errors properly.
+
+That error messages and logs are detailed and clear.
+
+That the booking creation try-catch still functions correctly.
+
+Confirm there are no missing execution logs between customer parsing and booking creation.
+
