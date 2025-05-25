@@ -11,6 +11,9 @@ import { eq, and, exists } from 'drizzle-orm';
 
 const router = Router();
 
+// Route version identifier
+console.log("[ROUTE CHECK] Using AUTHENTICATED booking route v1 - REQUIRES AUTH");
+
 // Validation schemas for bookings
 const bookingValidation = {
   // Query validation for list bookings

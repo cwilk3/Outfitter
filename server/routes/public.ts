@@ -7,6 +7,9 @@ import { nanoid } from 'nanoid';
 
 const router = Router();
 
+// Route version identifier
+console.log("[ROUTE CHECK] Using PUBLIC booking route v2 - ENHANCED with debug logging and fixes");
+
 // Public routes - no authentication required
 
 // GET public locations
@@ -88,6 +91,7 @@ router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
 
 // POST endpoint for creating public bookings
 router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
+  console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
   console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
   console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
   console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
