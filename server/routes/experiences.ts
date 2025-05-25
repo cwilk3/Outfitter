@@ -271,4 +271,43 @@ router.delete('/:experienceId/addons/:addonId', adminOnly, asyncHandler(async (r
   res.status(204).end();
 }));
 
+// Experience-Location association routes (NEW - was missing!)
+router.post('/experience-locations', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const validatedData = insertExperienceLocationSchema.parse(req.body);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  console.log('📍 [ROUTE] Creating experience-location association', { 
+    experienceId: validatedData.experienceId, 
+    locationId: validatedData.locationId, 
+    outfitterId 
+  });
+
+  // Call storage function with tenant context - THIS IS THE CRITICAL FIX!
+  const result = await storage.addExperienceLocation(validatedData, outfitterId);
+  
+  if (!result) {
+    return res.status(404).json({ error: "Experience not found or unauthorized" });
+  }
+
+  res.status(201).json(result);
+}));
+
+router.get('/experience-locations', asyncHandler(async (req: Request, res: Response) => {
+  const locations = await storage.getAllExperienceLocations();
+  res.json(locations);
+}));
+
+router.delete('/experience-locations/:experienceId/:locationId', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.experienceId);
+  const locationId = parseInt(req.params.locationId);
+  
+  await storage.removeExperienceLocation(experienceId, locationId);
+  res.status(204).end();
+}));
+
 export default router;
