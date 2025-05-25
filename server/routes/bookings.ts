@@ -137,11 +137,15 @@ router.post('/:bookingId/guides',
 router.delete('/:bookingId/guides/:guideId', 
   validate({ params: bookingValidation.bookingGuideParams }),
   asyncHandler(async (req: Request, res: Response) => {
-    // 🚨 TEMPORARILY DISABLED - TENANT ISOLATION IMPLEMENTATION IN PROGRESS
-    res.status(403).json({ 
-      message: 'Route temporarily disabled for security updates',
-      reason: 'Implementing tenant isolation fixes'
+    // 🚨 EMERGENCY SECURITY PATCH
+    // 🔒 TEMPORARY DISABLE: This route is disabled due to a critical tenant isolation vulnerability
+    // 🧼 Do NOT remove until full fix is implemented and regression tested
+    console.error('[EMERGENCY DISABLE] Route temporarily disabled');
+    return res.status(403).json({
+      error: 'This route is temporarily disabled for security reasons.',
+      route: req.originalUrl,
     });
+    console.error('[EMERGENCY ERROR] Code after disable block should NOT run!');
   })
 );
 
