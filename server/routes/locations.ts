@@ -92,6 +92,14 @@ router.delete('/:id', adminOnly, asyncHandler(async (req: AuthenticatedRequest, 
   const id = parseInt(req.params.id);
   const user = req.user;
   
+  console.log('🔥 [DELETE] /api/locations/:id route HIT!', {
+    locationId: id,
+    userId: user?.id,
+    userRole: user?.role,
+    outfitterId: user?.outfitterId,
+    timestamp: new Date().toISOString()
+  });
+  
   // SAFEGUARD: Verify user authentication and outfitterId
   if (!user?.outfitterId) {
     console.error('🚨 EMERGENCY PROTOCOL: Delete attempt without valid outfitterId', {
