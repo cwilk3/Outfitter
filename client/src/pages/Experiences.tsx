@@ -652,7 +652,7 @@ export default function Experiences() {
     // Fetch the latest add-ons data directly from the API
     try {
       console.log(`Fetching fresh add-ons data for experience ${experience.id}`);
-      const addonResponse = await fetch(`/api/experience-addons/${experience.id}`);
+      const addonResponse = await fetch(`/api/experiences/${experience.id}/addons`);
       if (addonResponse.ok) {
         const freshAddons = await addonResponse.json();
         console.log(`Fetched ${freshAddons.length} add-ons for experience ${experience.id}`, freshAddons);
@@ -961,7 +961,7 @@ export default function Experiences() {
                     // Update existing addon
                     console.log("Updating addon:", addon);
                     // Use direct fetch for better error visibility
-                    const updateResponse = await fetch(`/api/experience-addons/${addon.id}`, {
+                    const updateResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons/${addon.id}`, {
                       method: 'PATCH',
                       headers: {
                         'Content-Type': 'application/json'
@@ -986,7 +986,7 @@ export default function Experiences() {
                   } else {
                     // Create new addon
                     console.log("Creating new addon:", addon);
-                    const createResponse = await fetch('/api/experience-addons', {
+                    const createResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json'
@@ -1032,7 +1032,7 @@ export default function Experiences() {
                   // If an existing addon is not in our current list, delete it
                   if (!addons.some(a => a.id === existingAddon.id)) {
                     console.log("Deleting addon:", existingAddon);
-                    const deleteResponse = await fetch(`/api/experience-addons/${existingAddon.id}`, {
+                    const deleteResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons/${existingAddon.id}`, {
                       method: 'DELETE'
                     });
                     
@@ -1057,7 +1057,7 @@ export default function Experiences() {
             }
             
             // Invalidate add-ons query to ensure we get fresh data
-            queryClient.invalidateQueries({ queryKey: [`/api/experience-addons/${selectedExperience.id}`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/experiences/${selectedExperience.id}/addons`] });
           } catch (addonsError) {
             console.error("Error handling add-ons:", addonsError);
             // Show error toast but don't rethrow - we still want to complete the experience update
@@ -1175,7 +1175,7 @@ export default function Experiences() {
           queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
           queryClient.invalidateQueries({ queryKey: ['/api/experiences', selectedExperience.id, 'guides'] });
           
           // Close dialog
