@@ -1,0 +1,73 @@
+URGENT: Location Creation Route Fix Not Executing — Critical Tenant Assignment Bug
+Background:
+We continue to see new locations being created with outfitterId: null, causing deletion authorization failures and breaking multi-tenant isolation. Logs show the POST /api/locations route is hit, but the new code with outfitterId injection and debug logs is NOT running.
+
+Immediate Tasks:
+Verify code deployment:
+
+Confirm that the latest code changes to the location creation route are actually saved and loaded by the server.
+
+Check for syntax errors, misnamed files, or build/deploy failures that cause old code to run.
+
+Restart the server and confirm the logs on startup reflect the new codebase.
+
+Identify route duplication:
+
+Search the entire codebase for all POST /api/locations route handlers.
+
+Check if the creation request is being handled by a different file or route than expected (like in routes.ts vs modular locationsRouter.ts).
+
+If duplicates exist, either consolidate into a single authoritative route or ensure correct route priority.
+
+Add detailed debug logging:
+
+Place logs at the very top of each suspected POST /api/locations handler to verify which one processes the request.
+
+Log the request headers and payload to cross-check the source.
+
+Confirm outfitterId injection:
+
+Ensure the creation code injects outfitterId from the authenticated user context into every new location before saving to the database.
+
+Add an immediate post-save log confirming the exact data persisted, including outfitterId.
+
+Testing:
+
+After fixing, test location creation followed by deletion.
+
+Verify deletion succeeds without authorization errors and the UI updates correctly.
+
+Verify new locations have non-null outfitterId in the database.
+
+Emergency Protocol:
+If the fix is not deployed within 2 hours:
+
+Temporarily disable location creation API or restrict access to prevent further creation of invalid data.
+
+Perform a manual data migration audit to assign correct outfitterIds to all newly created locations with nulls.
+
+Alert the engineering lead immediately for priority triage.
+
+Success Criteria:
+Logs show debug messages indicating the new creation code runs every time.
+
+Every new location created has outfitterId matching the authenticated user’s outfitterId.
+
+No locations exist in the DB with outfitterId = NULL.
+
+Deletion of any location succeeds without authorization errors.
+
+UI reflects real-time changes with no stale data or cache issues.
+
+No duplicate POST /api/locations routes handle requests.
+
+Please report back with:
+Confirmation that the latest creation route code is deployed and running.
+
+List of all files defining POST /api/locations route handlers.
+
+Any errors or warnings from the server startup logs.
+
+Sample logs from a test location creation and subsequent deletion showing outfitterId handling.
+
+Screenshots or logs showing the data in the DB for newly created locations.

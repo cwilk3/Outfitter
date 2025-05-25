@@ -67,7 +67,13 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 
 // Create new location (admin only)
 router.post('/', adminOnly, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  console.log('🚨 [CRITICAL] TENANT ASSIGNMENT ROUTE EXECUTING!');
   console.log('[LOCATION_CREATE] Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🔍 [DEBUG] User context:', { 
+    userId: req.user?.id, 
+    outfitterId: req.user?.outfitterId,
+    role: req.user?.role 
+  });
   
   // Check if images is an array
   if (req.body.images && !Array.isArray(req.body.images)) {
@@ -89,11 +95,12 @@ router.post('/', adminOnly, asyncHandler(async (req: AuthenticatedRequest, res: 
     outfitterId: req.user?.outfitterId
   };
   
-  console.log('[LOCATION_CREATE] Creating location with outfitterId:', req.user?.outfitterId);
+  console.log('🔒 [TENANT_ASSIGNMENT] Creating location with outfitterId:', req.user?.outfitterId);
+  console.log('🔒 [TENANT_ASSIGNMENT] Location data being saved:', locationDataWithTenant);
   
   const location = await storage.createLocation(locationDataWithTenant);
   
-  console.log('[LOCATION_CREATE] Created location:', { 
+  console.log('✅ [SUCCESS] Created location:', { 
     id: location.id, 
     name: location.name, 
     outfitterId: location.outfitterId 
