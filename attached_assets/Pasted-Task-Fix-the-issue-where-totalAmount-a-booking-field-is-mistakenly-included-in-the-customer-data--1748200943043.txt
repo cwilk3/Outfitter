@@ -1,0 +1,69 @@
+Task: Fix the issue where totalAmount (a booking field) is mistakenly included in the customer data validation, causing Zod to throw an "Expected string, received number" error on the customer schema parse.
+
+Steps:
+
+Add a console log to inspect customer data before validation
+
+In your booking route, right before calling insertCustomerSchema.parse(), add:
+
+ts
+Copy
+Edit
+console.log('🛠️ Customer data to validate:', { ...customerDetails, outfitterId: experience.outfitterId });
+Whitelist fields explicitly before parsing customer data
+
+Replace the parse call with a version that explicitly passes only the expected customer fields, for example:
+
+ts
+Copy
+Edit
+const safeCustomerDetails = {
+  firstName: customerDetails.firstName,
+  lastName: customerDetails.lastName,
+  email: customerDetails.email,
+  phone: customerDetails.phone,
+  address: customerDetails.address || '',
+  city: customerDetails.city || '',
+  state: customerDetails.state || '',
+  zip: customerDetails.zip || '',
+  notes: customerDetails.notes || '',
+  outfitterId: experience.outfitterId,
+};
+
+const customerData = insertCustomerSchema.parse(safeCustomerDetails);
+Verify insertCustomerSchema does NOT include totalAmount
+
+Double-check your schema file to confirm no totalAmount field exists on the customer schema.
+
+Test the booking POST endpoint with the same payload
+
+Ensure that totalAmount is NOT present in the customer data object logged.
+
+Check the logs and observe if validation proceeds past customer parsing without errors
+
+Success Criteria
+The console log "Customer data to validate:" shows the customer object without a totalAmount field or any unrelated fields.
+
+The customer data validation passes successfully without throwing errors.
+
+The booking validation executes next, where the totalAmount is correctly parsed as a string (after your coercion logic).
+
+No more ZodError related to "Expected string, received number" on totalAmount during customer validation.
+
+The booking POST request responds with either a success or a new error explicitly related to booking validation (not customer).
+
+All new logs are visible and detailed for review.
+
+What to Provide for My Review
+The logged output of the customer data object before parsing
+
+Confirmation or snippet showing the explicit field whitelisting for customer data
+
+Confirmation that insertCustomerSchema is correct and unchanged
+
+Logs from your next booking POST test request (success or failure)
+
+If an error persists, the full updated error stack trace and relevant logs
+
+This will isolate the data boundary issue and ensure your validation logic works as intended without cross-contamination of fields.
+

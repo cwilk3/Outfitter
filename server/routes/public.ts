@@ -184,15 +184,34 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   const groupSize = finalGroupSize;
   const totalAmount = finalTotalAmount;
   
+  console.log('🔍 [CRITICAL] About to start customer creation section');
+  console.log('🔍 [CRITICAL] Values before customer creation - groupSize:', groupSize, 'totalAmount:', totalAmount);
+  
   // Create or find customer
   let customerData;
   try {
     console.log('📝 About to validate customer data:', customerDetails);
     console.log('📝 Experience for customer validation:', { id: experience.id, outfitterId: experience.outfitterId });
-    customerData = insertCustomerSchema.parse({
-      ...customerDetails,
-      outfitterId: experience.outfitterId
-    });
+    
+    // Log the exact customer data object before validation
+    console.log('🛠️ Customer data to validate:', { ...customerDetails, outfitterId: experience.outfitterId });
+    
+    // Whitelist fields explicitly to prevent contamination from other request fields
+    const safeCustomerDetails = {
+      firstName: customerDetails.firstName,
+      lastName: customerDetails.lastName,
+      email: customerDetails.email,
+      phone: customerDetails.phone,
+      address: customerDetails.address || '',
+      city: customerDetails.city || '',
+      state: customerDetails.state || '',
+      zip: customerDetails.zip || '',
+      notes: customerDetails.notes || '',
+      outfitterId: experience.outfitterId,
+    };
+    
+    console.log('🛡️ Safe customer data (whitelisted):', safeCustomerDetails);
+    customerData = insertCustomerSchema.parse(safeCustomerDetails);
     console.log('✅ Customer data validated successfully');
   } catch (error) {
     console.error('❌ [CRITICAL ERROR] Crash during customer data validation:', error);
@@ -209,6 +228,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   console.log('\n📝 [DEBUG] Creating Booking Data:');
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
+  console.log('🚨 [EXECUTION CHECK] Continuing after booking number generation...');
   
   // Type checking and conversion for totalAmount
   console.log('📝 Preparing booking data with totalAmount:', totalAmount, 'type:', typeof totalAmount);
