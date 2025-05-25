@@ -189,4 +189,149 @@ curl -X DELETE /api/locations/{id}
 
 ---
 
+## 📊 COMPLETE RAW AUDIT DATA
+
+### ALL FILES WITH EXPRESS ROUTE HANDLERS (12 TOTAL)
+
+#### 1. server/routes/dashboard.ts
+```
+Line 36: router.get('/stats', asyncHandler...)
+Line 42: router.get('/upcoming-bookings', asyncHandler...)
+Line 49: router.get('/settings', asyncHandler...)
+Line 61: router.post('/settings', adminOnly, asyncHandler...)
+```
+
+#### 2. server/routes/index.ts
+```
+Line 26: router.get('/settings', async...)
+Line 39: router.get('/user-outfitters', async...)
+Line 55: router.get('/logout', (req, res)...)
+```
+
+#### 3. server/routes/guides.ts
+```
+Line 35: router.get('/:guideId/experiences', asyncHandler...)
+Line 44: router.post('/assign/:experienceId', adminOnly, asyncHandler...)
+Line 70: router.put('/assignments/:id', adminOnly, asyncHandler...)
+Line 93: router.delete('/assignments/:id', adminOnly, asyncHandler...)
+```
+
+#### 4. server/routes/auth.ts
+```
+Line 35: router.post('/email-register'...)
+Line 45: router.post('/login'...)
+Line 50: router.post('/logout', logoutUser)
+Line 53: router.get('/me', asyncHandler...)
+Line 80: router.get('/check', (req, res)...)
+Line 94: router.get('/user', requireAuth, getCurrentUser)
+```
+
+#### 5. server/routes/experiences.ts
+```
+Line 37: router.get('/', asyncHandler...)
+Line 44: router.get('/:id/locations', asyncHandler...)
+Line 51: router.get('/addons/:experienceId', asyncHandler...)
+Line 57: router.post('/addons', asyncHandler...)
+Line 70: router.patch('/addons/:id', asyncHandler...)
+Line 83: router.delete('/addons/:id', asyncHandler...)
+Line 96: router.get('/:experienceId/guides', asyncHandler...)
+```
+
+#### 6. server/routes/bookings.ts
+```
+Line 58: router.get('/'...)
+Line 67: router.post('/'...)
+Line 96: router.patch('/:id'...)
+Line 114: router.get('/:bookingId/guides'...)
+Line 123: router.post('/:bookingId/guides'...)
+Line 137: router.delete('/:bookingId/guides/:guideId'...)
+```
+
+#### 7. server/routes/customers.ts
+```
+Line 44: router.get('/'...)
+Line 55: router.get('/:id'...)
+Line 70: router.post('/'...)
+Line 79: router.patch('/:id'...)
+```
+
+#### 8. server/routes/public.ts
+```
+Line 13: router.get('/locations', asyncHandler...)
+Line 20: router.get('/experiences', asyncHandler...)
+Line 55: router.get('/bookings', asyncHandler...)
+Line 90: router.post('/bookings', asyncHandler...)
+```
+
+#### 9. ✅ server/routes/locations.ts (CORRECT - HAS TENANT ASSIGNMENT)
+```
+Line 43: router.get('/', guideOrAdmin, asyncHandler...)
+Line 57: router.get('/:id', asyncHandler...)
+Line 69: router.post('/', adminOnly, asyncHandler...) ← ENHANCED WITH TENANT FIX
+Line 113: router.patch('/:id', adminOnly, asyncHandler...)
+Line 127: router.delete('/:id', adminOnly, asyncHandler...)
+```
+
+#### 10. ❌ server/routes_old_corrupted.ts (CONFLICTING - NO TENANT ASSIGNMENT)
+**LOCATION ROUTES THAT CONFLICT:**
+```
+Line 292: app.get('/api/locations', guideOrAdmin, async...)
+Line 303: app.get('/api/locations/:id', requireAuth, async...)
+Line 319: app.post('/api/locations', adminOnly, async...) ← BYPASSING TENANT FIX
+Line 400: app.delete('/api/locations/:id', requireAuth, hasRole('admin'), async...)
+```
+**OTHER LEGACY ROUTES:**
+```
+Line 84: app.post('/api/auth/email-register'...)
+Line 91: app.post('/api/auth/login', loginUser)
+Line 92: app.post('/api/auth/logout', logoutUser)
+Line 95: app.get('/api/auth/me', async...)
+Line 127: app.get('/api/auth/user', requireAuth, async...)
+Line 145: app.get('/api/logout', (req, res)...)
+Line 152: app.post('/api/outfitters', async...)
+Line 209: app.get('/api/user-outfitters', requireAuth, async...)
+Line 221: app.get('/api/users', requireAuth, async...)
+Line 232: app.get('/api/users/:id', requireAuth, async...)
+[Plus 40+ more legacy route handlers]
+```
+
+#### 11. server/routes.ts (PRIORITY ROUTES ONLY)
+```
+Line 18: app.delete('/api/locations/:id', async...) ← PRIORITY DELETE TO BYPASS VITE
+```
+
+#### 12. server/index.ts (MAIN ENTRY)
+```
+Line 63: if (app.get("env") === "development") ← VITE SETUP
+```
+
+### EXECUTION ORDER VERIFICATION
+```
+server/index.ts:56 → registerRoutes(app)
+  ↓
+server/routes.ts:18 → Priority DELETE registration
+  ↓
+server/routes.ts:76 → app.use('/api', apiRoutes) → Modular routes
+  ↓
+PROBLEM: routes_old_corrupted.ts still executing and intercepting requests
+```
+
+### LOG EVIDENCE OF ROUTE CONFLICT
+**WHAT WE SEE (Route reached but bypassed):**
+```
+🔍 [LOCATIONS ROUTER] POST / - Route Hit!
+[LOCATION_CREATE] Request body: { "name": "Dallas Ranch", ... }
+POST /api/locations 201 in 175ms
+```
+
+**WHAT'S MISSING (Tenant assignment not executing):**
+```
+🚨 [CRITICAL] TENANT ASSIGNMENT ROUTE EXECUTING!
+🔍 [DEBUG] User context: { userId: 'zddwhpv725', outfitterId: 1, role: 'admin' }
+🔒 [TENANT_ASSIGNMENT] Creating location with outfitterId: 1
+✅ [SUCCESS] Created location: { id: 22, name: "Dallas Ranch", outfitterId: 1 }
+```
+
+---
+
 **CONCLUSION:** The route conflict analysis confirms that legacy handlers are bypassing the enhanced tenant assignment system. Immediate removal of conflicting routes will restore proper multi-tenant data isolation and resolve the location creation/deletion authorization issues.
