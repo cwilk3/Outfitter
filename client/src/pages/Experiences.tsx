@@ -1303,7 +1303,7 @@ export default function Experiences() {
               console.log(`Checking existing add-ons for the new experience ID ${result.id}`);
               
               // First check if add-ons were already created by the server
-              const checkResponse = await fetch(`/api/experience-addons/${result.id}`);
+              const checkResponse = await fetch(`/api/experiences/${result.id}/addons`);
               const existingAddons = await checkResponse.json();
               
               if (existingAddons && existingAddons.length > 0) {
@@ -1316,7 +1316,7 @@ export default function Experiences() {
                   try {
                     console.log("Creating addon:", addon);
                     // Only include fields that match the database schema
-                    const response = await fetch('/api/experience-addons', {
+                    const response = await fetch(`/api/experiences/${result.id}/addons`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1358,7 +1358,7 @@ export default function Experiences() {
               }
               
               // Invalidate add-ons query to ensure we get fresh data
-              queryClient.invalidateQueries({ queryKey: [`/api/experience-addons/${result.id}`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/experiences/${result.id}/addons`] });
             } else {
               console.log("No add-ons to create for this experience");
             }
@@ -1377,7 +1377,7 @@ export default function Experiences() {
             queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
             queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
             queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
             
             // Reset and close the form
             closeDialog();
