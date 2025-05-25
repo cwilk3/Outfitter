@@ -49,9 +49,8 @@ export default function CalendarView() {
         id: booking.id,
         title: experience ? `${experience.name} - ${customer?.firstName} ${customer?.lastName}` : `Booking #${booking.bookingNumber}`,
         start: normalizeDate(booking.startDate),
-        // Adjust the end date by adding one day to correctly display multi-day events
-        // This is because React Big Calendar treats end dates as exclusive (not including the end date)
-        end: new Date(normalizeDate(booking.endDate).getTime() + 86400000), // Add 24 hours (86400000ms)
+        // Store the raw end date without modification
+        end: normalizeDate(booking.endDate),
         allDay: true,
         resource: {
           booking,
@@ -134,7 +133,13 @@ export default function CalendarView() {
             localizer={localizer}
             events={calendarEvents}
             startAccessor="start"
-            endAccessor="end"
+            endAccessor={(event) => {
+              // Add one day to end date for React Big Calendar's exclusive end date handling
+              // This ensures consistent display with the Bookings table
+              const adjustedEnd = new Date(event.end);
+              adjustedEnd.setDate(adjustedEnd.getDate() + 1);
+              return adjustedEnd;
+            }}
             style={{ height: '100%' }}
             eventPropGetter={eventStyleGetter}
             views={['month']}
