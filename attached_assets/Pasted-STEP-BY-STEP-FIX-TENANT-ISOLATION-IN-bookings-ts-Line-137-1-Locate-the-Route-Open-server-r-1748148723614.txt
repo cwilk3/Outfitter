@@ -1,0 +1,94 @@
+STEP-BY-STEP: FIX TENANT ISOLATION IN bookings.ts (Line ~137)
+
+🧱 1. Locate the Route:
+Open server/routes/bookings.ts.
+
+Scroll to line ~137, where the route:
+
+ts
+Copy
+Edit
+DELETE /api/bookings/:bookingId/guides/:guideId
+is defined.
+
+🔥 2. REMOVE EMERGENCY PATCH BLOCK:
+Delete or comment out the emergency block that returns 403 with [EMERGENCY DISABLE].
+
+✅ 3. APPLY PERMANENT TENANT-AWARE FIX:
+Replace the current logic with the following (or modify as needed to match your DB layer):
+
+ts
+Copy
+Edit
+app.delete(
+  "/api/bookings/:bookingId/guides/:guideId",
+  requireAuth,
+  async (req, res) => {
+    console.log("[PATCHING] Deleting guide from booking (tenant-aware)");
+
+    const { bookingId, guideId } = req.params;
+    const outfitterId = req.user.outfitterId;
+
+    // Tenant check: only delete if this booking belongs to the user's outfitter
+    const result = await db.bookingGuide.deleteMany({
+      where: {
+        bookingId: parseInt(bookingId),
+        guideId: parseInt(guideId),
+        booking: {
+          outfitter_id: outfitterId,
+        },
+      },
+    });
+
+    if (result.count === 0) {
+      return res.status(404).json({
+        error: "Booking not found or not authorized",
+      });
+    }
+
+    return res.status(204).send(); // Success: guide removed
+  }
+);
+⚠️ Adjust field names if needed (bookingGuide, outfitter_id, etc.)
+
+🛡️ 4. ADD GUARDRAILS:
+Ensure requireAuth middleware is active.
+
+Confirm req.user.outfitterId is set correctly.
+
+Wrap DB call in try/catch if needed for error logging.
+
+✅ 5. SUCCESS CRITERIA:
+To confirm this fix is complete, ensure:
+
+ The route no longer returns 403
+
+ Only bookings belonging to the logged-in outfitter can be modified
+
+ A 204 is returned on success
+
+ A 404 is returned if no match / unauthorized
+
+ No bookings outside of the user’s outfitterId can be accessed or modified
+
+🧪 6. TEST CASES TO RUN:
+Test	Expected Response
+✅ Authenticated user with correct outfitterId deletes their guide	204 No Content
+🚫 Authenticated user tries to delete guide from another outfitter’s booking	404 Not Found
+❌ Unauthenticated user	401 Unauthorized
+
+🚨 7. EMERGENCY FALLBACK PROTOCOL:
+If anything breaks or behaves unexpectedly:
+
+Revert to the hardened 403 block:
+
+ts
+Copy
+Edit
+return res.status(403).json({
+  error: "This route is temporarily disabled for security reasons.",
+  route: req.originalUrl,
+});
+Confirm logs show [EMERGENCY DISABLE] again
+
+Notify @ChatGPT to help troubleshoot
