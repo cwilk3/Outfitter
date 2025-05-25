@@ -288,6 +288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ❌ LEGACY LOCATION ROUTES - DISABLED TO FIX TENANT ASSIGNMENT CONFLICT
+  // These routes have been commented out because they bypass the enhanced 
+  // tenant assignment logic in the modular router system.
+  // The modular routes in server/routes/locations.ts now handle all location operations.
+  
+  /*
   // Location routes (guides can view, only admins can modify)
   app.get('/api/locations', guideOrAdmin, async (req, res) => {
     try {
@@ -423,6 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to delete location' });
     }
   });
+  */
 
   // Experience routes (only accessible by admin)
   app.get('/api/experiences', requireAuth, async (req, res) => {
