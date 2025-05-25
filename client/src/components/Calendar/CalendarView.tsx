@@ -133,13 +133,7 @@ export default function CalendarView() {
             localizer={localizer}
             events={calendarEvents}
             startAccessor="start"
-            endAccessor={(event) => {
-              // Add one day to end date for React Big Calendar's exclusive end date handling
-              // This ensures consistent display with the Bookings table
-              const adjustedEnd = new Date(event.end);
-              adjustedEnd.setDate(adjustedEnd.getDate() + 1);
-              return adjustedEnd;
-            }}
+            endAccessor="end"
             style={{ height: '100%' }}
             eventPropGetter={eventStyleGetter}
             views={['month']}
