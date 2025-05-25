@@ -195,6 +195,7 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   console.log('\n📝 [DEBUG] Creating Booking Data:');
   const bookingNumber = `PUB-${nanoid(8)}`;
   console.log(`   Generated Booking Number: ${bookingNumber}`);
+  console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
   
   console.log('\n🔍 [DEBUG] Booking object before validation:', {
     bookingNumber,
