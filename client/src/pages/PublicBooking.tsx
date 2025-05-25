@@ -1250,7 +1250,7 @@ function PublicBooking() {
                   </div>
                 )}
                 
-                <p className="font-semibold border-t border-green-200 mt-2 pt-1">Total: {bookingConfirmation.totalAmount ? formatPrice(bookingConfirmation.totalAmount) : formatPrice(form.getValues().payment?.totalAmount || '')}</p>
+                <p className="font-semibold border-t border-green-200 mt-2 pt-1">Total: {bookingConfirmation.booking?.totalAmount ? formatPrice(bookingConfirmation.booking.totalAmount) : formatPrice(form.getValues().payment?.totalAmount || '')}</p>
               </div>
             </div>
           )}
