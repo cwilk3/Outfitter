@@ -1373,13 +1373,19 @@ export default function Experiences() {
           }
           
           // Invalidate data
-          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
-          
-          // Reset and close the form
-          closeDialog();
+          try {
+            queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/experience-addons'] });
+            
+            // Reset and close the form
+            closeDialog();
+          } catch (cleanupError) {
+            console.warn("Non-critical cleanup error:", cleanupError);
+            // Still close the dialog even if cleanup fails
+            setIsCreating(false);
+          }
         } catch (createError: any) {
           console.error("Error creating experience:", createError);
           toast({
