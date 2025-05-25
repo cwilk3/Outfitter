@@ -59,6 +59,38 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
   res.status(201).json(experience);
 }));
 
+// Delete experience (admin only)
+router.delete('/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
+  const experience = await storage.getExperience(experienceId);
+  if (!experience || experience.outfitterId !== outfitterId) {
+    console.log('🚫 [TENANT-BLOCK] Experience deletion denied', { 
+      experienceId, 
+      userOutfitterId: outfitterId, 
+      experienceOutfitterId: experience?.outfitterId 
+    });
+    return res.status(404).json({ error: "Experience not found" });
+  }
+
+  console.log('✅ [TENANT-VERIFIED] Deleting experience', { experienceId, outfitterId });
+  await storage.deleteExperience(experienceId);
+  
+  console.log('🗑️ [SUCCESS] Experience deleted', { experienceId });
+  res.status(204).end();
+}));
+
 // Experience locations
 router.get('/:id/locations', asyncHandler(async (req: Request, res: Response) => {
   const experienceId = parseInt(req.params.id);
