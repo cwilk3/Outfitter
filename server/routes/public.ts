@@ -114,6 +114,13 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   console.log(`   payment: ${JSON.stringify(payment)}`);
   console.log(`   selectedAddons: ${JSON.stringify(selectedAddons)}`);
   
+  // STEP 1: Log Raw Date Inputs
+  console.log('\n🔍 [DATE DEBUG] Raw booking date inputs:');
+  console.log(`   bookingDetails.startDate: "${bookingDetails.startDate}"`);
+  console.log(`   bookingDetails.endDate: "${bookingDetails.endDate}"`);
+  console.log(`   typeof startDate: ${typeof bookingDetails.startDate}`);
+  console.log(`   typeof endDate: ${typeof bookingDetails.endDate}`);
+  
   // Validate required fields
   if (!experienceId || !customerDetails || !bookingDetails) {
     console.log('❌ [ERROR] Missing required fields validation failed');
@@ -251,12 +258,24 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   try {
     console.log('🔍 [EXECUTION CHECK] About to log booking object before validation');
     
+    // STEP 3: Log Date Conversion Process
+    const parsedStartDate = new Date(bookingDetails.startDate);
+    const parsedEndDate = new Date(bookingDetails.endDate);
+    
+    console.log('\n🔍 [DATE CONVERSION DEBUG] Date parsing results:');
+    console.log(`   Raw startDate: "${bookingDetails.startDate}"`);
+    console.log(`   Parsed startDate: ${parsedStartDate.toISOString()}`);
+    console.log(`   Parsed startDate (local): ${parsedStartDate.toLocaleDateString()}`);
+    console.log(`   Raw endDate: "${bookingDetails.endDate}"`);
+    console.log(`   Parsed endDate: ${parsedEndDate.toISOString()}`);
+    console.log(`   Parsed endDate (local): ${parsedEndDate.toLocaleDateString()}`);
+
     console.log('\n🔍 [DEBUG] Booking object before validation:', {
       bookingNumber,
       experienceId,
       customerId: customer.id,
-      startDate: new Date(bookingDetails.startDate),
-      endDate: new Date(bookingDetails.endDate),
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
       status: 'pending',
       totalAmount: totalAmountStr,
       totalAmountType: typeof totalAmountStr,
@@ -273,8 +292,8 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
       bookingNumber: bookingNumber,
       experienceId,
       customerId: customer.id,
-      startDate: new Date(bookingDetails.startDate),
-      endDate: new Date(bookingDetails.endDate),
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
       status: 'pending' as const,
       totalAmount: totalAmountStr,
       groupSize: groupSize,
@@ -313,6 +332,13 @@ router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   console.log(`   Database Booking Number: ${booking.bookingNumber}`);
   console.log(`   Database Total Amount: ${booking.totalAmount}`);
   console.log(`   Database Group Size: ${booking.groupSize}`);
+  
+  // STEP 4: Log what actually got stored in database
+  console.log('\n🎯 [FINAL DATABASE CHECK] What was actually stored:');
+  console.log(`   Database startDate: ${booking.startDate}`);
+  console.log(`   Database endDate: ${booking.endDate}`);
+  console.log(`   Database startDate type: ${typeof booking.startDate}`);
+  console.log(`   Database endDate type: ${typeof booking.endDate}`);
   
   // Get guides assigned to this experience and link them to the booking
   const guides = await storage.getExperienceGuides(booking.experienceId);
