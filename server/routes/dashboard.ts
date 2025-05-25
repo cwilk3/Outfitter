@@ -59,16 +59,11 @@ router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.post('/settings', adminOnly, asyncHandler(async (req: Request, res: Response) => {
-  const validatedData = insertSettingsSchema.parse(req.body);
-  const user = (req as any).user;
-  
-  if (!user || !user.outfitterId) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  
-  // 🔒 TENANT ISOLATION: Update settings only for user's outfitter
-  const settings = await storage.updateSettingsWithTenant(validatedData, user.outfitterId);
-  res.json(settings);
+  // 🚨 TEMPORARILY DISABLED - TENANT ISOLATION IMPLEMENTATION IN PROGRESS
+  res.status(403).json({ 
+    message: 'Route temporarily disabled for security updates',
+    reason: 'Implementing tenant isolation fixes'
+  });
 }));
 
 export default router;

@@ -137,16 +137,11 @@ router.post('/:bookingId/guides',
 router.delete('/:bookingId/guides/:guideId', 
   validate({ params: bookingValidation.bookingGuideParams }),
   asyncHandler(async (req: Request, res: Response) => {
-    const { bookingId, guideId } = req.params;
-    const user = (req as any).user;
-    
-    if (!user || !user.outfitterId) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    
-    // 🔒 TENANT ISOLATION: Verify booking belongs to user's outfitter before deletion
-    await storage.removeGuideFromBookingWithTenant(parseInt(bookingId), guideId, user.outfitterId);
-    res.status(204).end();
+    // 🚨 TEMPORARILY DISABLED - TENANT ISOLATION IMPLEMENTATION IN PROGRESS
+    res.status(403).json({ 
+      message: 'Route temporarily disabled for security updates',
+      reason: 'Implementing tenant isolation fixes'
+    });
   })
 );
 
