@@ -112,7 +112,7 @@ const experienceSchema = z.object({
   duration: z.coerce.number().positive({ message: "Duration must be a positive number." }),
   price: z.coerce.number().positive({ message: "Price must be a positive number." }),
   capacity: z.coerce.number().positive({ message: "Capacity must be a positive number." }),
-  locationId: z.number({ required_error: "Location is required" }),
+  locationId: z.number({ required_error: "Location is required" }).min(1, "Valid location is required"),
   
   // Media & extras
   images: z.array(z.string()).optional(),
@@ -279,8 +279,7 @@ export default function Experiences() {
         price: data.price,
         capacity: data.capacity,
         category: data.category,
-        // Use the provided locationId, with a fallback to 1 if none is specified
-        locationId: data.locationId || 1,
+        locationId: data.locationId, // Use data.locationId directly (no fallback)
         rules: rules,
         amenities: amenities,
         tripIncludes: tripIncludes,
@@ -300,16 +299,8 @@ export default function Experiences() {
         description: "Experience created successfully",
       });
       
-      // If there is a selected location, associate it with the new experience
-      if (selectedLocIds.length > 0) {
-        const experienceId = response.id;
-        const locationId = selectedLocIds[0];
-        
-        addExperienceLocationMutation.mutate({
-          experienceId,
-          locationId,
-        });
-      }
+      // Location relationship is now created directly with the experience
+      // No need for separate addExperienceLocationMutation call
       
       // Invalidate both admin and public experience queries to ensure everything is updated
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
