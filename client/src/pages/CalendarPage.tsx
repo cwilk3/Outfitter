@@ -59,20 +59,13 @@ export default function CalendarPage() {
           ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
           : `Booking #${booking.bookingNumber}`;
         
-        // Fix timezone handling by ensuring dates are interpreted correctly
-        const normalizeDate = (dateString: string) => {
-          // Parse the date in a timezone-agnostic way by using YYYY-MM-DD format
-          const parts = new Date(dateString).toISOString().split('T')[0].split('-');
-          return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
-        };
-        
         return {
           id: booking.id,
           title: title,
-          start: normalizeDate(booking.startDate),
+          start: new Date(booking.startDate), // Directly create Date object from UTC string
           // Adjust the end date by adding one day to correctly display multi-day events
           // This is because React Big Calendar treats end dates as exclusive (not including the end date)
-          end: new Date(normalizeDate(booking.endDate).getTime() + 86400000), // Add 24 hours (86400000ms)
+          end: new Date(new Date(booking.endDate).getTime() + 86400000), // Directly create Date object from UTC string, then add 24 hours
           allDay: true,
           resource: {
             booking,
