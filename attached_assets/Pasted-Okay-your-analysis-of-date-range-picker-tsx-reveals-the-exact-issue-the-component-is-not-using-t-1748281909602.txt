@@ -1,0 +1,76 @@
+Okay, your analysis of `date-range-picker.tsx` reveals the exact issue: the component is not using the new `availableRanges` prop as its source of truth for availability, and it's still relying on old, obsolete logic.
+
+We need to refactor the date disabling logic to exclusively use `availableRanges`.
+
+Please modify the file `client/src/components/ui/date-range-picker.tsx`.
+
+**Here are the specific changes:**
+
+**Part A: Remove the `isDateAtCapacity` function**
+
+Locate and completely remove the `isDateAtCapacity` function definition (around lines 35-58 in your current code). It's no longer needed.
+
+**Part B: Replace the `isDateDisabled` function with the new logic**
+
+Locate the `isDateDisabled` function (around lines 61-98 in your current code). **Replace its entire content with the following new implementation.** This new `isDateDisabled` function will:
+1.  Disable dates in the past.
+2.  Enable a date only if it falls within one of the `availableRanges` and the *entire duration* of the experience starting from that date also fits within an `availableRange`.
+
+**Replace the entire `async isDateDisabled(...)` function in `client/src/components/ui/date-range-picker.tsx` with this code:**
+
+```typescript
+// In client/src/components/ui/date-range-picker.tsx
+
+// Function to check if a date should be disabled based on availableRanges
+const isDateDisabled = (date: Date) => {
+  const checkDate = startOfDay(date); // Normalize for consistent comparison (start of day)
+
+  // 1. Disable dates in the past
+  if (checkDate < today) return true;
+
+  // 2. If no availableRanges data is provided (e.g., still loading, error, or no slots available)
+  //    then disable all future dates.
+  if (!availableRanges || availableRanges.length === 0) {
+    return true;
+  }
+
+  // 3. Check if 'checkDate' is a valid start date for a trip of 'duration' based on `availableRanges`.
+  //    A date is ENABLED ONLY if:
+  //    a) It falls within one of the `availableRanges` (which are already filtered by requestedGroupSize and capacity by the backend).
+  //    b) The *entire duration* of the experience, starting from `checkDate`, fits within an `availableRange`.
+  
+  let isSelectableStart = false;
+
+  for (const range of availableRanges) {
+    const rangeStart = startOfDay(range.from);
+    // The `range.to` from backend's `availableSlots` is exclusive (slotEnd = currentSlotStart + duration).
+    const rangeEndExclusive = startOfDay(range.to); 
+
+    // Check if `checkDate` is on or after the available range start
+    // AND if `checkDate` is before the available range exclusive end
+    if (checkDate >= rangeStart && checkDate < rangeEndExclusive) {
+      // Now, check if the entire `duration` of the experience starting from `checkDate` fits within *this specific* available range.
+      const potentialTripEndExclusive = addDays(checkDate, duration); // The exclusive end date of the potential trip
+
+      if (potentialTripEndExclusive <= rangeEndExclusive) {
+        // Found a valid range where this date can start a full trip.
+        isSelectableStart = true;
+        break; // No need to check other ranges if one works
+      }
+    }
+  }
+
+  // If after checking all availableRanges, this date cannot be a valid start date, disable it.
+  if (!isSelectableStart) return true;
+
+  return false; // If all checks pass, the date is enabled (selectable as a start date)
+};
+Please provide a comprehensive diff preview of these changes. I will review it carefully before you apply it.
+
+Success Criteria for my approval:
+
+The isDateAtCapacity function is completely removed.
+The isDateDisabled function is entirely replaced with the new logic provided, which exclusively uses availableRanges.
+The new isDateDisabled logic correctly handles past dates, empty availableRanges, and correctly determines isSelectableStart based on availableRanges and experience.duration.
+No other code lines are affected.
+I will not approve the change until these criteria are met.

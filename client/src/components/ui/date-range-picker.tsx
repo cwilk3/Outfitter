@@ -49,71 +49,51 @@ export function DateRangePicker({
   // Get today's date at the start of the day
   const today = startOfDay(new Date());
   
-  // Function to check if a date is at capacity based on existing bookings
-  const isDateAtCapacity = (date: Date) => {
-    // Normalize to start of day for consistent comparison
-    const checkDate = startOfDay(new Date(date));
-    
-    // Count bookings that include this date
-    let bookedCount = 0;
-    
-    bookings.forEach(booking => {
-      if (!booking.startDate || !booking.endDate) return;
-      
-      const bookingStart = startOfDay(new Date(booking.startDate));
-      const bookingEnd = startOfDay(new Date(booking.endDate));
-      
-      // Check if this date falls within the booking range
-      if (
-        (checkDate >= bookingStart && checkDate <= bookingEnd)
-      ) {
-        bookedCount += booking.bookedCount || 1;
-      }
-    });
-    
-    // Return true if date is at or over capacity considering current guest count
-    // Check if adding the current guests would exceed capacity
-    return (bookedCount + guestCount) > capacity;
-  };
+
   
-  // Function to check if a date should be disabled
+  // Function to check if a date should be disabled based on availableRanges
   const isDateDisabled = (date: Date) => {
-    // Past dates are disabled
-    if (date < today) return true;
-    
-    // Check if date is at capacity
-    if (isDateAtCapacity(date)) return true;
-    
-    // Check if any date in the range would be at capacity
-    // Important for multi-day experiences
-    for (let i = 0; i < duration; i++) {
-      const rangeDate = addDays(date, i);
-      if (isDateAtCapacity(rangeDate)) return true;
+    const checkDate = startOfDay(date); // Normalize for consistent comparison (start of day)
+
+    // 1. Disable dates in the past
+    if (checkDate < today) return true;
+
+    // 2. If no availableRanges data is provided (e.g., still loading, error, or no slots available)
+    //    then disable all future dates.
+    if (!availableRanges || availableRanges.length === 0) {
+      return true;
     }
+
+    // 3. Check if 'checkDate' is a valid start date for a trip of 'duration' based on `availableRanges`.
+    //    A date is ENABLED ONLY if:
+    //    a) It falls within one of the `availableRanges` (which are already filtered by requestedGroupSize and capacity by the backend).
+    //    b) The *entire duration* of the experience, starting from `checkDate`, fits within an `availableRange`.
     
-    // Check if date is in the available dates list (if available dates are specified)
-    if (experience.availableDates && experience.availableDates.length > 0) {
-      // Convert the current date to a comparable string format
-      const dateStr = date.toISOString().split('T')[0];
-      
-      // Convert all available dates to the same format for comparison
-      const availableDateStrings = experience.availableDates.map(d => {
-        // Handle both string and Date objects
-        if (d instanceof Date) {
-          return d.toISOString().split('T')[0];
-        } else {
-          // For string dates, standardize the format
-          return new Date(d).toISOString().split('T')[0];
+    let isSelectableStart = false;
+
+    for (const range of availableRanges) {
+      const rangeStart = startOfDay(range.from);
+      // The `range.to` from backend's `availableSlots` is exclusive (slotEnd = currentSlotStart + duration).
+      const rangeEndExclusive = startOfDay(range.to); 
+
+      // Check if `checkDate` is on or after the available range start
+      // AND if `checkDate` is before the available range exclusive end
+      if (checkDate >= rangeStart && checkDate < rangeEndExclusive) {
+        // Now, check if the entire `duration` of the experience starting from `checkDate` fits within *this specific* available range.
+        const potentialTripEndExclusive = addDays(checkDate, duration); // The exclusive end date of the potential trip
+
+        if (potentialTripEndExclusive <= rangeEndExclusive) {
+          // Found a valid range where this date can start a full trip.
+          isSelectableStart = true;
+          break; // No need to check other ranges if one works
         }
-      });
-      
-      // If the date is not in the available dates list, disable it
-      if (!availableDateStrings.includes(dateStr)) {
-        return true;
       }
     }
-    
-    return false;
+
+    // If after checking all availableRanges, this date cannot be a valid start date, disable it.
+    if (!isSelectableStart) return true;
+
+    return false; // If all checks pass, the date is enabled (selectable as a start date)
   };
   
   // Handle date selection
