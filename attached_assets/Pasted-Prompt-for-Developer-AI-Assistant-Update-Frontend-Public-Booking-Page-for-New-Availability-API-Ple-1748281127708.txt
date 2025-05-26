@@ -1,0 +1,113 @@
+Prompt for Developer/AI Assistant: Update Frontend Public Booking Page for New Availability API
+
+Please modify the file client/src/pages/PublicBooking.tsx.
+
+Context: The backend API for checking experience availability has been updated to GET /api/public/v2/availability. This new endpoint directly returns available time slots for a given experience ID and requested group size, rather than a list of all bookings. We now need to update the frontend to use this new endpoint and adapt how availability is displayed, particularly in the DateRangePicker component.
+
+Part 1: Update the useQuery hook for availability data
+
+Locate the useQuery hook currently responsible for fetching bookings for availability tracking (it was previously fetching from /api/public/bookings and likely located around lines 150-160 in PublicBooking.tsx).
+
+Replace that entire useQuery block with the following:
+
+  // Fetch availability data for the selected experience using the new v2 endpoint
+  const { 
+    data: availabilityResponse, 
+    isLoading: isLoadingAvailability,
+    error: availabilityError // Capture error state
+  } = useQuery<{ 
+    availableSlots: { startDate: string; endDate: string }[];
+    message?: string; // Optional message from backend
+    // Add other expected fields from the v2/availability response if necessary
+  }>({ // Provide a default for availabilityResponse during destructuring
+    queryKey: ['/api/public/v2/availability', selectedExperience?.id, form.watch('guests')], // Add 'guests' to queryKey to refetch when group size changes
+    queryFn: async () => {
+      if (!selectedExperience) return { availableSlots: [] }; // Default if no experience
+      // Ensure guests value is valid for the API call
+      const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); 
+
+      const response = await fetch(`/api/public/v2/availability?experienceId=${selectedExperience.id}&requestedGroupSize=${requestedGroupSize}`);
+      if (!response.ok) {
+        // Attempt to parse error message from API response
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch availability' }));
+        throw new Error(errorData.message || 'Failed to fetch availability');
+      }
+      return response.json();
+    },
+    enabled: !!selectedExperience?.id && bookingDialogOpen, // Only run query when experience selected and dialog open
+    staleTime: 5 * 60 * 1000, // Cache availability data for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+    // Consider adding an onError handler to show a toast or specific UI message
+    // onError: (error: Error) => {
+    //   toast({
+    //     title: "Availability Check Failed",
+    //     description: error.message || "Could not retrieve up-to-date availability.",
+    //     variant: "destructive",
+    //   });
+    // }
+  });
+
+  // Prepare available dates for the DateRangePicker
+  // This replaces the old 'formattedBookings'
+  const availableDatesForPicker = useMemo(() => {
+    // Use optional chaining and provide a default for availableSlots
+    return (availabilityResponse?.availableSlots || []).map(slot => ({
+      from: new Date(slot.startDate),
+      to: new Date(slot.endDate),
+    }));
+  }, [availabilityResponse]);
+Success Criteria for Part 1 (for your approval before proceeding or applying):
+
+The old useQuery call (fetching from /api/public/bookings) is entirely replaced by the new one.
+The new useQuery correctly fetches from /api/public/v2/availability.
+experienceId and requestedGroupSize parameters are correctly passed to the API.
+The queryKey includes form.watch('guests').
+The data property from useQuery is destructured as availabilityResponse. (Using a default like const { data: availabilityResponse = { availableSlots: [] } ...} in the destructuring itself is also fine if preferred over the queryFn returning { availableSlots: [] } when !selectedExperience).
+Error handling for the API response within queryFn is present. availabilityError is captured from useQuery result.
+A new memoized variable availableDatesForPicker is created to transform availabilityResponse.availableSlots into an array of { from: Date, to: Date } objects.
+No other code lines outside this useQuery block and the availableDatesForPicker memoization are affected by this specific part.
+Part 2: Adapt DateRangePicker to Use New Availability Data
+
+The DateRangePicker component was previously using a bookings prop (which was formattedBookings) to determine which dates to disable. Now, the backend directly provides available slots.
+
+Locate the <DateRangePicker /> component instance within PublicBooking.tsx.
+
+Modify its props as follows:
+
+Remove the bookings prop.
+Add a new prop, e.g., availableRanges, and pass availableDatesForPicker to it.
+    <DateRangePicker
+      dateRange={field.value as DateRange}
+      onSelect={(range: DateRange | undefined) => {
+        field.onChange(range);
+        if (range?.from && range?.to) {
+          console.log("Selected date range:", {
+            from: range.from.toISOString(),
+            to: range.to.toISOString()
+          });
+        }
+      }}
+      experience={selectedExperience || { duration: 1, capacity: 1 /* Minimal default */ }}
+      guestCount={form.getValues().guests}
+      // REMOVE: bookings={formattedBookings || []} 
+      availableRanges={availableDatesForPicker} // ✅ NEW PROP: Pass the directly available slots
+      className="w-full"
+      // Potentially add a disabled prop if isLoadingAvailability is true or availabilityError exists
+      disabled={isLoadingAvailability || !!availabilityError} 
+    />
+Internal Logic of DateRangePicker (Conceptual - this part is a guide for what needs to happen inside DateRangePicker.tsx if I am also asked to modify that component's definition in its own file, e.g., components/ui/date-range-picker.tsx):
+The DateRangePicker component itself will need to be modified.
+It should now primarily use the availableRanges prop. Instead of calculating disabled dates based on all bookings, it should treat dates outside any of the availableRanges as disabled by default.
+It should only enable dates that fall within these availableRanges.
+The logic for ensuring a selected range matches experience.duration should still be present.
+It might use isLoadingAvailability or availabilityError (if passed to it) to show loading/error states.
+Success Criteria for Part 2:
+
+In PublicBooking.tsx, the DateRangePicker component no longer receives the old bookings (or formattedBookings) prop.
+It receives a new prop (e.g., availableRanges) which is supplied with the availableDatesForPicker data.
+The DateRangePicker is potentially disabled or shows a loading indicator when isLoadingAvailability is true or availabilityError is present.
+(If I am also asked to modify DateRangePicker.tsx itself): The DateRangePicker's internal logic is updated to use availableRanges to correctly determine and display selectable dates. Dates outside these ranges, or ranges not matching experience.duration, should be unselectable.
+The date selection functionality accurately reflects the availability sent by the backend.
+Overall Request:
+
+Please implement Part 1 first. Provide a diff preview for Part 1. Upon your approval of Part 1, if I am also able to modify the DateRangePicker component definition itself (likely in components/ui/date-range-picker.tsx) as conceptualized in Part 2, please proceed and provide a diff for those changes as well. If modifying the DateRangePicker definition is too complex for this prompt, implementing Part 1 and correctly passing availableDatesForPicker to the DateRangePicker instance in PublicBooking.tsx (as shown in the example for Part 2) is the primary goal for PublicBooking.tsx.

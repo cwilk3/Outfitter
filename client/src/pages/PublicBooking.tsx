@@ -146,28 +146,52 @@ function PublicBooking() {
     setBookingDialogOpen(true);
   };
   
-  // Fetch bookings data for the selected experience
-  const { data: bookings = [] } = useQuery<any[]>({
-    queryKey: ['/api/public/bookings', selectedExperience?.id],
+  // Fetch availability data for the selected experience using the new v2 endpoint
+  const { 
+    data: availabilityResponse, 
+    isLoading: isLoadingAvailability,
+    error: availabilityError // Capture error state
+  } = useQuery<{ 
+    availableSlots: { startDate: string; endDate: string }[];
+    message?: string; // Optional message from backend
+    // Add other expected fields from the v2/availability response if necessary
+  }>({ // Provide a default for availabilityResponse during destructuring
+    queryKey: ['/api/public/v2/availability', selectedExperience?.id, form.watch('guests')], // Add 'guests' to queryKey to refetch when group size changes
     queryFn: async () => {
-      if (!selectedExperience) return [];
-      const response = await fetch(`/api/public/bookings?experienceId=${selectedExperience.id}`);
+      if (!selectedExperience) return { availableSlots: [] }; // Default if no experience
+      // Ensure guests value is valid for the API call
+      const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); 
+
+      const response = await fetch(`/api/public/v2/availability?experienceId=${selectedExperience.id}&requestedGroupSize=${requestedGroupSize}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch bookings');
+        // Attempt to parse error message from API response
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch availability' }));
+        throw new Error(errorData.message || 'Failed to fetch availability');
       }
       return response.json();
     },
-    enabled: !!selectedExperience?.id && bookingDialogOpen,
+    enabled: !!selectedExperience?.id && bookingDialogOpen, // Only run query when experience selected and dialog open
+    staleTime: 5 * 60 * 1000, // Cache availability data for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+    // Consider adding an onError handler to show a toast or specific UI message
+    // onError: (error: Error) => {
+    //   toast({
+    //     title: "Availability Check Failed",
+    //     description: error.message || "Could not retrieve up-to-date availability.",
+    //     variant: "destructive",
+    //   });
+    // }
   });
-  
-  // Format bookings data for the date picker
-  const formattedBookings = useMemo(() => {
-    return bookings.map(booking => ({
-      startDate: new Date(booking.startDate),
-      endDate: new Date(booking.endDate),
-      bookedCount: booking.guests || 1
+
+  // Prepare available dates for the DateRangePicker
+  // This replaces the old 'formattedBookings'
+  const availableDatesForPicker = useMemo(() => {
+    // Use optional chaining and provide a default for availableSlots
+    return (availabilityResponse?.availableSlots || []).map(slot => ({
+      from: new Date(slot.startDate),
+      to: new Date(slot.endDate),
     }));
-  }, [bookings]);
+  }, [availabilityResponse]);
   
   // Setup form
   const form = useForm<BookingFormValues>({
