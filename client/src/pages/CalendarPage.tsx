@@ -59,18 +59,20 @@ export default function CalendarPage() {
           ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
           : `Booking #${booking.bookingNumber}`;
         
-        // Safe timezone-agnostic date parsing to avoid drift
+        // Fix timezone handling by ensuring dates are interpreted correctly
         const normalizeDate = (dateString: string) => {
-          const [year, month, day] = dateString.split('-').map(Number);
-          return new Date(year, month - 1, day);
+          // Parse the date in a timezone-agnostic way by using YYYY-MM-DD format
+          const parts = new Date(dateString).toISOString().split('T')[0].split('-');
+          return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
         };
         
         return {
           id: booking.id,
           title: title,
           start: normalizeDate(booking.startDate),
-          // Use exact end date - BigCalendar will handle display correctly with allDay events
-          end: normalizeDate(booking.endDate),
+          // Adjust the end date by adding one day to correctly display multi-day events
+          // This is because React Big Calendar treats end dates as exclusive (not including the end date)
+          end: new Date(normalizeDate(booking.endDate).getTime() + 86400000), // Add 24 hours (86400000ms)
           allDay: true,
           resource: {
             booking,
