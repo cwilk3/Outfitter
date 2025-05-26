@@ -1,0 +1,68 @@
+Okay, your diagnosis of the infinite loop is correct. It's a classic dependency issue with `useEffect` and unstable array references from `useQuery` combined with `setEvents`.
+
+We need to fix this by using `React.useMemo` to stabilize the `events` array.
+
+Please modify the file `client/src/pages/CalendarPage.tsx`.
+
+**Here are the specific changes:**
+
+**Part A: Convert `events` state to a `React.useMemo` derived value, removing `useState` and the `useEffect`**
+
+1.  **Remove the `useState` definition for `events`:**
+    Locate and remove this line (around line 30):
+    `const [events, setEvents] = useState<CalendarEvent[]>([]);`
+
+2.  **Replace the entire `useEffect` block (from line 35 to 79, inclusive) with the `React.useMemo` calculation for `events`:**
+    This `useMemo` will directly define the `events` variable that your `Calendar` component will use.
+
+    **Remove lines 35 to 79, and insert the following `React.useMemo` block in their place:**
+
+    ```typescript
+    // Combine data into calendar events using useMemo to stabilize the array reference
+    const events = React.useMemo(() => {
+      // Ensure data is loaded before mapping
+      if (!bookings || !experiences || !customers) {
+        return [];
+      }
+
+      const mappedEvents = bookings.map((booking: Booking) => {
+        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+        
+        // Format the title to show hunt type, customer last name, group size
+        const title = experience 
+          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
+          : `Booking #${booking.bookingNumber}`;
+        
+        return {
+          id: booking.id,
+          title: title,
+          start: new Date(booking.startDate), // Directly create Date object from UTC string
+          // Adjust the end date by adding one day to correctly display multi-day events
+          // This is because React Big Calendar treats end dates as exclusive (not including the end date)
+          end: new Date(new Date(booking.endDate).getTime() + 86400000), // Directly create Date object from UTC string, then add 24 hours
+          allDay: true,
+          resource: {
+            booking,
+            experience,
+            customer
+          }
+        };
+      });
+      
+      return mappedEvents; // Return the memoized array
+    }, [bookings, experiences, customers]); // Dependencies for useMemo: recalculate only if these source arrays change references
+    ```
+
+---
+
+**Please provide a comprehensive diff preview of these changes.** I will review it carefully before you apply it.
+
+**Success Criteria for my approval:**
+* The `useState` definition for `events` is removed.
+* The original `useEffect` block (lines 35-79) is entirely replaced by the `React.useMemo` block that calculates `events`.
+* The `React.useMemo` block uses `[bookings, experiences, customers]` as its dependency array.
+* The internal logic for `mappedEvents` (including `new Date(booking.startDate)` and `new Date(new Date(booking.endDate).getTime() + 86400000)`) remains correct.
+* No other code lines are affected.
+
+I will not approve the change until these criteria are met.

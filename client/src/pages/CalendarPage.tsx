@@ -45,39 +45,40 @@ export default function CalendarPage() {
     queryKey: ['/api/customers'],
   });
 
-  // Combine data into calendar events
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-
-  useEffect(() => {
-    if (bookings && experiences && customers) {
-      const mappedEvents = bookings.map((booking: Booking) => {
-        const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
-        const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
-        
-        // Format the title to show hunt type, customer last name, group size
-        const title = experience 
-          ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
-          : `Booking #${booking.bookingNumber}`;
-        
-        return {
-          id: booking.id,
-          title: title,
-          start: new Date(booking.startDate), // Directly create Date object from UTC string
-          // Adjust the end date by adding one day to correctly display multi-day events
-          // This is because React Big Calendar treats end dates as exclusive (not including the end date)
-          end: new Date(new Date(booking.endDate).getTime() + 86400000), // Directly create Date object from UTC string, then add 24 hours
-          allDay: true,
-          resource: {
-            booking,
-            experience,
-            customer
-          }
-        };
-      });
-      
-      setEvents(mappedEvents);
+  // Combine data into calendar events using useMemo to stabilize the array reference
+  const events = React.useMemo(() => {
+    // Ensure data is loaded before mapping
+    if (!bookings || !experiences || !customers) {
+      return [];
     }
-  }, [bookings, experiences, customers]);
+
+    const mappedEvents = bookings.map((booking: Booking) => {
+      const experience = experiences.find((exp: Experience) => exp.id === booking.experienceId);
+      const customer = customers.find((cust: Customer) => cust.id === booking.customerId);
+      
+      // Format the title to show hunt type, customer last name, group size
+      const title = experience 
+        ? `${experience.name} / ${customer?.lastName || 'Unknown'} / ${booking.groupSize || 0}`
+        : `Booking #${booking.bookingNumber}`;
+      
+      return {
+        id: booking.id,
+        title: title,
+        start: new Date(booking.startDate), // Directly create Date object from UTC string
+        // Adjust the end date by adding one day to correctly display multi-day events
+        // This is because React Big Calendar treats end dates as exclusive (not including the end date)
+        end: new Date(new Date(booking.endDate).getTime() + 86400000), // Directly create Date object from UTC string, then add 24 hours
+        allDay: true,
+        resource: {
+          booking,
+          experience,
+          customer
+        }
+      };
+    });
+    
+    return mappedEvents; // Return the memoized array
+  }, [bookings, experiences, customers]); // Dependencies for useMemo: recalculate only if these source arrays change references
 
   // Handle event selection
   const handleSelectEvent = (event: CalendarEvent) => {
