@@ -253,12 +253,22 @@ function PublicBooking() {
   
   // Handle form submission
   const onSubmit = async (data: BookingFormValues) => {
-    if (!selectedExperience) return;
+    console.log('DEBUG: onSubmit - Function entered', { data }); // Log 1
+    if (!selectedExperience) {
+      console.log('DEBUG: onSubmit - No selected experience, returning.'); // Log 2
+      return;
+    }
     
     try {
+      console.log('DEBUG: onSubmit - Calculating summary...'); // Log 3
       const summary = calculateSummary(data);
-      if (!summary) return;
+      if (!summary) {
+        console.log('DEBUG: onSubmit - Summary calculation returned null, returning.'); // Log 4
+        return;
+      }
+      console.log('DEBUG: onSubmit - Summary calculated:', { summary }); // Log 5
       
+      console.log('DEBUG: onSubmit - Preparing bookingData payload...'); // Log 6
       const bookingData = {
         experienceId: selectedExperience.id,
         customerDetails: {
@@ -268,8 +278,8 @@ function PublicBooking() {
           phone: data.phone,
         },
         bookingDetails: {
-          startDate: summary.startDate.toISOString(),
-          endDate: summary.endDate.toISOString(),
+          startDate: summary.startDate.toISOString(), // Fixed to ISO string
+          endDate: summary.endDate.toISOString(), // Fixed to ISO string
           guests: data.guests,
           notes: data.notes || '',
           selectedAddons: data.selectedAddons.map(addon => ({
@@ -282,27 +292,32 @@ function PublicBooking() {
           totalAmount: summary.total.toString(),
         }
       };
+      console.log('DEBUG: onSubmit - BookingData payload prepared:', { bookingData }); // Log 7
       
+      console.log('DEBUG: onSubmit - Calling apiRequest...'); // Log 8
       const response = await apiRequest('POST', '/api/public/bookings', bookingData);
+      console.log('DEBUG: onSubmit - apiRequest returned:', { response }); // Log 9
       
-      // The apiRequest function already handles the response and returns the data directly
-      // No need to check .ok or call .json() again
       setBookingConfirmation(response);
       setBookingDialogOpen(false);
       setConfirmationDialogOpen(true);
+      console.log('DEBUG: onSubmit - State updated for confirmation dialog.'); // Log 10
       
       toast({
         title: "Booking successful!",
         description: "Your booking has been confirmed.",
         variant: "default",
       });
+      console.log('DEBUG: onSubmit - Success toast displayed.'); // Log 11
+      
     } catch (error) {
-      console.error(error);
+      console.error('DEBUG: onSubmit - CATCH BLOCK - An error occurred:', error); // Log 12
       toast({
         title: "Booking failed",
         description: "There was an error processing your booking. Please try again later.",
         variant: "destructive",
       });
+      console.log('DEBUG: onSubmit - Error toast displayed.'); // Log 13
     }
   };
   

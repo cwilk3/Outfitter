@@ -1,0 +1,91 @@
+Okay, this is a critical blocker. The "Complete Booking" button not responding, with no submission reaching the server, means we have a core failure in the booking submission flow.
+
+To get a better understanding, we need precise debugging information.
+
+**Part 1: Add Debug Logs to Frontend `onSubmit` Function**
+
+Please modify the file `client/src/pages/PublicBooking.tsx`.
+
+Locate the `onSubmit` function (around line 231). Add `console.log` statements at key points within this function, especially before and after critical operations like `calculateSummary`, `apiRequest`, and state updates.
+
+**Replace the entire `onSubmit` function with the following version, which includes detailed debug logs:**
+
+```typescript
+// In client/src/pages/PublicBooking.tsx
+
+// Handle form submission
+const onSubmit = async (data: BookingFormValues) => {
+  console.log('DEBUG: onSubmit - Function entered', { data }); // Log 1
+  if (!selectedExperience) {
+    console.log('DEBUG: onSubmit - No selected experience, returning.'); // Log 2
+    return;
+  }
+  
+  try {
+    console.log('DEBUG: onSubmit - Calculating summary...'); // Log 3
+    const summary = calculateSummary(data);
+    if (!summary) {
+      console.log('DEBUG: onSubmit - Summary calculation returned null, returning.'); // Log 4
+      return;
+    }
+    console.log('DEBUG: onSubmit - Summary calculated:', { summary }); // Log 5
+    
+    console.log('DEBUG: onSubmit - Preparing bookingData payload...'); // Log 6
+    const bookingData = {
+      experienceId: selectedExperience.id,
+      customerDetails: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+      },
+      bookingDetails: {
+        startDate: summary.startDate.toISOString(), // Fixed to ISO string
+        endDate: summary.endDate.toISOString(), // Fixed to ISO string
+        guests: data.guests,
+        notes: data.notes || '',
+        selectedAddons: data.selectedAddons.map(addon => ({
+          addonId: addon.id,
+          quantity: addon.quantity || 1,
+          price: addon.price
+        }))
+      },
+      payment: {
+        totalAmount: summary.total.toString(),
+      }
+    };
+    console.log('DEBUG: onSubmit - BookingData payload prepared:', { bookingData }); // Log 7
+    
+    console.log('DEBUG: onSubmit - Calling apiRequest...'); // Log 8
+    const response = await apiRequest('POST', '/api/public/bookings', bookingData);
+    console.log('DEBUG: onSubmit - apiRequest returned:', { response }); // Log 9
+    
+    setBookingConfirmation(response);
+    setBookingDialogOpen(false);
+    setConfirmationDialogOpen(true);
+    console.log('DEBUG: onSubmit - State updated for confirmation dialog.'); // Log 10
+    
+    toast({
+      title: "Booking successful!",
+      description: "Your booking has been confirmed.",
+      variant: "default",
+    });
+    console.log('DEBUG: onSubmit - Success toast displayed.'); // Log 11
+    
+  } catch (error) {
+    console.error('DEBUG: onSubmit - CATCH BLOCK - An error occurred:', error); // Log 12
+    toast({
+      title: "Booking failed",
+      description: "There was an error processing your booking. Please try again later.",
+      variant: "destructive",
+    });
+    console.log('DEBUG: onSubmit - Error toast displayed.'); // Log 13
+  }
+};
+Part 2: Request Debugging Information from Browser/Replit Console
+
+After applying these logs, please provide the following information:
+
+The complete output from the browser's developer console (or Replit's Console tab for the frontend) immediately after clicking "Complete Booking". Include any errors, warnings, or the DEBUG logs we just added.
+A screenshot of the "Network" tab in the browser's developer tools (or Replit's Network tab) immediately after clicking "Complete Booking". Look for the POST /api/public/bookings request. Provide its status code, response, and any error details.
+Please provide a diff preview for Part 1. I will review it carefully before you approve.
