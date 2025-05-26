@@ -634,7 +634,10 @@ function PublicBooking() {
                   {/* Form Column - expands to full width when summary is hidden */}
                   <div className={bookingStep === 'description' || bookingStep === 'guests' ? "col-span-1 md:col-span-3" : "col-span-1 md:col-span-2"}>
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <form onSubmit={(event) => {
+                        console.log('DEBUG: Form onSubmit event triggered', { eventType: event.type, defaultPrevented: event.defaultPrevented }); // NEW LOG 1
+                        return form.handleSubmit(onSubmit)(event);
+                      }} className="space-y-6">
                         {/* Step indicators */}
                         <div className="flex items-center gap-1 mb-4">
                           <div className={`flex-1 h-2 rounded-full ${bookingStep === 'description' ? 'bg-primary' : 'bg-gray-200'}`}></div>
@@ -1124,7 +1127,13 @@ function PublicBooking() {
                                 >
                                   Back
                                 </Button>
-                                <Button type="submit" className="flex-1">
+                                <Button
+                                  type="submit"
+                                  className="flex-1"
+                                  onClick={() => {
+                                    console.log('DEBUG: Complete Booking button clicked'); // NEW LOG 2
+                                  }}
+                                >
                                   Complete Booking
                                 </Button>
                               </div>
