@@ -301,8 +301,13 @@ function PublicBooking() {
       
       setBookingConfirmation(response);
       setBookingDialogOpen(false);
-      setConfirmationDialogOpen(true);
-      console.log('DEBUG: onSubmit - State updated for confirmation dialog.'); // Log 10
+      // Introduce a small delay before opening the confirmation dialog
+      // This allows the booking dialog's cleanup (removing pointer-events: none) to complete
+      setTimeout(() => {
+        setConfirmationDialogOpen(true);
+        console.log('DEBUG: onSubmit - Confirmation dialog state set after delay.'); // NEW DEBUG LOG
+      }, 50); // 50ms delay is usually sufficient
+      console.log('DEBUG: onSubmit - State updated for confirmation dialog (delay initiated).'); // Modified Log
       
       toast({
         title: "Booking successful!",

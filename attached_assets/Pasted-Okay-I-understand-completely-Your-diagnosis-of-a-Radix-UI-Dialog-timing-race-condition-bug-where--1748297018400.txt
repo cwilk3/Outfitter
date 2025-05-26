@@ -1,0 +1,45 @@
+Okay, I understand completely. Your diagnosis of a Radix UI Dialog timing/race condition bug, where `pointer-events: none;` gets stuck on the `<body>` due to rapid dialog state transitions, is the definitive root cause.
+
+We need to introduce a small delay between closing the booking dialog and opening the confirmation dialog to allow for proper `<body>` style cleanup.
+
+Please modify the file `client/src/pages/PublicBooking.tsx`.
+
+Locate the `onSubmit` function (around line 250-280 in your current code, where `setBookingConfirmation`, `setBookingDialogOpen`, and `setConfirmationDialogOpen` are called).
+
+**Change the state updates for the dialogs to include a `setTimeout` for the confirmation dialog:**
+
+**Find this block (or similar):**
+```typescript
+    // Inside onSubmit, after apiRequest returns successfully
+    setBookingConfirmation(response);
+    setBookingDialogOpen(false);
+    setConfirmationDialogOpen(true); // This line
+    console.log('DEBUG: onSubmit - State updated for confirmation dialog.');
+Replace it with:
+
+TypeScript
+
+    // Inside onSubmit, after apiRequest returns successfully
+    setBookingConfirmation(response);
+    setBookingDialogOpen(false);
+    // Introduce a small delay before opening the confirmation dialog
+    // This allows the booking dialog's cleanup (removing pointer-events: none) to complete
+    setTimeout(() => {
+      setConfirmationDialogOpen(true);
+      console.log('DEBUG: onSubmit - Confirmation dialog state set after delay.'); // NEW DEBUG LOG
+    }, 50); // 50ms delay is usually sufficient
+    console.log('DEBUG: onSubmit - State updated for confirmation dialog (delay initiated).'); // Modified Log
+Please provide a comprehensive diff preview of this change. I will review it carefully before you approve.
+
+Success Criteria for my approval:
+
+A setTimeout is introduced for setConfirmationDialogOpen(true).
+The delay is set to 50 milliseconds.
+The console.log statements are updated as shown.
+No other code lines are affected.
+I will not approve the change until these criteria are met.
+
+After approval and implementation, you will need to:
+
+Restart your frontend application.
+Go through the public booking flow and click "Complete Booking" to test if the button is now responsive and the confirmation dialog appears correctly.
