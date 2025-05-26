@@ -244,8 +244,8 @@ function PublicBooking() {
           phone: data.phone,
         },
         bookingDetails: {
-          startDate: format(summary.startDate, 'yyyy-MM-dd'),
-          endDate: format(summary.endDate, 'yyyy-MM-dd'),
+          startDate: summary.startDate.toISOString(),
+          endDate: summary.endDate.toISOString(),
           guests: data.guests,
           notes: data.notes || '',
           selectedAddons: data.selectedAddons.map(addon => ({
