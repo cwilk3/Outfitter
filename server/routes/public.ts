@@ -89,6 +89,89 @@ router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
   res.json(bookingsForAvailability);
 }));
 
+// GET public availability (v2) - Enhanced with accurate capacity checking
+router.get('/v2/availability', asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
+  const requestedGroupSize = req.query.requestedGroupSize ? parseInt(req.query.requestedGroupSize as string) : 1;
+  
+  if (!experienceId) {
+    return res.status(400).json({ message: 'Experience ID is required' });
+  }
+  
+  if (!Number.isInteger(requestedGroupSize) || requestedGroupSize < 1) {
+    return res.status(400).json({ 
+      message: 'Requested group size must be a positive integer (minimum 1)' 
+    });
+  }
+  
+  // Step 2.2: Fetch Experience Details
+  const experience = await storage.getExperience(experienceId);
+  if (!experience) {
+    return res.status(404).json({ message: 'Experience not found' });
+  }
+  
+  // Validate experience has required fields for availability calculation
+  if (!experience.capacity || !experience.duration) {
+    return res.status(400).json({ 
+      message: 'Experience must have capacity and duration defined for availability checking' 
+    });
+  }
+  
+  // Step 2.3: Generate Potential Time Slots
+  // For now, generate slots for the next 90 days based on experience duration
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + 90); // 90 days from today
+  
+  const slots = [];
+  const currentSlotStart = new Date(today);
+  
+  // Generate all possible slots based on experience duration
+  while (currentSlotStart < endDate) {
+    const slotEnd = new Date(currentSlotStart);
+    slotEnd.setDate(currentSlotStart.getDate() + experience.duration);
+    
+    slots.push({
+      startDate: new Date(currentSlotStart),
+      endDate: new Date(slotEnd)
+    });
+    
+    // Move to next day (could be optimized based on business rules)
+    currentSlotStart.setDate(currentSlotStart.getDate() + 1);
+  }
+  
+  // Step 2.4: Get Occupancy for Each Slot
+  const slotOccupancy = await storage.getOccupancyForExperienceSlots(experienceId, slots);
+  
+  // Step 2.5: Determine Available Slots
+  const availableSlots = slotOccupancy
+    .map(({ slot, occupiedCount }) => {
+      const remainingCapacity = experience.capacity - occupiedCount;
+      return {
+        ...slot,
+        occupiedCount,
+        remainingCapacity,
+        isAvailable: requestedGroupSize <= remainingCapacity
+      };
+    })
+    .filter(slot => slot.isAvailable)
+    .map(slot => ({
+      startDate: slot.startDate,
+      endDate: slot.endDate
+    }));
+  
+  // Step 2.6: Prepare and Send Response
+  res.json({
+    experienceId,
+    requestedGroupSize,
+    experienceCapacity: experience.capacity,
+    experienceDuration: experience.duration,
+    availableSlots,
+    totalSlotsChecked: slots.length,
+    availableSlotsCount: availableSlots.length
+  });
+}));
+
 // POST endpoint for creating public bookings
 router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   try {
