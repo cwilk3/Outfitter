@@ -254,6 +254,7 @@ function PublicBooking() {
   // Handle form submission
   const onSubmit = async (data: BookingFormValues) => {
     console.log('DEBUG: onSubmit - Function entered', { data }); // Log 1
+    console.log('DEBUG: onSubmit - Form validation errors:', form.formState.errors);
     if (!selectedExperience) {
       console.log('DEBUG: onSubmit - No selected experience, returning.'); // Log 2
       return;
