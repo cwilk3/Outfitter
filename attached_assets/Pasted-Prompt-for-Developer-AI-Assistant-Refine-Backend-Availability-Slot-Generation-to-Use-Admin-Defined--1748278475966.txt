@@ -1,0 +1,67 @@
+Prompt for Developer/AI Assistant: Refine Backend Availability Slot Generation to Use Admin-Defined Season Dates
+
+Project: "Outfitter" - Multi-tenant SaaS platform for booking hunting/fishing experiences. Context: A new endpoint GET /api/public/v2/availability was recently implemented. It correctly calculates availability based on actual guest counts (groupSize) and experience capacity. This task is to refine its slot generation to respect the admin-defined "Available Dates" (season start and end) for an experience, instead of just using a fixed 90-day window from today.
+
+Relevant Files (Likely):
+
+server/routes/public.ts (specifically the GET /api/public/v2/availability endpoint)
+server/storage.ts (specifically the getExperience function, to ensure it fetches season dates)
+shared/schema.ts (for reference to experience structure, to confirm fields for season start/end dates)
+1. The Current Problem with Backend Slot Generation (in the new /v2/availability endpoint):
+
+The current implementation of GET /api/public/v2/availability generates potential time slots for an experience within a fixed 90-day window starting from today. This does not consider the specific "Available Dates" (season start and end dates) that an administrator defines for each experience. This can lead to:
+
+Generating slots before the actual season begins if today is earlier.
+Not generating slots for the full season if the season extends beyond 90 days from today.
+Generating slots after the actual season ends if the 90-day window extends past the season end date.
+2. The Desired State (Be Specific):
+
+The GET /api/public/v2/availability endpoint's slot generation logic must be modified to strictly adhere to the admin-defined season for the experience.
+
+Admin Experience Setup (Reference): Admins define an experience with a fixed duration (e.g., 3 days), a max_capacity of guests per slot, and seasonStartDate and seasonEndDate (the "Available Dates").
+Desired Slot Generation Logic:
+Fetch seasonStartDate and seasonEndDate for the experienceId.
+The starting point for slot generation should be the later of today or seasonStartDate (normalized).
+The ending point for slot generation should be seasonEndDate (normalized).
+The loop generating currentSlotStart values should respect these bounds.
+A slot is valid only if its entire duration falls within seasonStartDate and seasonEndDate. Specifically, slotEnd (calculated as currentSlotStart + experience.duration) must not effectively be later than seasonEndDate.
+The rest of the endpoint's logic (occupancy calculation, filtering by requestedGroupSize) remains the same.
+3. Step-by-Step Guide for Implementation:
+
+Phase 1: Ensure Experience Season Dates are Available
+
+Step 1.1: Verify/Update storage.getExperience.
+Task: Ensure getExperience(experienceId) in server/storage.ts fetches and returns seasonStartDate and seasonEndDate for the experience. Confirm actual field names from schema.
+Success Criteria: experience object in /v2/availability route includes seasonStartDate and seasonEndDate.
+Phase 2: Modifying Slot Generation in GET /api/public/v2/availability (server/routes/public.ts)
+
+Step 2.1: Retrieve Season Dates.
+Task: Extract seasonStartDate and seasonEndDate from the fetched experience object. Handle missing dates if they are optional (though ideally mandatory for this logic).
+Success Criteria: Dates correctly read.
+Step 2.2: Calculate Effective Loop Boundaries.
+Task: Determine actualLoopStartDate (later of today or seasonStartDate, normalized) and actualLoopEndDate (seasonEndDate, normalized to end of day).
+Success Criteria: Boundaries correctly define the slot generation period.
+Step 2.3: Update Slot Generation Loop.
+Task: Modify the while loop: Initialize currentSlotStart to actualLoopStartDate. Loop condition: currentSlotStart <= actualLoopEndDate. Inside the loop, when calculating slotEnd, add a crucial check: if (new Date(currentSlotStart)).setDate(currentSlotStart.getDate() + experience.duration - 1) is greater than actualLoopEndDate, then break the loop. Push valid slots. Increment currentSlotStart by 1 day.
+Success Criteria: slots array only contains slots fully within the admin-defined season.
+Step 2.4: (No Change) Pass slots to storage.getOccupancyForExperienceSlots.
+Success Criteria: Existing occupancy logic works with seasonally accurate slots.
+Phase 3: Testing
+
+Step 3.1: Test with Various Season Configurations.
+Task: Test API with experiences having seasons starting in future, already started, ending soon, very short, very long, and today being outside the season.
+Success Criteria: API returns correct availableSlots strictly within the admin-defined season; no slots generated outside it.
+Step 3.2: Verify Edge Cases for Slot Generation.
+Task: Test how experience.duration interacts with seasonEndDate (e.g., season ends Wed, duration 3 days – Mon slots okay, Tue slots not).
+Success Criteria: Slot generation correctly handles season boundaries.
+Emergency Protocols / Rollback Plan:
+
+Version Control: Commit all changes.
+Rollback: If issues arise in /v2/availability, revert server/routes/public.ts (and storage.ts if changed) to the previous working commit and redeploy.
+Logging: Add clear logging for date calculations and loop boundaries during slot generation.
+4. Anything Else That Might Be Important:
+
+Date/Time Normalization: Crucial for comparisons. Normalize today, seasonStartDate to start-of-day (setHours(0,0,0,0)). Normalize seasonEndDate to end-of-day (setHours(23,59,59,999)).
+Time Zones: Reconfirm consistent time zone handling for all date operations (storage, retrieval, comparison).
+Schema Field Names: Use actual schema field names for season dates.
+Frontend Impact: Consider if the frontend needs adjustment to handle potentially much longer or shorter ranges of dates being shown as available (e.g., if a 6-month season is now fully explorable versus a fixed 90-day window). For very long seasons, frontend UI for navigating months might be a future thought.

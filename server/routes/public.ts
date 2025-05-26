@@ -117,26 +117,103 @@ router.get('/v2/availability', asyncHandler(async (req: Request, res: Response) 
     });
   }
   
-  // Step 2.3: Generate Potential Time Slots
-  // For now, generate slots for the next 90 days based on experience duration
+  // Step 3.1: Handle availableDates Field
+  if (!experience.availableDates || !Array.isArray(experience.availableDates) || experience.availableDates.length === 0) {
+    // No available dates defined - experience is unavailable
+    return res.json({
+      experienceId,
+      requestedGroupSize,
+      experienceCapacity: experience.capacity,
+      experienceDuration: experience.duration,
+      availableSlots: [],
+      totalSlotsChecked: 0,
+      availableSlotsCount: 0,
+      message: 'Experience has no available dates defined'
+    });
+  }
+  
+  // Parse date strings from availableDates into Date objects
+  const parsedAvailableDates = [];
+  for (const dateString of experience.availableDates) {
+    try {
+      const parsedDate = new Date(dateString);
+      if (!isNaN(parsedDate.getTime())) {
+        parsedAvailableDates.push(parsedDate);
+      }
+    } catch (error) {
+      // Skip invalid date strings
+      console.warn(`Invalid date string in availableDates: ${dateString}`);
+    }
+  }
+  
+  if (parsedAvailableDates.length === 0) {
+    // No valid dates found after parsing
+    return res.json({
+      experienceId,
+      requestedGroupSize,
+      experienceCapacity: experience.capacity,
+      experienceDuration: experience.duration,
+      availableSlots: [],
+      totalSlotsChecked: 0,
+      availableSlotsCount: 0,
+      message: 'Experience has no valid available dates'
+    });
+  }
+  
+  // Step 3.2: Calculate Effective Season Boundaries
+  const effectiveSeasonStartDate = new Date(Math.min(...parsedAvailableDates));
+  const effectiveSeasonEndDate = new Date(Math.max(...parsedAvailableDates));
+  
+  // Normalize dates
   const today = new Date();
-  const endDate = new Date(today);
-  endDate.setDate(today.getDate() + 90); // 90 days from today
+  today.setHours(0, 0, 0, 0); // Start of today
+  effectiveSeasonStartDate.setHours(0, 0, 0, 0); // Start of season start day
+  effectiveSeasonEndDate.setHours(23, 59, 59, 999); // End of season end day
   
+  // Step 3.3: Determine Loop Start and End Dates for Slot Generation
+  const loopStartDate = new Date(Math.max(today.getTime(), effectiveSeasonStartDate.getTime()));
+  const loopEndDate = new Date(effectiveSeasonEndDate);
+  
+  if (loopStartDate > loopEndDate) {
+    // Season has already ended or no valid period
+    return res.json({
+      experienceId,
+      requestedGroupSize,
+      experienceCapacity: experience.capacity,
+      experienceDuration: experience.duration,
+      availableSlots: [],
+      totalSlotsChecked: 0,
+      availableSlotsCount: 0,
+      message: 'Experience season has ended or is not yet available'
+    });
+  }
+  
+  // Step 3.4: Update Slot Generation Loop
   const slots = [];
-  const currentSlotStart = new Date(today);
+  const currentSlotStart = new Date(loopStartDate);
   
-  // Generate all possible slots based on experience duration
-  while (currentSlotStart < endDate) {
+  // Generate slots within the derived season boundaries
+  while (currentSlotStart <= loopEndDate) {
     const slotEnd = new Date(currentSlotStart);
     slotEnd.setDate(currentSlotStart.getDate() + experience.duration);
     
-    slots.push({
-      startDate: new Date(currentSlotStart),
-      endDate: new Date(slotEnd)
-    });
+    // Ensure the entire slot duration fits within the season
+    // Check if the last day of the slot is within the season
+    const lastDayOfSlot = new Date(currentSlotStart);
+    lastDayOfSlot.setDate(currentSlotStart.getDate() + experience.duration - 1);
+    lastDayOfSlot.setHours(23, 59, 59, 999);
     
-    // Move to next day (could be optimized based on business rules)
+    if (lastDayOfSlot <= loopEndDate) {
+      slots.push({
+        startDate: new Date(currentSlotStart),
+        endDate: new Date(slotEnd)
+      });
+    } else {
+      // Slot would extend beyond season end, stop generating
+      break;
+    }
+    
+    // Move to next day
     currentSlotStart.setDate(currentSlotStart.getDate() + 1);
   }
   

@@ -1,0 +1,74 @@
+Prompt for Developer/AI Assistant: Further Refine Backend Availability Slot Generation to Use availableDates Field for Season Boundaries
+
+Project: "Outfitter" - Multi-tenant SaaS platform for booking hunting/fishing experiences. Context: The GET /api/public/v2/availability endpoint was recently implemented to provide accurate availability based on guest counts. This task is to further refine its slot generation logic. Instead of using a fixed 90-day window, it must now derive the operational season for an experience from its experience.availableDates field (a jsonb array of date strings stored in the database).
+
+Relevant Files (Likely):
+
+server/routes/public.ts (specifically the GET /api/public/v2/availability endpoint)
+server/storage.ts (the getExperience function is already confirmed to fetch availableDates)
+shared/schema.ts (confirms experiences.availableDates is jsonb)
+1. The Current Problem (in /v2/availability post-initial refactor):
+
+The current slot generation logic in GET /api/public/v2/availability (as per the last implementation log) creates slots for a fixed 90-day window starting from today. This does not respect the actual availability period defined by the administrator via the availableDates field of an experience.
+
+2. The Desired State (Be Specific):
+
+The GET /api/public/v2/availability endpoint's slot generation must be modified to:
+
+Utilize the experience.availableDates array (which will be an array of date strings when fetched from the database via storage.getExperience()).
+Derive Season Boundaries:
+Parse the date strings within experience.availableDates into Date objects.
+Determine the effectiveSeasonStartDate by finding the minimum (earliest) date in this parsed array.
+Determine the effectiveSeasonEndDate by finding the maximum (latest) date in this parsed array.
+If experience.availableDates is empty or null, the experience should be treated as unavailable (return no slots).
+Generate Slots within Derived Season:
+The starting point for slot generation should be the later of today (normalized to start of day) or the effectiveSeasonStartDate (normalized).
+The ending point for slot generation should be the effectiveSeasonEndDate (normalized to end of day).
+The loop generating currentSlotStart values must respect these derived boundaries.
+A slot is valid only if its entire duration falls within these derived effectiveSeasonStartDate and effectiveSeasonEndDate. Specifically, slotEnd (calculated as currentSlotStart + experience.duration) must not effectively be later than effectiveSeasonEndDate.
+The rest of the endpoint's logic (passing these generated slots to storage.getOccupancyForExperienceSlots, calculating remaining capacity, filtering by requestedGroupSize, and the response structure) should remain as implemented in the previous refactor.
+3. Step-by-Step Guide for Implementation (Modifying GET /api/public/v2/availability in server/routes/public.ts):
+
+Step 3.1: Fetch Experience and Handle availableDates.
+Task: After fetching experience using storage.getExperience(experienceId):
+Check if experience.availableDates exists and is an array with at least one date. The elements are likely date strings.
+If not (e.g., null, undefined, or empty array), return an appropriate response indicating no availability (e.g., empty availableSlots array).
+Parse each date string in experience.availableDates into a JavaScript Date object. Handle potential parsing errors gracefully.
+Success Criteria: parsedAvailableDates array of Date objects is created. Edge cases (empty/null availableDates, invalid date strings) are handled.
+Step 3.2: Calculate Effective Season Boundaries.
+Task: From parsedAvailableDates:
+Find the minimum date (effectiveSeasonStartDate).
+Find the maximum date (effectiveSeasonEndDate).
+Success Criteria: effectiveSeasonStartDate and effectiveSeasonEndDate are correctly determined. If parsedAvailableDates was empty after parsing, these might be undefined, which should lead to no slots being generated.
+Step 3.3: Determine Loop Start and End Dates for Slot Generation.
+Task:
+Normalize today to the start of the day.
+loopStartDate = max(today, effectiveSeasonStartDate) (use the later of the two). Ensure effectiveSeasonStartDate is valid before use.
+loopEndDate = effectiveSeasonEndDate. Ensure effectiveSeasonEndDate is valid.
+If either boundary is invalid (e.g., availableDates was empty), no slots should be generated.
+Success Criteria: loopStartDate and loopEndDate correctly define the period for which slots should be considered. Handle cases where no valid season can be derived.
+Step 3.4: Update Slot Generation Loop.
+Task: Modify the existing while loop that generates slots:
+Initialize currentSlotStart with loopStartDate.
+The primary loop condition should be currentSlotStart <= loopEndDate.
+Inside the loop, when calculating slotEnd, ensure that the last day of the slot (i.e., (new Date(currentSlotStart)).setDate(currentSlotStart.getDate() + experience.duration - 1)) is not greater than loopEndDate. If it is, break from or do not enter the loop iteration.
+Success Criteria: The slots array passed to storage.getOccupancyForExperienceSlots now only contains slots that are valid and fully contained within the derived season dates.
+Step 3.5: (No Change to Subsequent Logic) Occupancy Calculation and Response.
+The call to storage.getOccupancyForExperienceSlots(experienceId, slots) and subsequent filtering based on requestedGroupSize and experience.capacity should work correctly with the refined slots list.
+Phase 4: Verification
+
+Step 4.1: Verify with Various availableDates Scenarios.
+Task: Verify /api/public/v2/availability with experiences having availableDates that are: empty, null, contain invalid date strings, define a season starting in the future, a season already started, a season ending soon, very short, very long. Verify with today being before, within, or after the derived season.
+Success Criteria: API returns availableSlots strictly within the date range derived from min(parsed_experience.availableDates) and max(parsed_experience.availableDates), and also not before today. No slots generated outside these boundaries. Graceful handling of invalid/empty availableDates.
+Step 4.2: Verify Edge Cases for Slot Generation at Season Boundaries.
+Task: Verify experience.duration interaction with derived effectiveSeasonEndDate (e.g., season ends Wednesday, duration 3 days – Monday start is okay, Tuesday start is not).
+Success Criteria: Slot generation correctly stops so no slot's duration extends beyond effectiveSeasonEndDate.
+Emergency Protocols / Rollback Plan:
+
+Version Control: All changes committed to Git.
+Rollback: If critical issues in /v2/availability, revert server/routes/public.ts to the previous working state and redeploy.
+Logging: Add logging for derived season dates and loop boundaries.
+5. Anything Else That Might Be Important:
+
+Date Object Handling & Normalization: Consistently parse date strings from availableDates into Date objects. Normalize today, effectiveSeasonStartDate to start-of-day (setHours(0,0,0,0)). Normalize effectiveSeasonEndDate to end-of-day (setHours(23,59,59,999)) or ensure comparisons account for the full last day.
+Assumption of Continuous Season from Min/Max of availableDates: This implementation assumes that the range between min(parsed_availableDates) and max(parsed_availableDates) is a continuously available period (before bookings). It does not add logic to check if every individual day within a generated slot is present in the parsed_availableDates array. If availableDates is meant to be a sparse list of specific dates rather than just season boundaries, this prompt would need further significant modification.
