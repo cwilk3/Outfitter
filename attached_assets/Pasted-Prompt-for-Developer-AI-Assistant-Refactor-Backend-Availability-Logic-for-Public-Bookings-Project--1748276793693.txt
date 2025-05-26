@@ -1,0 +1,80 @@
+Prompt for Developer/AI Assistant: Refactor Backend Availability Logic for Public Bookings
+
+Project: "Outfitter" - Multi-tenant SaaS platform for booking hunting/fishing experiences. Relevant Files (Likely):
+
+server/routes/public.ts (especially the GET /api/public/bookings endpoint)
+server/storage.ts (may require new or modified data access functions)
+shared/schema.ts (for reference to booking and experience structures)
+1. The Current Problem with Backend Availability Logic:
+
+The current backend endpoint responsible for providing data to the public booking page's date picker (GET /api/public/bookings) has two main issues:
+
+Incorrect Occupancy Count: It reports bookedCount: 1 for every existing relevant booking, regardless of the actual number of guests (groupSize) in that booking. This leads to the frontend's date picker having an inaccurate understanding of true availability, risking overbooking.
+Inefficient Data Fetching: It currently fetches all bookings from the database (storage.listBookings({})) and then filters them in memory. This is inefficient.
+2. The Desired State (Specifics):
+
+The goal is accurate, real-time availability checking on the public booking page, based on an experience's defined capacity, its fixed duration, and the number of guests you request.
+
+Admin Experience Setup (Reference): Admins define experiences with a fixed duration (e.g., 3 days), a max_capacity of guests for each such fixed-duration slot (e.g., 10 people per 3-day slot), and an overall season_date_range.
+Desired Backend API Behavior (e.g., for a new GET /api/public/v2/availability endpoint):
+Accept experienceId and requested_group_size as inputs.
+Determine all valid, fixed-duration slots for the experienceId within its season.
+For each slot, accurately calculate current_occupancy by summing the groupSize of all existing, active bookings overlapping that specific slot.
+Determine remaining_capacity for the slot (experience.max_capacity - current_occupancy).
+Return a list of available date slots where requested_group_size <= remaining_capacity (or all slots annotated with correct occupancy/remaining capacity).
+Ensure data fetching is efficient (querying only relevant bookings).
+3. Step-by-Step Guide for Implementation:
+
+Phase 1: Enhancing server/storage.ts (If Necessary)
+
+Step 1.1: Design getOccupancyForExperienceSlots Function.
+Task: Create getOccupancyForExperienceSlots(experienceId: number, slots: Array<{startDate: Date, endDate: Date}>): Promise<Array<{slot: {startDate: Date, endDate: Date}, occupiedCount: number}>>.
+Logic: For each slot, query active bookings for that experienceId overlapping the slot, and sum their groupSize to get occupiedCount.
+Efficiency: Ensure efficient database queries (avoid N+1).
+Success Criteria: Accurate occupiedCount for each slot; efficient performance.
+Step 1.2 (Alternative): Design listBookingsForExperienceByDateRange.
+Task: Create listBookingsForExperienceByDateRange(experienceId: number, rangeStartDate: Date, rangeEndDate: Date, statuses?: string[]): Promise<Booking[]>. Fetch relevant bookings for the route handler to process.
+Success Criteria: Returns only bookings overlapping the given date range for the experience.
+Phase 2: Modifying/Creating the API Endpoint in server/routes/public.ts
+
+Step 2.1: Create New Endpoint (Recommended).
+Task: Implement GET /api/public/v2/availability accepting experienceId and requestedGroupSize.
+Success Criteria: New endpoint callable.
+Step 2.2: Fetch Experience Details.
+Task: Retrieve duration, max_capacity, season_date_range for the experienceId.
+Success Criteria: Details fetched; handle experience not found.
+Step 2.3: Generate Potential Time Slots.
+Task: Based on experience duration and season_date_range, generate all possible fixed-duration time slots.
+Success Criteria: All valid slots generated.
+Step 2.4: Get Occupancy for Each Slot.
+Task: Use function(s) from Phase 1 to get current_occupancy for each slot.
+Success Criteria: Accurate current_occupancy for every slot.
+Step 2.5: Determine Available Slots.
+Task: For each slot, calculate remaining_capacity = experience.max_capacity - current_occupancy. Filter slots where requestedGroupSize <= remaining_capacity.
+Success Criteria: Only genuinely available slots are identified.
+Step 2.6: Prepare and Send Response.
+Task: Send JSON response with available slots (e.g., { availableSlots: [{ startDate, endDate }, ...] }).
+Success Criteria: Frontend receives well-structured, accurate availability.
+Phase 3: Testing
+
+Step 3.1: Unit Test Storage Functions.
+Success Criteria: All unit tests pass for various scenarios.
+Step 3.2: Integration Test API Endpoint.
+Task: Use tools like Postman with seeded data to test the API for various scenarios and edge cases.
+Success Criteria: API returns correct availability data consistently.
+Step 3.3: Frontend Integration Test.
+Task: (After frontend update) Test public booking page thoroughly; ensure DateRangePicker is accurate; attempt bookings to confirm no overbooking.
+Success Criteria: Page reflects correct availability; no overbooking possible.
+Emergency Protocols / Rollback Plan:
+
+If Using New Endpoint: Don't switch frontend until new endpoint is verified. Revert frontend if issues arise post-switch.
+If Modifying Existing Endpoint: Use Git for version control. Be prepared to revert to the previous stable commit if critical issues occur post-deployment. Increase logging and monitoring.
+Database Backup: Recommended if storage layer changes involve writes (less likely here).
+4. Anything Else That Might Be Important:
+
+Performance: Prioritize efficient database queries (use indexes on bookings table: experienceId, startDate, endDate, status).
+Clarity of experience.max_capacity: Confirm its exact definition and application.
+Definition of "Active" Bookings: Verify statuses (e.g., ['confirmed', 'paid']) that occupy capacity. Consider if 'pending' should temporarily hold capacity.
+Time Zones: Ensure consistent, time zone-aware date handling.
+Frontend Adaptation: The frontend (PublicBooking.tsx and DateRangePicker) will need updates to use the new API and its response.
+Code Comments: Add clear comments for complex logic.

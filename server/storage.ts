@@ -91,6 +91,10 @@ export interface IStorage {
   removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<void>;
   listBookingGuides(bookingId: number): Promise<BookingGuide[]>;
   
+  // Availability operations for public booking
+  getOccupancyForExperienceSlots(experienceId: number, slots: Array<{startDate: Date, endDate: Date}>): Promise<Array<{slot: {startDate: Date, endDate: Date}, occupiedCount: number}>>;
+  listBookingsForExperienceByDateRange(experienceId: number, rangeStartDate: Date, rangeEndDate: Date, statuses?: string[]): Promise<Booking[]>;
+  
   // Document operations
   getDocument(id: number): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
@@ -1020,6 +1024,68 @@ export class DatabaseStorage implements IStorage {
 
   async listBookingGuides(bookingId: number): Promise<BookingGuide[]> {
     return db.select().from(bookingGuides).where(eq(bookingGuides.bookingId, bookingId));
+  }
+
+  // Availability operations for public booking
+  async getOccupancyForExperienceSlots(
+    experienceId: number, 
+    slots: Array<{startDate: Date, endDate: Date}>
+  ): Promise<Array<{slot: {startDate: Date, endDate: Date}, occupiedCount: number}>> {
+    const results = [];
+    
+    for (const slot of slots) {
+      // Query active bookings that overlap with this specific slot
+      const overlappingBookings = await db
+        .select({
+          groupSize: bookings.groupSize
+        })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.experienceId, experienceId),
+            // Booking overlaps if: booking.startDate < slot.endDate AND booking.endDate > slot.startDate
+            sql`${bookings.startDate} < ${slot.endDate.toISOString()}`,
+            sql`${bookings.endDate} > ${slot.startDate.toISOString()}`,
+            // Only count active bookings that occupy capacity
+            inArray(bookings.status, ['confirmed', 'deposit_paid', 'paid', 'completed'])
+          )
+        );
+      
+      // Sum the actual groupSize values to get true occupancy
+      const occupiedCount = overlappingBookings.reduce((sum, booking) => sum + (booking.groupSize || 0), 0);
+      
+      results.push({
+        slot: { startDate: slot.startDate, endDate: slot.endDate },
+        occupiedCount
+      });
+    }
+    
+    return results;
+  }
+
+  async listBookingsForExperienceByDateRange(
+    experienceId: number, 
+    rangeStartDate: Date, 
+    rangeEndDate: Date, 
+    statuses?: string[]
+  ): Promise<Booking[]> {
+    const conditions = [
+      eq(bookings.experienceId, experienceId),
+      // Booking overlaps with date range if: booking.startDate < rangeEndDate AND booking.endDate > rangeStartDate
+      sql`${bookings.startDate} < ${rangeEndDate.toISOString()}`,
+      sql`${bookings.endDate} > ${rangeStartDate.toISOString()}`
+    ];
+    
+    // Add status filter if provided
+    if (statuses && statuses.length > 0) {
+      conditions.push(inArray(bookings.status, statuses as any[]));
+    }
+    
+    return await db
+      .select()
+      .from(bookings)
+      .where(and(...conditions))
+      .orderBy(desc(bookings.startDate));
   }
 
   // Document operations
