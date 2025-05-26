@@ -21,8 +21,10 @@ interface DateRangePickerProps {
     availableDates?: string[] | Date[];
   };
   bookings?: Booking[];
+  availableRanges?: { from: Date; to: Date }[];
   guestCount?: number;
   className?: string;
+  disabled?: boolean;
 }
 
 export function DateRangePicker({ 
@@ -30,8 +32,10 @@ export function DateRangePicker({
   onSelect, 
   experience,
   bookings = [],
+  availableRanges = [],
   guestCount = 1,
-  className
+  className,
+  disabled = false
 }: DateRangePickerProps) {
   // State to control the dropdown
   const [isOpen, setIsOpen] = React.useState(false);

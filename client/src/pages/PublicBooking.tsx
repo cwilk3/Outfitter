@@ -146,6 +146,24 @@ function PublicBooking() {
     setBookingDialogOpen(true);
   };
   
+  // Setup form (moved here before useQuery to avoid reference errors)
+  const form = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingFormSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      dateRange: {
+        from: new Date(),
+        to: addDays(new Date(), 1),
+      },
+      guests: 1,
+      notes: "",
+      agreedToTerms: false,
+    },
+  });
+  
   // Fetch availability data for the selected experience using the new v2 endpoint
   const { 
     data: availabilityResponse, 
@@ -172,7 +190,7 @@ function PublicBooking() {
     },
     enabled: !!selectedExperience?.id && bookingDialogOpen, // Only run query when experience selected and dialog open
     staleTime: 5 * 60 * 1000, // Cache availability data for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+    gcTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
     // Consider adding an onError handler to show a toast or specific UI message
     // onError: (error: Error) => {
     //   toast({
@@ -192,24 +210,6 @@ function PublicBooking() {
       to: new Date(slot.endDate),
     }));
   }, [availabilityResponse]);
-  
-  // Setup form
-  const form = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      dateRange: {
-        from: new Date(),
-        to: addDays(new Date(), 1),
-      },
-      guests: 1,
-      notes: "",
-      agreedToTerms: false,
-    },
-  });
   
   // Calculate booking summary
   const calculateSummary = (formValues: BookingFormValues) => {
@@ -800,10 +800,7 @@ function PublicBooking() {
                                       <DateRangePicker
                                         dateRange={field.value as DateRange}
                                         onSelect={(range: DateRange | undefined) => {
-                                          // Simply update the form field with the selected date range
                                           field.onChange(range);
-                                          
-                                          // If dates are selected, log for verification
                                           if (range?.from && range?.to) {
                                             console.log("Selected date range:", {
                                               from: range.from.toISOString(),
@@ -811,13 +808,13 @@ function PublicBooking() {
                                             });
                                           }
                                         }}
-                                        experience={selectedExperience || {
-                                          duration: 1,
-                                          capacity: 1
-                                        }}
-                                        bookings={formattedBookings || []}
+                                        experience={selectedExperience || { duration: 1, capacity: 1 /* Minimal default */ }}
                                         guestCount={form.getValues().guests}
+                                        // REMOVE: bookings={formattedBookings || []} 
+                                        availableRanges={availableDatesForPicker} // ✅ NEW PROP: Pass the directly available slots
                                         className="w-full"
+                                        // Potentially add a disabled prop if isLoadingAvailability is true or availabilityError exists
+                                        disabled={isLoadingAvailability || !!availabilityError} 
                                       />
                                     </CardContent>
                                   </Card>
