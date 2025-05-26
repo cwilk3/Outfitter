@@ -1233,7 +1233,7 @@ function PublicBooking() {
                 <p>Booking Number: <span className="font-mono">{bookingConfirmation.bookingNumber || (bookingConfirmation.booking && bookingConfirmation.booking.bookingNumber) || 'N/A'}</span></p>
                 <p>Experience: {bookingConfirmation.experienceName || (bookingConfirmation.booking && selectedExperience.name) || selectedExperience.name}</p>
                 <p>Location: {selectedLocation ? `${selectedLocation.name}, ${selectedLocation.city}, ${selectedLocation.state}` : (selectedExperience.locations && selectedExperience.locations.length > 0 ? `${selectedExperience.locations[0].name}, ${selectedExperience.locations[0].city}` : 'Not specified')}</p>
-                <p>Dates: {form.getValues().dateRange?.from ? format(form.getValues().dateRange.from, 'MMM d') : ''} - {form.getValues().dateRange?.to ? format(form.getValues().dateRange.to, 'MMM d, yyyy') : ''}</p>
+                <p>Dates: {form.getValues().dateRange?.from ? format(form.getValues().dateRange.from, 'MMM d, yyyy') : ''} - {form.getValues().dateRange?.to ? format(form.getValues().dateRange.to, 'MMM d, yyyy') : ''}</p>
                 <p>Guests: {form.getValues().guests || 0}</p>
                 
                 {/* Add-ons section */}
