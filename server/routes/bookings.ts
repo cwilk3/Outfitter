@@ -63,7 +63,7 @@ router.use(requireAuth, addOutfitterContext);
 router.get('/', 
   validate({ query: bookingValidation.listQuery }),
   asyncHandler(async (req: Request, res: Response) => {
-    const bookings = await storage.listBookings();
+    const bookings = await storage.listBookings((req as any).outfitterId);
     res.json(bookings);
   })
 );

@@ -975,10 +975,15 @@ export class DatabaseStorage implements IStorage {
     return booking;
   }
 
-  async listBookings(filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]> {
+  async listBookings(outfitterId?: number, filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]> {
+    const conditions = [];
+    
+    // Always filter by outfitterId when provided
+    if (outfitterId) {
+      conditions.push(eq(bookings.outfitterId, outfitterId));
+    }
+    
     if (filters) {
-      const conditions = [];
-      
       if (filters.status) {
         conditions.push(eq(bookings.status, filters.status as any));
       }
@@ -992,12 +997,12 @@ export class DatabaseStorage implements IStorage {
         const endDate = filters.endDate instanceof Date ? filters.endDate : new Date(filters.endDate);
         conditions.push(lte(bookings.endDate, endDate));
       }
-      
-      if (conditions.length > 0) {
-        return await db.select().from(bookings)
-          .where(and(...conditions))
-          .orderBy(desc(bookings.startDate));
-      }
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(bookings)
+        .where(and(...conditions))
+        .orderBy(desc(bookings.startDate));
     }
     
     return await db.select().from(bookings).orderBy(desc(bookings.startDate));
