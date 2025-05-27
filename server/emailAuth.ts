@@ -142,7 +142,12 @@ export async function registerUser(req: Request, res: Response) {
   try {
     const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
 
+    // Debug the actual request body to identify the issue
+    console.log('Request body received:', JSON.stringify(req.body, null, 2));
+    console.log('Validation check - email:', !!email, 'password:', !!password, 'firstName:', !!firstName, 'companyName:', !!companyName);
+
     if (!email || !password || !firstName || !companyName) {
+      console.log('Validation failed - missing fields:', { email: !email, password: !password, firstName: !firstName, companyName: !companyName });
       return res.status(400).json({ 
         error: 'Email, password, first name, and company name are required' 
       });

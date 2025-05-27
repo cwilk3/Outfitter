@@ -1,0 +1,30 @@
+Thank you for confirming the sign-up validation bug. It's crucial we get this resolved so we can proceed with onboarding and testing.
+
+Your task is to thoroughly investigate and fix the server-side validation logic for the user registration/sign-up route.
+
+Specific Focus Areas for Investigation:
+
+Locate the exact file and function responsible for handling the user registration POST request (e.g., router.post('/register', ...), likely in a file like server/routes/auth.ts or server/user-routes.ts).
+Examine the validation schema or logic applied to the incoming request body for this route (e.g., within validate(...), Joi.object().keys(...), or direct manual checks).
+Identify the root cause of the "Email, password, first name, and company name are required" error when all fields are present. This could be:
+A mismatch between the incoming form field names (e.g., firstName) and what the server-side validation expects (e.g., first_name).
+Incorrect parsing of the request body middleware.
+A logical error within the validation rules themselves.
+Proposed Solution:
+
+Implement the necessary code changes to ensure the server-side validation correctly recognizes and processes all required sign-up fields (email, password, first name, company name) when they are properly provided in the request.
+Output Required for My Review:
+Once you have identified and implemented the fix, please provide a comprehensive diff preview that includes:
+
+The exact file path of the modified file.
+The approximate line numbers where the change occurred.
+The current code block before your modification.
+The modified code block after your change.
+Success Criteria for My Approval:
+
+The diff clearly shows the specific line(s) or block(s) that were changed.
+The change directly addresses the root cause of the incorrect "required fields missing" error.
+The new validation logic will correctly allow a user to sign up when all necessary fields are provided.
+No unrelated code lines are affected.
+The proposed solution aligns with the overall code style and best practices of the project.
+I will not approve this step until these criteria are met. Please proceed with the investigation and proposed fix.
