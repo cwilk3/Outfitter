@@ -70,7 +70,11 @@ router.get('/:id',
 router.post('/', 
   validate({ body: customerValidation.createCustomer }),
   asyncHandler(async (req: Request, res: Response) => {
-    const customer = await storage.createCustomer(req.body);
+    const newCustomer = {
+      ...req.body,
+      outfitterId: (req as any).user?.outfitterId // ADDED: Server-side outfitterId assignment
+    };
+    const customer = await storage.createCustomer(newCustomer);
     res.status(201).json(customer);
   })
 );
