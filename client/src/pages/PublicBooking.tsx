@@ -655,7 +655,18 @@ function PublicBooking() {
                     <Form {...form}>
                       <form onSubmit={(event) => {
                         console.log('DEBUG: Form onSubmit event triggered', { eventType: event.type, defaultPrevented: event.defaultPrevented }); // NEW LOG 1
-                        return form.handleSubmit(onSubmit)(event);
+                        return form.handleSubmit(
+                          onSubmit, // First argument: onSuccess callback
+                          (errors) => { // Second argument: onError callback
+                            console.error('DEBUG: form.handleSubmit - Validation FAILED, errors:', errors); // NEW CRITICAL DEBUG LOG
+                            // Optionally, you might want to show a toast here if validation fails
+                            // toast({
+                            //   title: "Form has errors",
+                            //   description: "Please check the highlighted fields.",
+                            //   variant: "destructive",
+                            // });
+                          }
+                        )(event);
                       }} className="space-y-6">
                         {/* Step indicators */}
                         <div className="flex items-center gap-1 mb-4">
