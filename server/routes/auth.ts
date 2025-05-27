@@ -27,6 +27,7 @@ const authValidation = {
     firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
     lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
     phone: commonSchemas.phone,
+    companyName: z.string().min(1, 'Company name is required'),
     role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional()
   })
 };

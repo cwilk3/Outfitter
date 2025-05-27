@@ -1,0 +1,19 @@
+The discrepancy is that the validate middleware in server/routes/auth.ts uses a Zod schema (authValidation.registerSchema) that does not require companyName, while the registerUser function in server/emailAuth.ts does require companyName in an immediate manual check. This causes registerUser to exit prematurely if the client doesn't send companyName, even if the request passes the initial Zod validation.
+
+Recommended Solution & Next Steps:
+
+1. Align Validation (Recommended: Make companyName required in Zod):
+
+Action: Modify authValidation.registerSchema in server/routes/auth.ts to include companyName as a required field: typescript // In server/routes/auth.ts const authValidation = { // ... loginSchema ... registerSchema: z.object({ // ... other fields ... companyName: z.string().min(1, 'Company name is required'), // <--- ADD THIS role: z.enum(['admin', 'guide'], { /* ... */ }).optional() }) };
+Why: This makes the validation consistent. The validate middleware will now ensure companyName is present. The internal check in registerUser for companyName will then naturally pass if the middleware validation passed.
+2. (Optional, after Step 1) Simplify registerUser Initial Check:
+
+Once companyName is enforced by the Zod schema in the middleware, you can simplify or remove the initial manual if (!email || !password || !firstName || !companyName) block within registerUser in server/emailAuth.ts, as those fields would have already been validated.
+3. Test Thoroughly:
+
+Attempt registration with companyName – it should now proceed through the entire registerUser function, and you should see your detailed diagnostic logs (e.g., === REGISTRATION DEBUG START ===).
+Attempt registration without companyName – the request should now be rejected by the validate middleware with a 400 error, likely including a message that companyName is required.
+4. Ensure Client Sends companyName:
+
+The frontend application making the call to /api/auth/email-register must be updated to include companyName in the request payload.
+This approach ensures that the requirements are clear at the validation middleware stage and that registerUser receives all the data it expects to proceed.

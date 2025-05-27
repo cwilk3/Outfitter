@@ -1,0 +1,64 @@
+Excellent analysis! The root cause has been identified: a discrepancy where companyName is required in registerUser but not in authValidation.registerSchema.
+
+Your task is to modify the Zod schema to enforce companyName as a required field. This will align the validation rules and allow valid sign-up attempts to proceed.
+
+Specific Focus Area for Modification:
+
+Locate the file: server/routes/auth.ts
+Find the authValidation.registerSchema object.
+Modify the registerSchema to include companyName as a required string field.
+Proposed Code Changes:
+
+File: server/routes/auth.ts
+Location: Within the authValidation object, specifically inside the registerSchema definition.
+
+Find this block (or similar, inside authValidation):
+
+TypeScript
+
+const authValidation = {
+  // ... other schemas like loginSchema
+  registerSchema: z.object({
+    email: z.string().email('Invalid email address').min(1, 'Email is required'),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password must be less than 100 characters'),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().optional(),
+    phone: z.string().optional(),
+    role: z.enum(['admin', 'guide'], {
+      invalid_type_error: "Role must be 'admin' or 'guide'"
+    }).optional()
+    // companyName is missing here or not required
+  })
+};
+Replace it with (adding companyName as required):
+
+TypeScript
+
+const authValidation = {
+  // ... other schemas like loginSchema
+  registerSchema: z.object({
+    email: z.string().email('Invalid email address').min(1, 'Email is required'),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password must be less than 100 characters'),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().optional(),
+    phone: z.string().optional(),
+    companyName: z.string().min(1, 'Company name is required'), // <--- ADDED/MODIFIED THIS LINE
+    role: z.enum(['admin', 'guide'], {
+      invalid_type_error: "Role must be 'admin' or 'guide'"
+    }).optional()
+  })
+};
+Output Required for My Review:
+Once you have implemented this fix, please provide a comprehensive diff preview that includes:
+
+The exact file path of the modified file (server/routes/auth.ts).
+The approximate line numbers where the change occurred.
+The current code block before your modification.
+The modified code block after your change.
+Success Criteria for My Approval:
+
+The companyName field is correctly added to or modified within authValidation.registerSchema.
+It is defined as a z.string().min(1, 'Company name is required') (or equivalent for making it a required string).
+No other unrelated code lines are affected.
+The change directly addresses the identified validation discrepancy by enforcing companyName at the Zod schema level.
+I will not approve this step until these criteria are met.
