@@ -485,10 +485,20 @@ export class DatabaseStorage implements IStorage {
     console.log(`[STORAGE][DEBUG] Successfully deleted experience ID: ${id} and all related data - EXITING FUNCTION.`);
   }
 
-  async listExperiences(locationId?: number): Promise<Experience[]> {
+  async listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]> {
+    const conditions = [];
+    
     if (locationId) {
+      conditions.push(eq(experiences.locationId, locationId));
+    }
+    
+    if (outfitterId) {
+      conditions.push(eq(experiences.outfitterId, outfitterId));
+    }
+    
+    if (conditions.length > 0) {
       return await db.select().from(experiences)
-        .where(eq(experiences.locationId, locationId))
+        .where(and(...conditions))
         .orderBy(experiences.name);
     }
     

@@ -36,7 +36,7 @@ router.use(requireAuth, addOutfitterContext);
 // Get all experiences
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
-  const experiences = await storage.listExperiences(locationId);
+  const experiences = await storage.listExperiences(locationId, (req as any).outfitterId);
   res.json(experiences);
 }));
 
