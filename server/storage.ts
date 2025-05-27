@@ -59,7 +59,7 @@ export interface IStorage {
   createExperience(experience: InsertExperience): Promise<Experience>;
   updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
   deleteExperience(id: number): Promise<void>;
-  listExperiences(locationId?: number): Promise<Experience[]>;
+  listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]>;
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
@@ -84,7 +84,7 @@ export interface IStorage {
   getBooking(id: number): Promise<Booking | undefined>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: number, booking: Partial<InsertBooking>): Promise<Booking | undefined>;
-  listBookings(filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]>;
+  listBookings(outfitterId?: number, filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]>;
   getBookingByNumber(bookingNumber: string): Promise<Booking | undefined>;
   assignGuideToBooking(bookingGuide: InsertBookingGuide): Promise<BookingGuide>;
   removeGuideFromBooking(bookingId: number, guideId: string): Promise<void>;

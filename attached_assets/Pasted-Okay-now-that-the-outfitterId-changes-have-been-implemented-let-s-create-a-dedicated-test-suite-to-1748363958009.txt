@@ -1,0 +1,45 @@
+Okay, now that the outfitterId changes have been implemented, let's create a dedicated test suite to verify their correct functionality and ensure multi-tenant isolation.
+
+Please create a new test file, for example, tests/tenant-isolation.test.ts (or integrate these into existing relevant test files if a clear structure for integration tests is already present, e.g., tests/routes.test.ts).
+
+The tests should cover the Experience Listing, Customer Creation, and Booking Listing routes, specifically focusing on how outfitterId is handled. Assume you can simulate authenticated user sessions (e.g., by setting req.user.outfitterId in test requests or mocks).
+
+Here are the specific test scenarios and expected outcomes you need to implement:
+
+Setup:
+
+Create at least two mock outfitter IDs (e.g., outfitterIdA = 1, outfitterIdB = 2).
+Populate your test database with some sample data:
+Experiences for outfitterIdA (e.g., 'Experience A1', 'Experience A2').
+Experiences for outfitterIdB (e.g., 'Experience B1').
+Customers for outfitterIdA (e.g., 'Customer A1').
+Bookings for outfitterIdA (e.g., 'Booking A1', 'Booking A2').
+Bookings for outfitterIdB (e.g., 'Booking B1').
+Test Cases:
+
+Experience Listing - Authenticated User A:
+
+Action: Simulate an authenticated request to /experiences from a user associated with outfitterIdA.
+Assertion: Verify that the response contains only 'Experience A1', 'Experience A2', and does not contain 'Experience B1'.
+Experience Listing - Authenticated User B (Cross-Tenant Attempt):
+
+Action: Simulate an authenticated request to /experiences from a user associated with outfitterIdB, explicitly trying to pass outfitterId=1 in the query string or body (if applicable and the route would normally accept it, which it should not for server-side enforcement).
+Assertion: Verify that the response contains only 'Experience B1' and does not contain 'Experience A1', 'Experience A2'. This confirms server-side outfitterId enforcement overrides client attempts.
+Experience Listing - Unauthenticated User:
+
+Action: Simulate an unauthenticated request to /experiences.
+Assertion: Verify that the response is empty (if all experiences require tenant context) or contains only experiences explicitly marked as 'public' (if such a concept exists in your schema), and no tenant-specific experiences.
+Customer Creation - Authenticated User A:
+
+Action: Simulate an authenticated request to /customers from a user associated with outfitterIdA to create a new customer. In the request body, optionally include a different outfitterId (e.g., outfitterId: 999) to test the override.
+Assertion: After creation, query the database directly for the newly created customer. Verify that the outfitterId of the created customer is exactly outfitterIdA, regardless of what was in the request body.
+Booking Listing - Authenticated User A:
+
+Action: Simulate an authenticated request to /bookings from a user associated with outfitterIdA.
+Assertion: Verify that the response contains only 'Booking A1', 'Booking A2', and does not contain 'Booking B1'.
+Booking Listing - Authenticated User B (Cross-Tenant Attempt):
+
+Action: Simulate an authenticated request to /bookings from a user associated with outfitterIdB, explicitly trying to pass outfitterId=1 in the query string or body (if applicable).
+Assertion: Verify that the response contains only 'Booking B1' and does not contain 'Booking A1', 'Booking A2'.
+Output:
+Please execute these tests and provide the test results (e.g., "All tests passed," or details of any failures).
