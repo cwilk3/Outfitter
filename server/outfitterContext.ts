@@ -8,10 +8,15 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function addOutfitterContext(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  // For now, default to outfitter ID 1 (the default outfitter we created)
-  // This will be enhanced when we implement full Replit authentication
-  if (req.user) {
-    req.outfitterId = 1; // Default outfitter for all authenticated users
+  // Dynamically assign outfitterId from the authenticated user, for multi-tenant support
+  if (req.user && req.user.outfitterId) { // Ensure req.user and its outfitterId are present
+    req.outfitterId = req.user.outfitterId; // Assign the actual outfitterId from the authenticated user
+  } else {
+    // If no user or outfitterId is found (e.g., public route, unauthenticated request)
+    // or if the authenticated user doesn't have an outfitterId (shouldn't happen for valid users)
+    // ensure outfitterId is explicitly undefined or null to prevent unintended access.
+    // This will cause tenant-isolated routes to correctly return 401/404.
+    req.outfitterId = undefined; 
   }
   
   next();
