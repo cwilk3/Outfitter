@@ -1046,8 +1046,8 @@ export class DatabaseStorage implements IStorage {
             // Booking overlaps if: booking.startDate < slot.endDate AND booking.endDate > slot.startDate
             sql`${bookings.startDate} < ${slot.endDate.toISOString()}`,
             sql`${bookings.endDate} > ${slot.startDate.toISOString()}`,
-            // Only count active bookings that occupy capacity
-            inArray(bookings.status, ['confirmed', 'deposit_paid', 'paid', 'completed'])
+            // Only count active bookings that occupy capacity, including pending
+            inArray(bookings.status, ['pending', 'confirmed', 'deposit_paid', 'paid', 'completed'])
           )
         );
       
