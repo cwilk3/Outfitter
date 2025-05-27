@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 [DEBUG] Experience lookup', { experience: !!experience, experienceOutfitterId: experience?.outfitterId });
       
       if (!experience || experience.outfitterId !== outfitterId) {
-        console.log('🚫 [TENANT-BLOCK] Experience access denied', { experienceId, userOutfitterId: outfitterId, experienceOutfitterId: experience?.outfitterId });
+
         return res.status(404).json({ error: "Experience not found" });
       }
 

@@ -71,11 +71,6 @@ router.delete('/:id', adminOnly, asyncHandler(async (req: Request, res: Response
   // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
   const experience = await storage.getExperience(experienceId);
   if (!experience || experience.outfitterId !== outfitterId) {
- 
-      experienceId, 
-      userOutfitterId: outfitterId, 
-      experienceOutfitterId: experience?.outfitterId 
-    });
     return res.status(404).json({ error: "Experience not found" });
   }
 
@@ -177,11 +172,6 @@ router.get('/:experienceId/addons', asyncHandler(async (req: Request, res: Respo
   // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
   const experience = await storage.getExperience(experienceId);
   if (!experience || experience.outfitterId !== outfitterId) {
-    console.log('🚫 [TENANT-BLOCK] Experience access denied', { 
-      experienceId, 
-      userOutfitterId: outfitterId, 
-      experienceOutfitterId: experience?.outfitterId 
-    });
     return res.status(404).json({ error: "Experience not found" });
   }
 
@@ -207,11 +197,6 @@ router.post('/:experienceId/addons', adminOnly, asyncHandler(async (req: Request
   // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
   const experience = await storage.getExperience(experienceId);
   if (!experience || experience.outfitterId !== outfitterId) {
-    console.log('🚫 [TENANT-BLOCK] Experience access denied for addon creation', { 
-      experienceId, 
-      userOutfitterId: outfitterId, 
-      experienceOutfitterId: experience?.outfitterId 
-    });
     return res.status(404).json({ error: "Experience not found" });
   }
 
@@ -308,11 +293,7 @@ router.post('/experience-locations', adminOnly, asyncHandler(async (req: Request
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  console.log('📍 [ROUTE] Creating experience-location association', { 
-    experienceId: validatedData.experienceId, 
-    locationId: validatedData.locationId, 
-    outfitterId 
-  });
+
 
   // Call storage function with tenant context - THIS IS THE CRITICAL FIX!
   const result = await storage.addExperienceLocation(validatedData, outfitterId);

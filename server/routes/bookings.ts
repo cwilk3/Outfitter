@@ -157,7 +157,7 @@ router.delete('/:bookingId/guides/:guideId',
     const booking = await storage.getBooking(parseInt(bookingId));
     
     if (!booking || booking.outfitterId !== outfitterId) {
-      console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Booking outfitter: ${booking?.outfitterId || 'NOT_FOUND'}`);
+
       return res.status(404).json({
         error: "Booking not found or not authorized",
       });

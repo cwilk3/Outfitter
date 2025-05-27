@@ -66,7 +66,7 @@ app.get('/api/experiences/:experienceId/addons', async (req: any, res) => {
     // Tenant isolation check
     const experience = await storage.getExperience(experienceId);
     if (!experience || experience.outfitterId !== outfitterId) {
-      console.log('🚫 [TENANT-BLOCK] Experience access denied', { 
+ 
         experienceId, 
         userOutfitterId: outfitterId, 
         experienceOutfitterId: experience?.outfitterId 
