@@ -917,7 +917,11 @@ function PublicBooking() {
                                                     form.setValue('selectedAddons', [
                                                       ...currentAddons.filter(item => item.id !== addon.id),
                                                       {
-                                                        ...addon, 
+                                                        ...addon,
+                                                        price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price, // Convert price to number
+                                                        // Ensure optional number fields are undefined if null, or explicitly parse if they could be strings
+                                                        inventory: addon.inventory === null ? undefined : (typeof addon.inventory === 'string' ? parseInt(addon.inventory) : addon.inventory),
+                                                        maxPerBooking: addon.maxPerBooking === null ? undefined : (typeof addon.maxPerBooking === 'string' ? parseInt(addon.maxPerBooking) : addon.maxPerBooking),
                                                         selected: true, 
                                                         quantity: 1
                                                       }

@@ -1,0 +1,52 @@
+EXCELLENT! This is the exact validation error we needed to find. Your diagnosis is 100% correct: the add-on `price` field is causing the validation failure because the Zod schema expects a `number` but receives a `string`.
+
+We need to explicitly convert the `price` (and also `inventory` and `maxPerBooking` for consistency and robustness) to `number` types when add-ons are selected and added to the form's state.
+
+Please modify the file `client/src/pages/PublicBooking.tsx`.
+
+Locate the `Checkbox` `onCheckedChange` handler within the add-on rendering logic (around lines 894-898, specifically the `form.setValue('selectedAddons', [...])` call when `checked` is `true`).
+
+**Change the `form.setValue('selectedAddons', [...])` call when `checked` is `true`, to explicitly parse `price`, `inventory`, and `maxPerBooking` to numbers, ensuring `null` values are handled for optional fields.**
+
+**Find this block (or similar):**
+```typescript
+if (checked) {
+  // Add this addon to the selected list with quantity of 1
+  form.setValue('selectedAddons', [
+    ...currentAddons.filter(item => item.id !== addon.id),
+    {
+      ...addon, // THIS IS WHERE THE PROBLEM LIES
+      selected: true,
+      quantity: 1
+    }
+  ]);
+}
+Replace it with:
+
+TypeScript
+
+if (checked) {
+  // Add this addon to the selected list with quantity of 1
+  form.setValue('selectedAddons', [
+    ...currentAddons.filter(item => item.id !== addon.id),
+    {
+      ...addon,
+      price: typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price, // Convert price to number
+      // Ensure optional number fields are undefined if null, or explicitly parse if they could be strings
+      inventory: addon.inventory === null ? undefined : (typeof addon.inventory === 'string' ? parseInt(addon.inventory) : addon.inventory),
+      maxPerBooking: addon.maxPerBooking === null ? undefined : (typeof addon.maxPerBooking === 'string' ? parseInt(addon.maxPerBooking) : addon.maxPerBooking),
+      selected: true,
+      quantity: 1
+    }
+  ]);
+}
+Please provide a comprehensive diff preview of this change. I will review it carefully before you approve.
+
+Success Criteria for my approval:
+
+The form.setValue call within the onCheckedChange handler (when checked is true) is modified.
+price is explicitly converted to a number using parseFloat if it's a string, otherwise kept as is.
+inventory and maxPerBooking are explicitly handled to ensure they are number or undefined (not null or string).
+The rest of the addon object is correctly spread (...addon).
+No other code lines are affected.
+I will not approve the change until these criteria are met.
