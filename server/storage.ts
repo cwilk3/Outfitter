@@ -354,11 +354,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExperience(experienceData: InsertExperience): Promise<Experience> {
-    console.log('CRITICAL DEBUG: createExperience called with:', {
-      name: experienceData.name,
-      outfitterId: experienceData.outfitterId,
-      allData: experienceData
-    });
     const [experience] = await db
       .insert(experiences)
       .values(experienceData)

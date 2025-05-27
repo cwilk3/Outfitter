@@ -66,11 +66,6 @@ app.get('/api/experiences/:experienceId/addons', async (req: any, res) => {
     // Tenant isolation check
     const experience = await storage.getExperience(experienceId);
     if (!experience || experience.outfitterId !== outfitterId) {
- 
-        experienceId, 
-        userOutfitterId: outfitterId, 
-        experienceOutfitterId: experience?.outfitterId 
-      });
       return res.status(404).json({ error: "Experience not found" });
     }
     
