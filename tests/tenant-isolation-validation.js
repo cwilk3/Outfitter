@@ -5,8 +5,8 @@
  * Tests the actual running application to verify outfitterId enforcement
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
 // Test configuration
 const BASE_URL = 'http://localhost:3000';
