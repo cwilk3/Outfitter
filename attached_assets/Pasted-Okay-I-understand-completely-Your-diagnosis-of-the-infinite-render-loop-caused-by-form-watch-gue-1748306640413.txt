@@ -1,0 +1,110 @@
+Okay, I understand completely. Your diagnosis of the infinite render loop caused by `form.watch('guests')` in the `useQuery` `queryKey` is correct.
+
+We need to stabilize the `useQuery` reactivity to break this loop while maintaining reactivity to `guests` changes.
+
+Please modify the file `client/src/pages/PublicBooking.tsx`.
+
+**Here are the specific changes:**
+
+**Part 1: Modify the `useQuery` hook for availability data**
+
+Locate the `useQuery` hook for `availabilityResponse` (around line 150-160).
+**Change its `queryKey` and `queryFn` as follows:**
+
+**From (or similar structure, specifically the `queryKey` and the `requestedGroupSize` line in `queryFn`):**
+```typescript
+  // Fetch availability data for the selected experience using the new v2 endpoint
+  const { 
+    data: availabilityResponse = { availableSlots: [] }, 
+    isLoading: isLoadingAvailability,
+    error: availabilityError // Capture error state
+  } = useQuery<{ 
+    availableSlots: { startDate: string; endDate: string }[];
+    message?: string; // Optional message from backend
+  }>({
+    queryKey: ['/api/public/v2/availability', selectedExperience?.id, form.watch('guests')], // THIS LINE CHANGES
+    queryFn: async () => { // And this function's body
+      if (!selectedExperience) return { availableSlots: [] };
+      const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); // THIS LINE IS MOVED
+      // ... rest of queryFn fetch logic ...
+    },
+    // ... rest of useQuery options ...
+  });
+To:
+
+TypeScript
+
+  // Fetch availability data for the selected experience using the new v2 endpoint
+  const { 
+    data: availabilityResponse = { availableSlots: [] }, 
+    isLoading: isLoadingAvailability,
+    error: availabilityError // Capture error state
+  } = useQuery<{ 
+    availableSlots: { startDate: string; endDate: string }[];
+    message?: string; // Optional message from backend
+  }>({
+    queryKey: ['/api/public/v2/availability', selectedExperience?.id], // ✅ REMOVED form.watch('guests') from queryKey
+    queryFn: async ({ queryKey }) => { // ✅ Added queryKey to destructuring for access
+      const [, experienceIdFromKey] = queryKey; // Extract experienceId from stable queryKey
+      if (!experienceIdFromKey || !selectedExperience) return { availableSlots: [] }; // Ensure experienceId is present
+      
+      // ✅ Get guests count directly from the form state inside queryFn
+      const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); 
+
+      const response = await fetch(`/api/public/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // Use experienceIdFromKey
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch availability' }));
+        throw new Error(errorData.message || 'Failed to fetch availability');
+      }
+      return response.json();
+    },
+    enabled: !!selectedExperience?.id && bookingDialogOpen, // Only run query when experience selected and dialog open
+    staleTime: 5 * 60 * 1000, // Cache availability data for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
+  });
+Part 2: Add a useEffect to invalidate query when guests change
+
+Add a new useEffect hook immediately after the useQuery hook you just modified. This useEffect will listen for changes to the guests field and explicitly trigger a refetch of the availability data.
+
+TypeScript
+
+  // ✅ NEW useEffect to refetch availability when guests count changes
+  const queryClient = useQueryClient(); // Make sure useQueryClient is imported from '@tanstack/react-query'
+  
+  useEffect(() => {
+    // Only subscribe if selectedExperience is available
+    if (!selectedExperience) return;
+
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'guests') {
+        console.log('DEBUG: Guests count changed, invalidating availability query.');
+        queryClient.invalidateQueries({
+          queryKey: ['/api/public/v2/availability', selectedExperience.id],
+          refetchType: 'active' // Only refetch active queries
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe(); // Unsubscribe on component unmount
+  }, [form.watch, queryClient, selectedExperience]); // Dependencies for useEffect
+Important Note: Ensure useQueryClient is imported at the top of PublicBooking.tsx:
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+Please provide a comprehensive diff preview of these changes. I will review it carefully before you approve.
+
+Success Criteria for my approval:
+
+form.watch('guests') is removed from queryKey.
+queryFn extracts experienceId from queryKey and requestedGroupSize from form.getValues('guests').
+A new useEffect is added to subscribe to form.watch('guests') and invalidateQueries when guests changes.
+useQueryClient is correctly imported.
+No other code lines are affected.
+I will not approve the change until these criteria are met.
+
+
+Sources
+
+
+
+
+

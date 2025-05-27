@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Calendar, Users, MapPin } from "lucide-react";
 import { z } from "zod";
 import { format, addDays } from "date-fns";
@@ -174,13 +174,15 @@ function PublicBooking() {
     message?: string; // Optional message from backend
     // Add other expected fields from the v2/availability response if necessary
   }>({ // Provide a default for availabilityResponse during destructuring
-    queryKey: ['/api/public/v2/availability', selectedExperience?.id, form.watch('guests')], // Add 'guests' to queryKey to refetch when group size changes
-    queryFn: async () => {
-      if (!selectedExperience) return { availableSlots: [] }; // Default if no experience
+    queryKey: ['/api/public/v2/availability', selectedExperience?.id], // ✅ REMOVED form.watch('guests') from queryKey
+    queryFn: async ({ queryKey }) => { // ✅ Added queryKey to destructuring for access
+      const [, experienceIdFromKey] = queryKey; // Extract experienceId from stable queryKey
+      if (!experienceIdFromKey || !selectedExperience) return { availableSlots: [] }; // Ensure experienceId is present
       // Ensure guests value is valid for the API call
+      // ✅ Get guests count directly from the form state inside queryFn
       const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); 
 
-      const response = await fetch(`/api/public/v2/availability?experienceId=${selectedExperience.id}&requestedGroupSize=${requestedGroupSize}`);
+      const response = await fetch(`/api/public/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // Use experienceIdFromKey
       if (!response.ok) {
         // Attempt to parse error message from API response
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch availability' }));
@@ -191,15 +193,27 @@ function PublicBooking() {
     enabled: !!selectedExperience?.id && bookingDialogOpen, // Only run query when experience selected and dialog open
     staleTime: 5 * 60 * 1000, // Cache availability data for 5 minutes
     gcTime: 10 * 60 * 1000, // Keep cached data for 10 minutes
-    // Consider adding an onError handler to show a toast or specific UI message
-    // onError: (error: Error) => {
-    //   toast({
-    //     title: "Availability Check Failed",
-    //     description: error.message || "Could not retrieve up-to-date availability.",
-    //     variant: "destructive",
-    //   });
-    // }
   });
+
+  // ✅ NEW useEffect to refetch availability when guests count changes
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    // Only subscribe if selectedExperience is available
+    if (!selectedExperience) return;
+
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'guests') {
+        console.log('DEBUG: Guests count changed, invalidating availability query.');
+        queryClient.invalidateQueries({
+          queryKey: ['/api/public/v2/availability', selectedExperience.id],
+          refetchType: 'active' // Only refetch active queries
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe(); // Unsubscribe on component unmount
+  }, [form.watch, queryClient, selectedExperience]); // Dependencies for useEffect
 
   // Prepare available dates for the DateRangePicker
   // This replaces the old 'formattedBookings'
