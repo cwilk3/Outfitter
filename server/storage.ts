@@ -1026,13 +1026,18 @@ export class DatabaseStorage implements IStorage {
     experienceId: number, 
     slots: Array<{startDate: Date, endDate: Date}>
   ): Promise<Array<{slot: {startDate: Date, endDate: Date}, occupiedCount: number}>> {
+    console.log(`[AVAIL-DEBUG] getOccupancyForExperienceSlots for Experience ID: ${experienceId}`, { slotsCount: slots.length }); // Log 1
     const results = [];
     
     for (const slot of slots) {
+      console.log(`[AVAIL-DEBUG] Checking slot: ${slot.startDate.toISOString()} to ${slot.endDate.toISOString()}`); // Log 2
       // Query active bookings that overlap with this specific slot
       const overlappingBookings = await db
         .select({
-          groupSize: bookings.groupSize
+          id: bookings.id, // Include ID for easier debugging
+          groupSize: bookings.groupSize,  // CRITICAL FIX: Use actual groupSize
+          startDate: bookings.startDate,
+          endDate: bookings.endDate,
         })
         .from(bookings)
         .where(
@@ -1046,8 +1051,12 @@ export class DatabaseStorage implements IStorage {
           )
         );
       
-      // Sum the actual groupSize values to get true occupancy
+      console.log(`[AVAIL-DEBUG] Overlapping bookings found for slot:`, overlappingBookings); // Log 3
+      
+      // CRITICAL FIX: Sum the actual groupSize values to get true occupancy
       const occupiedCount = overlappingBookings.reduce((sum, booking) => sum + (booking.groupSize || 0), 0);
+      
+      console.log(`[AVAIL-DEBUG] Slot Occupancy for ${slot.startDate.toISOString()}: ${occupiedCount}`); // Log 4
       
       results.push({
         slot: { startDate: slot.startDate, endDate: slot.endDate },
@@ -1055,6 +1064,7 @@ export class DatabaseStorage implements IStorage {
       });
     }
     
+    console.log(`[AVAIL-DEBUG] getOccupancyForExperienceSlots - Final results count: ${results.length}`); // Log 5
     return results;
   }
 

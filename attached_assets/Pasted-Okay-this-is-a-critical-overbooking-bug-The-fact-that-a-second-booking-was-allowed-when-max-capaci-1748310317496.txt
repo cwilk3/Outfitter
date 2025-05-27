@@ -1,0 +1,81 @@
+Okay, this is a critical overbooking bug. The fact that a second booking was allowed when max capacity was reached means our availability calculation is flawed.
+
+We need to diagnose the `getOccupancyForExperienceSlots` function and the `/api/public/v2/availability` endpoint's response.
+
+**Part 1: Add Debug Logs to `getOccupancyForExperienceSlots` (Backend Storage)**
+
+Please modify the file `server/storage.ts`.
+
+Locate the `async getOccupancyForExperienceSlots(...)` function. Add `console.log` statements at key points within this function to trace its logic, especially for the calculated `occupiedCount`.
+
+**Replace the entire `getOccupancyForExperienceSlots` function with the following version, which includes detailed debug logs:**
+
+```typescript
+// In server/storage.ts
+
+async getOccupancyForExperienceSlots(
+  experienceId: number, 
+  slots: Array<{startDate: Date, endDate: Date}>
+): Promise<Array<{slot: {startDate: Date, endDate: Date}, occupiedCount: number}>> {
+  console.log(`[AVAIL-DEBUG] getOccupancyForExperienceSlots for Experience ID: ${experienceId}`, { slotsCount: slots.length }); // Log 1
+  const results = [];
+  
+  for (const slot of slots) {
+    console.log(`[AVAIL-DEBUG] Checking slot: ${slot.startDate.toISOString()} to ${slot.endDate.toISOString()}`); // Log 2
+    // Query active bookings that overlap with this specific slot
+    const overlappingBookings = await db
+      .select({
+        id: bookings.id, // Include ID for easier debugging
+        groupSize: bookings.groupSize,  // CRITICAL FIX: Use actual groupSize
+        startDate: bookings.startDate,
+        endDate: bookings.endDate,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.experienceId, experienceId),
+          // Booking overlaps if: booking.startDate < slot.endDate AND booking.endDate > slot.startDate
+          sql`${bookings.startDate} < ${slot.endDate.toISOString()}`,
+          sql`${bookings.endDate} > ${slot.startDate.toISOString()}`,
+          // Only count active bookings that occupy capacity
+          inArray(bookings.status, ['confirmed', 'deposit_paid', 'paid', 'completed'])
+        )
+      );
+    
+    console.log(`[AVAIL-DEBUG] Overlapping bookings found for slot:`, overlappingBookings); // Log 3
+    
+    // CRITICAL FIX: Sum the actual groupSize values to get true occupancy
+    const occupiedCount = overlappingBookings.reduce((sum, booking) => sum + (booking.groupSize || 0), 0);
+    
+    console.log(`[AVAIL-DEBUG] Slot Occupancy for ${slot.startDate.toISOString()}: ${occupiedCount}`); // Log 4
+    
+    results.push({
+      slot: { startDate: slot.startDate, endDate: slot.endDate },
+      occupiedCount
+    });
+  }
+  
+  console.log(`[AVAIL-DEBUG] getOccupancyForExperienceSlots - Final results count: ${results.length}`); // Log 5
+  return results;
+}
+Part 2: Perform curl Tests on /api/public/v2/availability Endpoint
+
+After applying Part 1, please perform the following curl requests. This will show us the direct output of the new backend endpoint, reflecting the getOccupancyForExperienceSlots calculations.
+
+Get experienceId for "Hog Hunt": (If you know it, otherwise use the test experience ID you just used).
+Curl 1 (Hog Hunt, Requested Group Size 3):
+Bash
+
+curl "http://localhost:5000/api/public/v2/availability?experienceId=[HOG_HUNT_EXPERIENCE_ID]&requestedGroupSize=3"
+Replace [HOG_HUNT_EXPERIENCE_ID] with the actual ID.
+Expected Behavior: If the previous booking (Wilkins/3) is counted correctly, this curl should return no available slots for the days it overlaps, as 3 <= (3-3) is false.
+Curl 2 (Hog Hunt, Requested Group Size 1):
+Bash
+
+curl "http://localhost:5000/api/public/v2/availability?experienceId=[HOG_HUNT_EXPERIENCE_ID]&requestedGroupSize=1"
+Expected Behavior: If the max capacity is 3, and 3 are booked, this should also return no available slots.
+Please provide:
+
+A diff preview for Part 1 (adding debug logs to getOccupancyForExperienceSlots).
+The complete server console logs after running both curl requests (after Part 1 is implemented and backend restarted).
+The full JSON responses from both curl requests.
