@@ -71,7 +71,7 @@ router.delete('/:id', adminOnly, asyncHandler(async (req: Request, res: Response
   // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter
   const experience = await storage.getExperience(experienceId);
   if (!experience || experience.outfitterId !== outfitterId) {
-    console.log('🚫 [TENANT-BLOCK] Experience deletion denied', { 
+ 
       experienceId, 
       userOutfitterId: outfitterId, 
       experienceOutfitterId: experience?.outfitterId 

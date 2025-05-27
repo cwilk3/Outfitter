@@ -109,7 +109,7 @@ router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, r
   const assignment = await storage.getExperienceGuideById(id);
   
   if (!assignment) {
-    console.warn(`[TENANT-BLOCK] Assignment not found - ID: ${id}, Outfitter: ${outfitterId}`);
+
     return res.status(404).json({ error: 'Guide assignment not found' });
   }
 
@@ -117,7 +117,7 @@ router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, r
   const experience = await storage.getExperience(assignment.experienceId);
   
   if (!experience || experience.outfitterId !== outfitterId) {
-    console.warn(`[TENANT-BLOCK] Unauthorized access attempt - User outfitter: ${outfitterId}, Experience outfitter: ${experience?.outfitterId || 'NOT_FOUND'}`);
+
     return res.status(404).json({ error: 'Guide assignment not found' });
   }
 

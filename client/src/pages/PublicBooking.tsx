@@ -204,7 +204,6 @@ function PublicBooking() {
 
     const subscription = form.watch((value, { name }) => {
       if (name === 'guests') {
-        console.log('DEBUG: Guests count changed, invalidating availability query.');
         queryClient.invalidateQueries({
           queryKey: ['/api/public/v2/availability', selectedExperience.id],
           refetchType: 'active' // Only refetch active queries
@@ -267,23 +266,16 @@ function PublicBooking() {
   
   // Handle form submission
   const onSubmit = async (data: BookingFormValues) => {
-    console.log('DEBUG: onSubmit - Function entered', { data }); // Log 1
-    console.log('DEBUG: onSubmit - Form validation errors:', form.formState.errors);
     if (!selectedExperience) {
-      console.log('DEBUG: onSubmit - No selected experience, returning.'); // Log 2
       return;
     }
     
     try {
-      console.log('DEBUG: onSubmit - Calculating summary...'); // Log 3
       const summary = calculateSummary(data);
       if (!summary) {
-        console.log('DEBUG: onSubmit - Summary calculation returned null, returning.'); // Log 4
         return;
       }
-      console.log('DEBUG: onSubmit - Summary calculated:', { summary }); // Log 5
       
-      console.log('DEBUG: onSubmit - Preparing bookingData payload...'); // Log 6
       const bookingData = {
         experienceId: selectedExperience.id,
         customerDetails: {
@@ -307,11 +299,8 @@ function PublicBooking() {
           totalAmount: summary.total.toString(),
         }
       };
-      console.log('DEBUG: onSubmit - BookingData payload prepared:', { bookingData }); // Log 7
       
-      console.log('DEBUG: onSubmit - Calling apiRequest...'); // Log 8
       const response = await apiRequest('POST', '/api/public/bookings', bookingData);
-      console.log('DEBUG: onSubmit - apiRequest returned:', { response }); // Log 9
       
       setBookingConfirmation(response);
       setBookingDialogOpen(false);
@@ -319,25 +308,20 @@ function PublicBooking() {
       // This allows the booking dialog's cleanup (removing pointer-events: none) to complete
       setTimeout(() => {
         setConfirmationDialogOpen(true);
-        console.log('DEBUG: onSubmit - Confirmation dialog state set after delay.'); // NEW DEBUG LOG
       }, 50); // 50ms delay is usually sufficient
-      console.log('DEBUG: onSubmit - State updated for confirmation dialog (delay initiated).'); // Modified Log
       
       toast({
         title: "Booking successful!",
         description: "Your booking has been confirmed.",
         variant: "default",
       });
-      console.log('DEBUG: onSubmit - Success toast displayed.'); // Log 11
       
     } catch (error) {
-      console.error('DEBUG: onSubmit - CATCH BLOCK - An error occurred:', error); // Log 12
       toast({
         title: "Booking failed",
         description: "There was an error processing your booking. Please try again later.",
         variant: "destructive",
       });
-      console.log('DEBUG: onSubmit - Error toast displayed.'); // Log 13
     }
   };
   
@@ -654,11 +638,9 @@ function PublicBooking() {
                   <div className={bookingStep === 'description' || bookingStep === 'guests' ? "col-span-1 md:col-span-3" : "col-span-1 md:col-span-2"}>
                     <Form {...form}>
                       <form onSubmit={(event) => {
-                        console.log('DEBUG: Form onSubmit event triggered', { eventType: event.type, defaultPrevented: event.defaultPrevented }); // NEW LOG 1
                         return form.handleSubmit(
                           onSubmit, // First argument: onSuccess callback
                           (errors) => { // Second argument: onError callback
-                            console.error('DEBUG: form.handleSubmit - Validation FAILED, errors:', errors); // NEW CRITICAL DEBUG LOG
                             // Optionally, you might want to show a toast here if validation fails
                             // toast({
                             //   title: "Form has errors",
@@ -1164,9 +1146,6 @@ function PublicBooking() {
                                 <Button
                                   type="submit"
                                   className="flex-1"
-                                  onClick={() => {
-                                    console.log('DEBUG: Complete Booking button clicked'); // NEW LOG 2
-                                  }}
                                 >
                                   Complete Booking
                                 </Button>
