@@ -1,0 +1,50 @@
+Thank you for your honesty regarding the previous test execution. It is critical that the tenant isolation functionality is fully verified.
+
+Please discard any previous simplified validation scripts you may have created for this purpose.
+
+Your task now is to properly implement and execute the comprehensive test suite for tenant isolation, exactly as detailed below.
+
+File Creation:
+
+Create a new, dedicated test file named tests/tenant-isolation.test.ts.
+Setup for Tests:
+
+Mock Outfitter IDs: Set up at least two distinct mock outfitter IDs for testing (e.g., outfitterIdA = 101, outfitterIdB = 102).
+Test Data Population: Populate your test database with the following sample data that directly relates to these outfitterIds:
+At least two experiences owned by outfitterIdA (e.g., 'Experience A-Kayak Tour', 'Experience A-Hiking Trip').
+At least one experience owned by outfitterIdB (e.g., 'Experience B-Cycling').
+At least one customer created for outfitterIdA (e.g., 'Customer A-Jane Doe').
+At least two bookings owned by outfitterIdA (e.g., 'Booking A-001', 'Booking A-002').
+At least one booking owned by outfitterIdB (e.g., 'Booking B-001').
+Simulate Authenticated Sessions: Ensure your test setup can accurately simulate authenticated user sessions, where req.user.outfitterId is correctly set for outfitterIdA or outfitterIdB for each test case.
+Detailed Test Cases and Assertions:
+
+Experience Listing - Authenticated User A:
+
+Action: Simulate an authenticated GET request to /api/experiences from a user associated with outfitterIdA.
+Assertion: Verify that the response (status 200 OK) contains only experiences belonging to outfitterIdA and explicitly does not contain any experiences belonging to outfitterIdB.
+Experience Listing - Authenticated User B (Cross-Tenant Attempt):
+
+Action: Simulate an authenticated GET request to /api/experiences from a user associated with outfitterIdB. In this request, attempt to explicitly pass outfitterId=101 (i.e., outfitterIdA) in the query string.
+Assertion: Verify that the response (status 200 OK) contains only experiences belonging to outfitterIdB and explicitly does not contain any experiences belonging to outfitterIdA. This confirms that server-side outfitterId enforcement correctly overrides any client-side attempts to access other tenants' data.
+Experience Listing - Unauthenticated User:
+
+Action: Simulate an unauthenticated GET request to /api/experiences.
+Assertion: Verify that the response is either empty (status 200 OK with empty array) or returns an appropriate error (e.g., 401 Unauthorized if all experiences require authentication), and does not return any tenant-specific experiences.
+Customer Creation - Authenticated User A (OutfitterId Override Attempt):
+
+Action: Simulate an authenticated POST request to /api/customers from a user associated with outfitterIdA to create a new customer. In the request body for the new customer, explicitly include outfitterId: 999 (a different, invalid ID).
+Assertion: After the API call, query the database directly for the newly created customer. Verify that the outfitterId stored for this customer in the database is exactly outfitterIdA (101), overriding the 999 sent in the request body.
+Booking Listing - Authenticated User A:
+
+Action: Simulate an authenticated GET request to /api/bookings from a user associated with outfitterIdA.
+Assertion: Verify that the response (status 200 OK) contains only bookings belonging to outfitterIdA and explicitly does not contain any bookings belonging to outfitterIdB.
+Booking Listing - Authenticated User B (Cross-Tenant Attempt):
+
+Action: Simulate an authenticated GET request to /api/bookings from a user associated with outfitterIdB. In this request, attempt to explicitly pass outfitterId=101 (i.e., outfitterIdA) in the query string.
+Assertion: Verify that the response (status 200 OK) contains only bookings belonging to outfitterIdB and explicitly does not contain any bookings belonging to outfitterIdA. This confirms that server-side outfitterId enforcement correctly overrides any client-side attempts.
+Output:
+After implementing and running this test suite, please provide the detailed test results, clearly indicating a PASS or FAIL for each of the six scenarios outlined above.
+
+I will not approve this step until all these comprehensive tests are properly implemented and their results are reported."
+
