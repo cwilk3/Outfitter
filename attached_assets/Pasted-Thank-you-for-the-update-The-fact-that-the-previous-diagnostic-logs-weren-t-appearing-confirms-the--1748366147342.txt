@@ -1,0 +1,56 @@
+Thank you for the update. The fact that the previous diagnostic logs weren't appearing confirms the issue is happening even earlier in the request processing. We need to pinpoint what req.body looks like at the absolute start of the registration route handler.
+
+Your task is to implement new, earlier diagnostic logging within the sign-up registration route handler.
+
+Specific Focus Area for Modification:
+
+Locate the exact function responsible for handling the user registration POST request (e.g., router.post('/register', asyncHandler(async (req: Request, res: Response) => { ... }))). This was previously identified as being in server/emailAuth.ts.
+Add diagnostic logging at the absolute first line inside the asynchronous function's body, before any destructuring of req.body or validation checks.
+Proposed Code Changes:
+
+File: server/emailAuth.ts
+Location: The very first lines inside the asyncHandler callback for the router.post('/register', ...) route.
+
+Find this block (or similar, typically the opening of the asyncHandler callback):
+
+TypeScript
+
+router.post('/register', 
+  // ... potentially validation middleware here
+  asyncHandler(async (req: Request, res: Response) => {
+    // This is the first line of code inside the handler function body
+    const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
+    // ... rest of your handler
+  })
+);
+Replace it with (adding the diagnostic logs):
+
+TypeScript
+
+router.post('/register', 
+  // ... potentially validation middleware here
+  asyncHandler(async (req: Request, res: Response) => {
+    // --- START OF NEW DIAGNOSTIC LOGGING ---
+    console.log('--- START of Registration Handler ---');
+    console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
+    // --- END OF NEW DIAGNOSTIC LOGGING ---
+
+    // This was the original first line of code inside the handler function body
+    const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
+    // ... rest of your handler
+  })
+);
+Output Required for My Review:
+Once you have implemented this diagnostic logging, please provide a comprehensive diff preview that includes:
+
+The exact file path of the modified file (server/emailAuth.ts).
+The approximate line numbers where the change occurred.
+The current code block before your modification.
+The modified code block after your change.
+Success Criteria for My Approval:
+
+The console.log statements are correctly placed at the absolute first lines within the asyncHandler callback function for the registration route.
+The logs explicitly print --- START of Registration Handler --- and the JSON.stringify(req.body, null, 2) for Initial req.body received:.
+No other unrelated code lines are affected.
+The purpose of this change is solely diagnostic at this stage; no functional bug fix is expected from this specific diff.
+I will not approve this step until these criteria are met. After you implement this, please run a test sign-up attempt again and report the console output from these new logs. This will help us identify the actual root cause of the req.body parsing issue.
