@@ -1,0 +1,45 @@
+We've identified a major bug in the booking flow: prices are not calculating properly, consistently showing '$0' as the total amount in the booking confirmation.
+
+This is a showstopper for your MVP as it directly impacts revenue and user trust. The screenshot provided (referencing 'Screenshot 2025-05-28 at 3.13.12 PM.png' from our chat) clearly shows 'Total: $0' in the 'Booking Confirmed!' dialog.
+
+Your primary goal is to investigate and fix this bug so that booking prices are calculated and displayed correctly.
+
+Initial Investigation Plan:
+
+To diagnose why the price is showing '$0', we need to trace the data flow from the frontend's booking request to the backend's processing.
+
+Frontend Data Submission:
+
+Identify: Locate the frontend code responsible for submitting the booking request (likely in client/src/pages/PublicBooking.tsx or a related service/hook, specifically the POST call to /api/public/:outfitterId/bookings).
+Examine: What exact data fields related to pricing are being sent in the bookingData payload (e.g., experienceId, guests, addons, startDate, endDate)?
+Backend Data Receipt and Calculation:
+
+Identify: Locate the backend route handler that receives the booking request (likely in server/routes/public.ts for public bookings, or server/routes/bookings.ts).
+Examine: Trace how the backend is supposed to calculate the total price. This might involve fetching experience details, add-on prices, guest counts, and then summing them up. Identify the function(s) responsible for this calculation.
+Proposed Diagnostic Logging (No Functional Changes Yet):
+
+To pinpoint where the calculation is going wrong, we need to add temporary diagnostic logging at key points.
+
+In Frontend (client/src/pages/PublicBooking.tsx or booking submission service):
+Log the complete bookingData payload just before the POST request is sent.
+In Backend (server/routes/public.ts booking endpoint handler, or server/routes/bookings.ts):
+Log the complete req.body immediately upon receipt in the handler.
+Log any intermediate values during price calculation (e.g., experienceBasePrice, totalAddonPrice, calculatedGuestPrice).
+Log the final calculated price before it's stored or returned.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings.
+
+Frontend Investigation:
+File(s) where booking request is made.
+Exact data being sent in the bookingData payload (list of fields and their typical values).
+Backend Investigation:
+File(s) and route handler for booking receipt.
+Description of the intended price calculation logic.
+Identified backend function(s) responsible for price calculation.
+Proposed Diagnostic Logging Diff: Provide a comprehensive diff preview of the temporary diagnostic logging you plan to add to both frontend and backend.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The proposed diagnostic logging is well-placed to trace pricing data.
+No functional code changes are proposed in this step; this is purely an investigative report.
+This investigation is crucial for understanding why prices are showing '$0'. I await your detailed report."
