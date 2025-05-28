@@ -272,11 +272,17 @@ router.get('/:outfitterId/v2/availability', asyncHandler(async (req: Request, re
 }));
 
 // POST endpoint for creating public bookings
-router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
+router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
+  // Extract and validate outfitterId from URL params
+  const outfitterId = parseInt(req.params.outfitterId as string);
+  if (isNaN(outfitterId)) {
+    return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
+  }
+  
   try {
     console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
     console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
-    console.log('[PUBLIC_BOOKING] Received booking request at /api/public/bookings');
+    console.log(`[PUBLIC_BOOKING] Received booking request at /api/public/${outfitterId}/bookings`);
     console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
 
     // 🔍 DIAGNOSTIC LOG 4: Request received
