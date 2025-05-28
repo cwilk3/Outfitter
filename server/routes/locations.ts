@@ -42,7 +42,7 @@ router.use((req, res, next) => {
 // Get all locations (guides can view, filtered by activeOnly)
 router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) => {
   const activeOnly = req.query.activeOnly === 'true';
-  const locations = await storage.listLocations(activeOnly);
+  const locations = await storage.listLocations(activeOnly, (req as any).outfitterId);
   
   // Disable caching to ensure fresh data after deletions
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

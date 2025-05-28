@@ -1,0 +1,84 @@
+Thank you for the precise diagnosis of the Locations data leakage. The problem is clear: outfitterId is not being passed to, nor used by, storage.listLocations.
+
+Your task is to implement the necessary changes to ensure storage.listLocations filters locations by the authenticated user's outfitterId. This will involve two modifications:
+
+Modification 1: Pass req.outfitterId to storage.listLocations in the Route Handler
+
+File: server/routes/locations.ts
+Location: Lines 43-54 (approximate), specifically the router.get('/', guideOrAdmin, ...) route.
+
+Find this block (or similar):
+
+TypeScript
+
+router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const activeOnly = req.query.activeOnly === 'true';
+  const locations = await storage.listLocations(activeOnly); // <--- Problematic line
+  res.json(locations);
+}));
+Replace it with (passing req.outfitterId):
+
+TypeScript
+
+router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) => {
+  const activeOnly = req.query.activeOnly === 'true';
+  const locations = await storage.listLocations(activeOnly, (req as any).outfitterId); // <--- MODIFIED
+  res.json(locations);
+}));
+Modification 2: Update storage.listLocations to Accept and Filter by outfitterId
+
+File: server/storage.ts
+Location: Lines 340-348 (approximate), where the listLocations function is defined.
+
+Find this block (or similar):
+
+TypeScript
+
+async listLocations(activeOnly: boolean = false): Promise<Location[]> {
+  if (activeOnly) {
+    return await db.select().from(locations)
+      .where(eq(locations.isActive, true))
+      .orderBy(locations.name);
+  }
+  
+  return await db.select().from(locations).orderBy(locations.name);
+}
+Replace it with (adding outfitterId parameter and filtering logic):
+
+TypeScript
+
+async listLocations(activeOnly: boolean = false, outfitterId?: number): Promise<Location[]> {
+  const conditions = [];
+  
+  if (activeOnly) {
+    conditions.push(eq(locations.isActive, true));
+  }
+  
+  // Crucially, add outfitterId filtering if provided
+  if (outfitterId) {
+    conditions.push(eq(locations.outfitterId, outfitterId));
+  }
+  
+  // Apply conditions if any, otherwise return all (though outfitterId should always be present for authenticated calls)
+  if (conditions.length > 0) {
+    return await db.select().from(locations)
+      .where(and(...conditions))
+      .orderBy(locations.name);
+  }
+  
+  // This path should ideally not be reached for authenticated users
+  return await db.select().from(locations).orderBy(locations.name);
+}
+Output Required for My Review:
+Once you have implemented both sets of modifications, please provide a comprehensive diff preview that includes both modified files (server/routes/locations.ts and server/storage.ts).
+
+Success Criteria for My Approval:
+
+Modification 1: The storage.listLocations call in server/routes/locations.ts is correctly updated to pass (req as any).outfitterId.
+Modification 2: The listLocations function in server/storage.ts is updated:
+Its signature correctly accepts outfitterId?: number.
+It includes logic to add eq(locations.outfitterId, outfitterId) to its WHERE clause conditions if outfitterId is provided.
+It uses and(...conditions) to combine multiple filters.
+No other unrelated functional code lines are affected in either file.
+The change directly resolves the Locations data leakage by enforcing tenant isolation at the database query level.
+I will not approve this step until these criteria are met. 

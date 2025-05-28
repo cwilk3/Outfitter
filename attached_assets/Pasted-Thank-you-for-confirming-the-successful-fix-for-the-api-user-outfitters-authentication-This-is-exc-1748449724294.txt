@@ -1,0 +1,31 @@
+Thank you for confirming the successful fix for the /api/user-outfitters authentication. This is excellent progress.
+
+Now, we need to address the observed multi-tenant data leakage for Locations on the dashboard. The user reported that 'Locations are pulling from other outfitters.' This indicates that the endpoint or data retrieval logic for displaying locations on the dashboard is not being properly filtered by the user's outfitterId.
+
+Your task is to investigate the API endpoint and corresponding backend logic responsible for listing/displaying Locations on the dashboard, to identify why it is showing data from other outfitters.
+
+Specific Focus Areas for Investigation:
+
+Identify the API Endpoint: Determine which specific GET API endpoint is called by the frontend to retrieve the list of locations displayed on the dashboard. This might be /api/locations, /api/dashboard/locations, or similar.
+Locate the Route Definition: Find the backend route definition for this identified API endpoint (e.g., in server/routes/locations.ts or server/routes/index.ts).
+Examine Middleware: Check if requireAuth and, crucially, addOutfitterContext middleware are applied to this route. If addOutfitterContext is missing, req.outfitterId won't be available.
+Examine Backend Logic:
+Trace the handler function that responds to this route.
+Specifically look at how storage.listLocations (or a similar function) is called.
+Determine if the outfitterId is being passed to and used by the storage layer to filter the results. It should only return locations associated with req.outfitterId.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings. Answer the following questions:
+
+Identified API Endpoint for Dashboard Locations: (e.g., GET /api/locations)
+File where this route is defined:
+Middleware applied to this route: (e.g., requireAuth, addOutfitterContext, none)
+How is storage.listLocations (or equivalent) called? Provide the exact line of code.
+Is outfitterId being passed to storage.listLocations? (Yes/No)
+Does storage.listLocations (in server/storage.ts or equivalent) actively filter by outfitterId? (Yes/No, with relevant code snippet if available)
+Any other observations: Any findings that explain the data leakage.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The report identifies the specific file(s) and code sections relevant to the Locations data retrieval.
+No code changes are proposed in this step; this is purely an investigative report.
+This investigation is crucial for resolving the Locations data leakage and ensuring complete multi-tenant isolation. I await your detailed report."

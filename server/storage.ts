@@ -52,7 +52,7 @@ export interface IStorage {
   createLocation(location: InsertLocation): Promise<Location>;
   updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
   deleteLocation(id: number): Promise<void>;
-  listLocations(activeOnly?: boolean): Promise<Location[]>;
+  listLocations(activeOnly?: boolean, outfitterId?: number): Promise<Location[]>;
 
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
@@ -337,13 +337,26 @@ export class DatabaseStorage implements IStorage {
     await db.delete(locations).where(eq(locations.id, id));
   }
   
-  async listLocations(activeOnly: boolean = false): Promise<Location[]> {
+  async listLocations(activeOnly: boolean = false, outfitterId?: number): Promise<Location[]> {
+    const conditions = [];
+    
     if (activeOnly) {
+      conditions.push(eq(locations.isActive, true));
+    }
+    
+    // Crucially, add outfitterId filtering if provided
+    if (outfitterId) {
+      conditions.push(eq(locations.outfitterId, outfitterId));
+    }
+    
+    // Apply conditions if any, otherwise return all (though outfitterId should always be present for authenticated calls)
+    if (conditions.length > 0) {
       return await db.select().from(locations)
-        .where(eq(locations.isActive, true))
+        .where(and(...conditions))
         .orderBy(locations.name);
     }
     
+    // This path should ideally not be reached for authenticated users
     return await db.select().from(locations).orderBy(locations.name);
   }
 
