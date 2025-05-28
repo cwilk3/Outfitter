@@ -1,0 +1,33 @@
+Thank you for identifying this critical routing infrastructure issue. The fact that public route handlers are being bypassed entirely is a severe problem that needs immediate attention.
+
+Your primary task is to thoroughly investigate the main application routing setup to identify what is intercepting or masking GET /api/public/:outfitterId/* requests, preventing them from reaching the handlers in server/routes/public.ts.
+
+Specific Focus Areas for Investigation:
+
+Main Server Entry Point (e.g., server/index.ts or app.ts):
+
+Provide the complete source code of this file, paying close attention to the order of app.use(), app.get(), app.post(), and any other route or middleware mounting calls.
+Look for any wildcard routes (app.get('/*', app.use('/'), app.use('*')), static file serving middleware (express.static), or proxy configurations that might be defined before your specific modular API routes.
+Public Router Mounting:
+
+Confirm how the router from server/routes/public.ts is imported and mounted into the main application. For example, is it app.use('/api', publicRouter) or app.use('/api/public', publicRouter)?
+Verify the order of this mounting relative to other routes or catch-all middleware.
+Middleware Order:
+
+Examine the order of all app.use() calls. A general rule is that more specific routes/middleware should come before more general/catch-all ones.
+Development Server (e.g., Vite/Webpack) Proxies:
+
+If applicable, investigate any proxy configurations in your development server that might be handling /api/public/ requests differently than expected.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings. Answer the following questions:
+
+Complete Source Code of Main Server Entry Point: Provide the full content of server/index.ts (or equivalent file).
+Identified Interceptor: What specific line(s) or block(s) of code do you suspect are intercepting the requests for /api/public/invalid/locations? Provide the relevant code snippet.
+Proposed Root Cause: Based on your findings, what is your most likely conclusion about why the public route handlers are being bypassed?
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The report identifies the specific file(s) and code sections relevant to the routing issue.
+No code changes are proposed in this step; this is purely an investigative report.
+This investigation is paramount to restoring the correct request flow and ensuring the multi-tenant security for public routes. I await your detailed report."
+
