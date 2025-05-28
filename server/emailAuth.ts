@@ -138,10 +138,9 @@ export async function loginUser(req: Request, res: Response) {
 
 // Register endpoint
 export async function registerUser(req: Request, res: Response) {
-  // --- START OF NEW DIAGNOSTIC LOGGING ---
+  console.log('Enter registerUser function. req.body:', JSON.stringify(req.body, null, 2));
   console.log('--- START of Registration Handler ---');
   console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
-  // --- END OF NEW DIAGNOSTIC LOGGING ---
   
   console.log('REGISTER FUNCTION CALLED');
   try {

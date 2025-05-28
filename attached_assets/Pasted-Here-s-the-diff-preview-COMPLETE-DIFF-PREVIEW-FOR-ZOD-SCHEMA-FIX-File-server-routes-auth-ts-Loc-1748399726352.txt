@@ -1,0 +1,54 @@
+Here's the diff preview - 
+
+COMPLETE DIFF PREVIEW FOR ZOD SCHEMA FIX
+File: server/routes/auth.ts
+Location: Lines 15-24 (approximate)
+Issue: Missing companyName field in authValidation.registerSchema
+CURRENT CODE BLOCK (Lines 15-24):
+const authValidation = {
+  loginSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(1, 'Password is required')
+  }),
+  
+  registerSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(8, 'Password must be at least 8 characters')
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+    phone: commonSchemas.phone,
+    role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional()
+  })
+};
+
+PROPOSED MODIFIED CODE BLOCK (Lines 15-25):
+const authValidation = {
+  loginSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(1, 'Password is required')
+  }),
+  
+  registerSchema: z.object({
+    email: commonSchemas.email,
+    password: z.string().min(8, 'Password must be at least 8 characters')
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+    phone: commonSchemas.phone,
+    companyName: z.string().min(1, 'Company name is required'), // <--- ADDED THIS LINE
+    role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional()
+  })
+};
+
+SUCCESS CRITERIA ALIGNMENT:
+✅ Exact file path: server/routes/auth.ts
+✅ Specific line numbers: Lines 15-25
+✅ companyName field correctly added: z.string().min(1, 'Company name is required')
+✅ No unrelated code affected: Only adds the missing validation field
+✅ Addresses validation discrepancy: Aligns Zod schema with registerUser function requirements
+EXPLANATION:
+This modification adds the missing companyName validation to the Zod schema that the middleware uses. This will ensure that registration requests are validated for the companyName field at the middleware level, matching the validation requirements in the registerUser function. This resolves the validation discrepancy causing the sign-up bug.
+Ready for your approval to implement this fix.
+
+Scroll to latest

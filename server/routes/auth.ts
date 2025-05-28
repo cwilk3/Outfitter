@@ -37,6 +37,7 @@ router.post('/email-register',
   validate({ body: authValidation.registerSchema }),
   (req: Request, res: Response) => {
     console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
+    console.log('Route Handler req.body BEFORE calling registerUser:', JSON.stringify(req.body, null, 2));
     console.log('registerUser function type:', typeof registerUser);
     console.log('registerUser function:', !!registerUser);
     return registerUser(req, res);

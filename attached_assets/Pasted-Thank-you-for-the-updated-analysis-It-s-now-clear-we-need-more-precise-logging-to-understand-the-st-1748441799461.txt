@@ -1,0 +1,80 @@
+Thank you for the updated analysis. It's now clear we need more precise logging to understand the state of req.body at critical points in the registration flow. The proposed diagnostic logging strategy is sound.
+
+Your task is to implement the following two sets of diagnostic logging changes:
+
+Modification 1: Log req.body in the Route Handler (Before calling registerUser)
+
+File: server/routes/auth.ts
+Location: Inside the route handler for router.post('/email-register', ...), specifically before the return registerUser(req, res); line.
+
+Find this block (or similar):
+
+TypeScript
+
+router.post('/email-register', 
+  validate({ body: authValidation.registerSchema }),
+  (req: Request, res: Response) => {
+    console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
+    console.log('registerUser function type:', typeof registerUser);
+    console.log('registerUser function:', !!registerUser);
+    return registerUser(req, res);
+  }
+);
+Replace it with (adding the diagnostic log):
+
+TypeScript
+
+router.post('/email-register', 
+  validate({ body: authValidation.registerSchema }),
+  (req: Request, res: Response) => {
+    console.log('=== EMAIL REGISTER ROUTE HANDLER CALLED ===');
+    console.log('Route Handler req.body BEFORE calling registerUser:', JSON.stringify(req.body, null, 2)); // <--- ADD THIS LOG
+    console.log('registerUser function type:', typeof registerUser);
+    console.log('registerUser function:', !!registerUser);
+    return registerUser(req, res);
+  }
+);
+Modification 2: Log req.body at the Very First Line of registerUser Function
+
+File: server/emailAuth.ts
+Location: The very first line inside the export async function registerUser(req: Request, res: Response) { ... } body.
+
+Find this block (or similar):
+
+TypeScript
+
+export async function registerUser(req: Request, res: Response) {
+  // --- START OF NEW DIAGNOSTIC LOGGING --- (from previous step)
+  console.log('--- START of Registration Handler ---');
+  console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
+  // --- END OF NEW DIAGNOSTIC LOGGING ---
+  
+  console.log('REGISTER FUNCTION CALLED');
+  try {
+    const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
+    // ... rest of the function
+Replace it with (modifying the first log and keeping subsequent logs):
+
+TypeScript
+
+export async function registerUser(req: Request, res: Response) {
+  console.log('Enter registerUser function. req.body:', JSON.stringify(req.body, null, 2)); // <--- MODIFIED/MOVED THIS LOG TO THE VERY FIRST LINE
+  console.log('--- START of Registration Handler ---'); // This now becomes the second log
+  console.log('Initial req.body received:', JSON.stringify(req.body, null, 2)); // This now becomes the third log
+  
+  console.log('REGISTER FUNCTION CALLED');
+  try {
+    const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
+    // ... rest of the function
+Output Required for My Review:
+Once you have implemented both sets of diagnostic logging, please provide a comprehensive diff preview that covers all modified files (server/routes/auth.ts and server/emailAuth.ts).
+
+Success Criteria for My Approval:
+
+The console.log for Route Handler req.body BEFORE calling registerUser is correctly added in server/routes/auth.ts at the specified location.
+The console.log for Enter registerUser function. req.body: is correctly placed as the absolute first line inside the registerUser function in server/emailAuth.ts.
+All existing diagnostic logs (--- START of Registration Handler --- and Initial req.body received:) within registerUser are retained, even if their order changes slightly.
+All new and modified log messages explicitly include JSON.stringify(req.body, null, 2).
+No other unrelated code lines are affected.
+The purpose of this change is solely diagnostic at this stage.
+I will not approve this step until these criteria are met. After you implement these changes, please perform another sign-up attempt and report the full, exact console output from all logs triggered by that attempt. This output is critical for pinpointing the root cause.
