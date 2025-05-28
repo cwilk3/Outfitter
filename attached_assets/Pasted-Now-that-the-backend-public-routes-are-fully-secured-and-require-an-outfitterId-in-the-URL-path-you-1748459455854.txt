@@ -1,0 +1,235 @@
+Now that the backend public routes are fully secured and require an outfitterId in the URL path, your task is to implement the final set of frontend changes to correctly consume these new secure URLs.
+
+Your primary goal is to modify the frontend to:
+
+Correctly update the frontend routing path to include the outfitterId.
+Extract the outfitterId from the URL path within the public booking component.
+Construct and use the new secure API URLs for all relevant data fetches and submissions.
+Update caching keys for proper data invalidation.
+1. File: client/src/App.tsx (Update Frontend Routing Path)
+Locate the Route component for the public booking page.
+
+Current Code (as it was in the approved diff):
+
+TypeScript
+
+<Route path="/public-booking/:outfitterId?" component={PublicBooking} />
+Proposed Modified Code:
+
+TypeScript
+
+<Route path="/public/:outfitterId" component={PublicBooking} />
+2. File: client/src/pages/PublicBooking.tsx (Implement All 6 Specific Changes)
+This file requires several precise modifications.
+
+Change 1: Add useParams Import
+
+Locate the import section at the top of the file.
+
+Current Code (relevant lines at top of file):
+
+TypeScript
+
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+// ... other imports
+import { apiRequest } from "@/lib/queryClient";
+Proposed Modified Code (adding useParams import):
+
+TypeScript
+
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "wouter"; // <--- ADD THIS LINE
+// ... other imports
+import { apiRequest } from "@/lib/queryClient";
+Change 2: Extract outfitterId Parameter and Add Validation Block
+
+Locate the function PublicBooking() declaration. This code block needs to be added immediately after this declaration, before any existing state declarations (e.g., useState, useMemo, useEffect).
+
+Current Code (after function declaration, before states):
+
+TypeScript
+
+function PublicBooking() {
+  // States (existing code continues...)
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  // ... rest of component
+}
+Proposed Modified Code (adding outfitterId extraction and validation):
+
+TypeScript
+
+function PublicBooking() {
+  // Extract outfitterId from URL parameters
+  const params = useParams();
+  const outfitterId = params.outfitterId;
+
+  // Validate outfitterId exists and handle invalid URLs
+  if (!outfitterId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid URL</h1>
+          <p className="text-gray-600">Please use a valid outfitter booking link.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // States (existing code continues...)
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  // ... rest of component
+}
+Change 3: Update Locations API Call (Query)
+
+Locate the useQuery call for locations.
+
+Current Code (relevant lines for locations useQuery):
+
+TypeScript
+
+// Get locations from API
+const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
+  queryKey: ['/api/public/locations'], // <--- Update this queryKey
+});
+Proposed Modified Code:
+
+TypeScript
+
+// Get locations from API
+const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
+  queryKey: ['/api/public/locations', outfitterId], // <--- Add outfitterId to queryKey
+  queryFn: async () => { // <--- ENSURE THIS queryFn BLOCK IS UPDATED
+    const response = await fetch(`/api/public/${outfitterId}/locations`); // <--- UPDATE URL HERE
+    if (!response.ok) {
+      throw new Error('Failed to fetch locations');
+    }
+    return response.json();
+  },
+});
+Change 4: Update Experiences API Call (Query)
+
+Locate the useQuery call for experiences.
+
+Current Code (relevant lines for experiences useQuery):
+
+TypeScript
+
+// Get experiences from API, filtered by selected location
+const { data: experiences = [], isLoading: isLoadingExperiences, error: experiencesError } = useQuery<Experience[]>({
+  queryKey: ['/api/public/experiences', selectedLocation?.id], // <--- Update this queryKey
+  queryFn: async () => {
+    if (selectedLocation) {
+      const response = await fetch(`/api/public/experiences?locationId=${selectedLocation.id}`); // <--- Update this URL
+      // ... rest of queryFn
+    }
+    return [];
+  },
+  enabled: !!selectedLocation,
+});
+Proposed Modified Code:
+
+TypeScript
+
+// Get experiences from API, filtered by selected location
+const { data: experiences = [], isLoading: isLoadingExperiences, error: experiencesError } = useQuery<Experience[]>({
+  queryKey: ['/api/public/experiences', outfitterId, selectedLocation?.id], // <--- Add outfitterId to queryKey
+  queryFn: async () => { // <--- ENSURE THIS queryFn BLOCK IS UPDATED
+    if (selectedLocation) {
+      const response = await fetch(`/api/public/${outfitterId}/experiences?locationId=${selectedLocation.id}`); // <--- UPDATE URL HERE
+      if (!response.ok) {
+        throw new Error('Failed to fetch experiences');
+      }
+      return response.json();
+    }
+    return [];
+  },
+  enabled: !!selectedLocation,
+});
+Change 5: Update Availability API Call (Query)
+
+Locate the useQuery call for availability.
+
+Current Code (relevant lines for availability useQuery):
+
+TypeScript
+
+const { data: availabilityData = null, isLoading: isLoadingAvailability, error: availabilityError } = useQuery({
+  queryKey: ['/api/public/v2/availability', selectedExperience?.id], // <--- Update this queryKey
+  queryFn: async () => {
+    if (selectedExperience) {
+      const experienceIdFromKey = selectedExperience.id;
+      const requestedGroupSize = form.watch('guests') || 1;
+      console.log(`[AVAILABILITY_DEBUG] Fetching availability for experience ${experienceIdFromKey}, group size: ${requestedGroupSize}`);
+      
+      const response = await fetch(`/api/public/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // <--- Update this URL
+      // ... rest of queryFn
+    }
+    return null;
+  },
+  enabled: !!selectedExperience,
+});
+Proposed Modified Code:
+
+TypeScript
+
+const { data: availabilityData = null, isLoading: isLoadingAvailability, error: availabilityError } = useQuery({
+  queryKey: ['/api/public/v2/availability', outfitterId, selectedExperience?.id], // <--- Add outfitterId to queryKey
+  queryFn: async () => { // <--- ENSURE THIS queryFn BLOCK IS UPDATED
+    if (selectedExperience) {
+      const experienceIdFromKey = selectedExperience.id;
+      const requestedGroupSize = form.watch('guests') || 1;
+      console.log(`[AVAILABILITY_DEBUG] Fetching availability for experience ${experienceIdFromKey}, group size: ${requestedGroupSize}`);
+      
+      const response = await fetch(`/api/public/${outfitterId}/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // <--- UPDATE URL HERE
+      if (!response.ok) {
+        throw new Error('Failed to fetch availability');
+      }
+      return response.json();
+    }
+    return null;
+  },
+  enabled: !!selectedExperience,
+});
+Change 6: Update Booking POST API Call
+
+Locate the apiRequest call for booking submission.
+
+Current Code:
+
+TypeScript
+
+const response = await apiRequest('POST', '/api/public/bookings', bookingData);
+Proposed Modified Code:
+
+TypeScript
+
+const response = await apiRequest('POST', `/api/public/${outfitterId}/bookings`, bookingData);
+Change 7: Update Query Invalidation
+
+Locate the query invalidation logic (e.g., in a queryClient.invalidateQueries call related to availability).
+
+Current Code (relevant queryKey for invalidation):
+
+TypeScript
+
+queryKey: ['/api/public/v2/availability', selectedExperience.id],
+Proposed Modified Code:
+
+TypeScript
+
+queryKey: ['/api/public/v2/availability', outfitterId, selectedExperience.id],
+Output Required:
+Once you have successfully implemented all these frontend modifications, please confirm completion and indicate readiness for manual verification.
+
+Success Criteria (as previously approved):
+
+Frontend routing in client/src/App.tsx is updated to /public/:outfitterId.
+The outfitterId is correctly extracted from the URL within client/src/pages/PublicBooking.tsx and includes the full validation block.
+useParams is correctly imported from "wouter".
+All four public GET API calls (/api/public/locations, /api/public/experiences, /api/public/v2/availability) have their queryKey and queryFn URLs updated to use the extracted outfitterId.
+The public POST API call (/api/public/bookings) is updated to use the outfitterId in its URL.
+Query invalidation keys are updated to include outfitterId.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. Please proceed with implementing these precise frontend changes.

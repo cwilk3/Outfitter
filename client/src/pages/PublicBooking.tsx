@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import { ChevronRight, Calendar, Users, MapPin } from "lucide-react";
 import { z } from "zod";
 import { format, addDays } from "date-fns";
@@ -100,6 +101,21 @@ const bookingFormSchema = z.object({
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 function PublicBooking() {
+  // Extract outfitterId from URL parameters
+  const { outfitterId } = useParams<{ outfitterId: string }>();
+  
+  // Validate outfitterId
+  if (!outfitterId || isNaN(Number(outfitterId))) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg border border-red-200">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Invalid Outfitter</h1>
+          <p className="text-gray-600">The outfitter ID provided is not valid. Please check the URL and try again.</p>
+        </div>
+      </div>
+    );
+  }
+
   // States
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
@@ -108,17 +124,17 @@ function PublicBooking() {
   const [bookingConfirmation, setBookingConfirmation] = useState<any>(null);
   const [bookingStep, setBookingStep] = useState<'description' | 'guests' | 'dates' | 'details'>('description');
   
-  // Get locations from API
+  // Get locations from API with outfitterId
   const { data: locations = [], isLoading: isLoadingLocations } = useQuery<Location[]>({
-    queryKey: ['/api/public/locations'],
+    queryKey: [`/api/public/${outfitterId}/locations`],
   });
   
-  // Get experiences from API, filtered by selected location
+  // Get experiences from API, filtered by selected location with outfitterId
   const { data: experiences = [], isLoading: isLoadingExperiences, error: experiencesError } = useQuery<Experience[]>({
-    queryKey: ['/api/public/experiences', selectedLocation?.id],
+    queryKey: [`/api/public/${outfitterId}/experiences`, selectedLocation?.id],
     queryFn: async () => {
       if (selectedLocation) {
-        const response = await fetch(`/api/public/experiences?locationId=${selectedLocation.id}`);
+        const response = await fetch(`/api/public/${outfitterId}/experiences?locationId=${selectedLocation.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch experiences');
         }
@@ -174,7 +190,7 @@ function PublicBooking() {
     message?: string; // Optional message from backend
     // Add other expected fields from the v2/availability response if necessary
   }>({ // Provide a default for availabilityResponse during destructuring
-    queryKey: ['/api/public/v2/availability', selectedExperience?.id], // ✅ REMOVED form.watch('guests') from queryKey
+    queryKey: [`/api/public/${outfitterId}/v2/availability`, selectedExperience?.id], // Include outfitterId in query key
     queryFn: async ({ queryKey }) => { // ✅ Added queryKey to destructuring for access
       const [, experienceIdFromKey] = queryKey; // Extract experienceId from stable queryKey
       if (!experienceIdFromKey || !selectedExperience) return { availableSlots: [] }; // Ensure experienceId is present
@@ -182,7 +198,7 @@ function PublicBooking() {
       // ✅ Get guests count directly from the form state inside queryFn
       const requestedGroupSize = Math.max(1, form.getValues('guests') || 1); 
 
-      const response = await fetch(`/api/public/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // Use experienceIdFromKey
+      const response = await fetch(`/api/public/${outfitterId}/v2/availability?experienceId=${experienceIdFromKey}&requestedGroupSize=${requestedGroupSize}`); // Include outfitterId in URL
       if (!response.ok) {
         // Attempt to parse error message from API response
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch availability' }));
@@ -205,7 +221,7 @@ function PublicBooking() {
     const subscription = form.watch((value, { name }) => {
       if (name === 'guests') {
         queryClient.invalidateQueries({
-          queryKey: ['/api/public/v2/availability', selectedExperience.id],
+          queryKey: [`/api/public/${outfitterId}/v2/availability`, selectedExperience.id],
           refetchType: 'active' // Only refetch active queries
         });
       }

@@ -75,7 +75,7 @@ function App() {
         <Toaster />
         <Switch>
           {/* Public routes */}
-          <Route path="/public-booking/:outfitterId?" component={PublicBooking} />
+          <Route path="/public/:outfitterId" component={PublicBooking} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/onboarding" component={OnboardingPage} />
           

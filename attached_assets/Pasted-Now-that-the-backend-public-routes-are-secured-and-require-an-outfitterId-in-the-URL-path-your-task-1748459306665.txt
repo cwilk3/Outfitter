@@ -1,0 +1,35 @@
+Now that the backend public routes are secured and require an outfitterId in the URL path, your task is to update the frontend application to consume these new secure URLs.
+
+Your primary goal is to modify the frontend to:
+
+Extract the outfitterId from the URL path for the public booking pages.
+Construct and use the new secure API URLs for locations, experiences, bookings, and v2/availability.
+Specific Focus Areas for Modification:
+
+Frontend Routing Configuration:
+
+Locate the frontend routing file (e.g., client/src/App.tsx).
+Update the route path for the public booking page to include :outfitterId (e.g., /public/:outfitterId).
+Public Booking Page Component/Hook:
+
+Identify the main component or hook responsible for rendering the public booking page and making API calls (e.g., client/src/pages/PublicBooking.tsx).
+Extract outfitterId: Use the appropriate frontend routing hook (e.g., useParams from wouter as identified previously) to get the outfitterId from the URL.
+Modify API Calls: Update all fetch or Axios calls for GET /api/public/locations, /api/public/experiences, /api/public/bookings, and GET /api/public/v2/availability to dynamically insert the extracted outfitterId into the URL.
+Also update the POST API call for bookings to use the outfitterId in the URL.
+Update Query Invalidation Keys: Ensure queryKey arrays for react-query (or similar) are updated to include outfitterId for proper caching and invalidation.
+Please refer to the previously approved comprehensive diff preview for the exact code changes needed across:
+
+client/src/App.tsx
+client/src/pages/PublicBooking.tsx (all 6 changes within this file)
+Output Required:
+Once you have successfully implemented these frontend modifications, please confirm completion and indicate readiness for manual verification.
+
+Success Criteria (as previously approved):
+
+Frontend routing is updated to include :outfitterId for the public booking page (/public/:outfitterId).
+The outfitterId is correctly extracted from the URL within client/src/pages/PublicBooking.tsx.
+All four public GET API calls and the one public POST API call are updated to construct the URLs with the extracted outfitterId.
+Query invalidation keys are updated to include outfitterId.
+No other unrelated functional code is affected.
+The public booking pages will then be ready for manual testing to display data correctly filtered by the outfitterId in the URL.
+I will not approve further steps until these criteria are met. Please proceed with implementing these frontend changes.
