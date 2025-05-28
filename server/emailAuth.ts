@@ -138,12 +138,6 @@ export async function loginUser(req: Request, res: Response) {
 
 // Register endpoint
 export async function registerUser(req: Request, res: Response) {
-  console.log('Enter registerUser function. req.body:', JSON.stringify(req.body, null, 2));
-  console.log('--- START of Registration Handler ---');
-  console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
-  
-  console.log('REGISTER FUNCTION CALLED');
-  
   // Declare variables at function scope level to ensure accessibility
   let newUser: User | null = null;
   let outfitter: any | null = null;
@@ -151,12 +145,7 @@ export async function registerUser(req: Request, res: Response) {
   try {
     const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
 
-    // Debug the actual request body to identify the issue
-    console.log('Request body received:', JSON.stringify(req.body, null, 2));
-    console.log('Validation check - email:', !!email, 'password:', !!password, 'firstName:', !!firstName, 'companyName:', !!companyName);
-
     if (!email || !password || !firstName || !companyName) {
-      console.log('Validation failed - missing fields:', { email: !email, password: !password, firstName: !firstName, companyName: !companyName });
       return res.status(400).json({ 
         error: 'Email, password, first name, and company name are required' 
       });
@@ -168,26 +157,12 @@ export async function registerUser(req: Request, res: Response) {
       return res.status(409).json({ error: 'User already exists with this email' });
     }
 
-    console.log('=== REGISTRATION DEBUG START ===');
-    console.log('Registration data received:', { email, firstName, lastName, phone, role, companyName });
-
     // Hash password
     console.log('Hashing password...');
     const passwordHash = await hashPassword(password);
     console.log('Password hashed successfully');
 
     // Create user
-    console.log('Creating user with data:', {
-      email,
-      passwordHash: '[HIDDEN]',
-      firstName,
-      lastName,
-      phone,
-      role: role as 'admin' | 'guide'
-    });
-    
-    // --- Start of New Granular Logging --- 
-    console.log('[DEBUG] Pre-User Creation: Value of newUser variable before assignment:', newUser);
     newUser = await storage.createUserWithPassword({
       email,
       passwordHash,
@@ -196,46 +171,30 @@ export async function registerUser(req: Request, res: Response) {
       phone,
       role: role as 'admin' | 'guide'
     });
-    console.log('[DEBUG] Post-User Creation: Value of newUser variable after assignment:', JSON.stringify(newUser, null, 2));
-    console.log('[DEBUG] Post-User Creation: Type of newUser variable:', typeof newUser);
 
     if (!newUser) {
-        console.error('[DEBUG] CRITICAL: newUser is null or undefined immediately after storage.createUserWithPassword attempt!');
         throw new Error('Failed to create user or newUser variable not assigned correctly.');
     }
 
-    console.log('[DEBUG] Pre-Outfitter Creation: Value of outfitter variable before assignment:', outfitter);
     outfitter = await storage.createOutfitter({
       name: companyName,
       email: email,
       isActive: true
     });
-    console.log('[DEBUG] Post-Outfitter Creation: Value of outfitter variable after assignment:', JSON.stringify(outfitter, null, 2));
-    console.log('[DEBUG] Post-Outfitter Creation: Type of outfitter variable:', typeof outfitter);
 
     if (!outfitter) {
-        console.error('[DEBUG] CRITICAL: outfitter is null or undefined immediately after storage.createOutfitter attempt!');
         throw new Error('Failed to create outfitter or outfitter variable not assigned correctly.');
     }
     
-    console.log('[DEBUG] Pre-UserOutfitter Link: newUser value:', JSON.stringify(newUser, null, 2), 'outfitter value:', JSON.stringify(outfitter, null, 2));
     const userOutfitter = await storage.createUserOutfitter({
       userId: newUser.id,
       outfitterId: outfitter.id,
       role: role as 'admin' | 'guide'
     });
-    console.log('[DEBUG] Post-UserOutfitter Link: userOutfitter value:', JSON.stringify(userOutfitter, null, 2));
     console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
 
-    // Check right before the token generation and response area
-    console.log('[DEBUG] Approaching token generation. newUser type:', typeof newUser, 'Value:', JSON.stringify(newUser, null, 2));
-    console.log('[DEBUG] Approaching token generation. outfitter type:', typeof outfitter, 'Value:', JSON.stringify(outfitter, null, 2));
-    // --- End of New Granular Logging --- 
-
     if (newUser && outfitter) {
-        console.log('[DEBUG] newUser and outfitter are valid. Proceeding to generate token and send response.');
         const token = generateToken(newUser, outfitter.id);
-        console.log('[DEBUG] Token generated:', token ? '****** (exists)' : 'null or undefined');
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -243,21 +202,14 @@ export async function registerUser(req: Request, res: Response) {
             sameSite: 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000 
         });
-        console.log('[DEBUG] Cookie set. Preparing JSON response.');
 
-        console.log('[DEBUG] About to destructure newUser for response. newUser value:', JSON.stringify(newUser, null, 2));
         const { passwordHash: _, ...userResponse } = newUser; 
-        console.log('[DEBUG] userResponse after destructuring:', JSON.stringify(userResponse, null, 2));
 
         res.status(201).json({
             ...userResponse,
             outfitterId: outfitter.id
         });
-        console.log('[DEBUG] Success response sent.');
     } else {
-        console.error('[DEBUG] CRITICAL LOGIC ERROR: newUser or outfitter is falsy before token/response section, despite earlier checks.', 
-          { newUserExists: !!newUser, outfitterExists: !!outfitter }
-        );
         return res.status(500).json({ error: 'Internal server error after data creation steps due to missing user/outfitter variables.' });
     }
 

@@ -1,0 +1,37 @@
+Excellent! Now that the registration bug is completely resolved and the system is functional, it's time to clean up the temporary diagnostic logging we implemented.
+
+Your task is to remove all the ultra-granular debug logging from the registerUser function in server/emailAuth.ts. Retain only essential high-level operational logs.
+
+Specific Instructions:
+
+File: server/emailAuth.ts
+Function: registerUser
+Remove all console.log statements that were added specifically for debugging the ReferenceError and req.body parsing, including but not limited to:
+
+console.log('Enter registerUser function. req.body:', JSON.stringify(req.body, null, 2));
+console.log('--- START of Registration Handler ---');
+console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
+console.log('Request body received:', JSON.stringify(req.body, null, 2)); (the one inside the try block before the initial if (!email || ...) check)
+console.log('Validation check - email:', !!email, ...);
+console.log('Validation failed - missing fields:', ...);
+All [DEBUG] prefixed logs (e.g., [DEBUG] Pre-User Creation, [DEBUG] Post-User Creation, [DEBUG] CRITICAL: newUser is null or undefined, [DEBUG] Approaching token generation, [DEBUG] Token generated, [DEBUG] Cookie set, [DEBUG] About to destructure newUser, [DEBUG] userResponse after destructuring, [DEBUG] Success response sent, [DEBUG] CRITICAL LOGIC ERROR:).
+Retain the following existing high-level logs:
+
+console.log('REGISTER FUNCTION CALLED'); (if you believe this is useful for general flow tracking)
+console.log('=== REGISTRATION DEBUG START ==='); (if you want to keep this as a general entry point marker, though it was part of debug originally)
+console.log('Hashing password...');
+console.log('Password hashed successfully');
+console.log('Creating user with data:', { ... }); (the high-level one, consider removing the password hash part)
+console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
+The console.error statements within the catch blocks for actual error reporting.
+Output Required for My Review:
+Please provide a comprehensive diff preview of the changes in server/emailAuth.ts, showing the removal of these specific diagnostic logs.
+
+Success Criteria for My Approval:
+
+All ultra-granular [DEBUG] logs and temporary req.body inspection logs are removed from registerUser.
+Only essential, high-level operational logs (as discussed) remain.
+The functional logic of the registerUser function (variable declarations, assignments, if (newUser && outfitter) block, token generation, cookie setting, response) remains completely untouched and functional.
+No other unrelated code lines are affected.
+I will not approve this step until these criteria are met."
+
