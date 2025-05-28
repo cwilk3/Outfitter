@@ -272,7 +272,7 @@ router.get('/:outfitterId/v2/availability', asyncHandler(async (req: Request, re
 }));
 
 // POST endpoint for creating public bookings
-router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
+router.post('/bookings', asyncHandler(async (req: Request, res: Response) => {
   try {
     console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
     console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
