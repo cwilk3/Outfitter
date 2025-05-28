@@ -1,0 +1,95 @@
+Thank you for the critical discovery that public routes lack an outfitter identification mechanism. We must fix this to secure public-facing multi-tenant data.
+
+Your task is to modify the public API routes in server/routes/public.ts to include an outfitterId as a URL parameter, and then to extract this outfitterId and pass it to the corresponding storage functions for filtering.
+
+This will affect the GET /api/public/locations, GET /api/public/experiences, and GET /api/public/bookings routes.
+
+Specific Focus Areas for Modification:
+
+File: server/routes/public.ts
+Modify Route Paths: Update the paths for the three affected GET routes to include :outfitterId as the first parameter after /public/. For example, /api/public/locations will become /api/public/:outfitterId/locations.
+Extract outfitterId: Inside each route handler, extract req.params.outfitterId. Remember to parse it to a number (e.g., parseInt(req.params.outfitterId as string)).
+Pass to Storage Functions: Pass the extracted outfitterId to the respective storage.listLocations, storage.listExperiences, and storage.listBookings functions.
+Proposed Code Changes:
+
+File: server/routes/public.ts
+
+For GET /api/public/locations (Lines 16-20 approximate):
+Find this block:
+
+TypeScript
+
+router.get('/public/locations', asyncHandler(async (req: Request, res: Response) => {
+  const locations = await storage.listLocations(true);
+  res.json(locations);
+}));
+Replace it with:
+
+TypeScript
+
+router.get('/public/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
+  const locations = await storage.listLocations(true, outfitterId); // Pass outfitterId
+  res.json(locations);
+}));
+For GET /api/public/experiences (Lines 22-55 approximate):
+Find this block:
+
+TypeScript
+
+router.get('/public/experiences', asyncHandler(async (req: Request, res: Response) => {
+  const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+  let experiences = await storage.listExperiences(locationId); // No outfitterId here
+  // ... (rest of logic)
+  res.json(experiences);
+}));
+Replace it with:
+
+TypeScript
+
+router.get('/public/:outfitterId/experiences', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string); // Extract outfitterId
+  const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
+  let experiences = await storage.listExperiences(locationId, outfitterId); // Pass outfitterId
+  // ... (rest of logic)
+  res.json(experiences);
+}));
+For GET /api/public/bookings (Lines 57-90 approximate):
+Find this block:
+
+TypeScript
+
+router.get('/public/bookings', asyncHandler(async (req: Request, res: Response) => {
+  const { status, startDate, endDate } = req.query; // Assuming these are already destructured
+  const bookings = await storage.listBookings({ 
+    status: status as string | undefined, 
+    startDate: startDate ? new Date(startDate as string) : undefined,
+    endDate: endDate ? new Date(endDate as string) : undefined
+  }); // No outfitterId here
+  res.json(bookings);
+}));
+Replace it with:
+
+TypeScript
+
+router.get('/public/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string); // Extract outfitterId
+  const { status, startDate, endDate } = req.query; // Assuming these are already destructured
+  const bookings = await storage.listBookings(outfitterId, { // Pass outfitterId as first arg
+    status: status as string | undefined, 
+    startDate: startDate ? new Date(startDate as string) : undefined,
+    endDate: endDate ? new Date(endDate as string) : undefined
+  });
+  res.json(bookings);
+}));
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for server/routes/public.ts.
+
+Success Criteria for My Approval:
+
+The route paths for GET /api/public/locations, /api/public/experiences, and /api/public/bookings are correctly updated to include :outfitterId (e.g., /api/public/:outfitterId/locations).
+Inside each of these route handlers, req.params.outfitterId is correctly extracted and parsed to a number.
+The extracted outfitterId is correctly passed as the relevant filtering argument to storage.listLocations, storage.listExperiences, and storage.listBookings.
+No other unrelated functional code lines are affected.
+Important Note: This fix resolves the backend logic. Frontend changes will also be necessary to construct the new URLs (e.g., /api/public/123/locations), but that is outside the scope of this backend task.
+I will not approve this step until these criteria are met. Once approved and implemented, we will verify the public booking page's isolation.

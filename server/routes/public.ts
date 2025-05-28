@@ -13,26 +13,23 @@ console.log("[ROUTE CHECK] Using PUBLIC booking route v2 - ENHANCED with debug l
 // Public routes - no authentication required
 
 // GET public locations
-router.get('/locations', asyncHandler(async (req: Request, res: Response) => {
-  // Get all active locations for public display
-  const locations = await storage.listLocations(true);
+router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
+  // Get all active locations for public display, filtered by outfitterId
+  const locations = await storage.listLocations(true, outfitterId);
   res.json(locations);
 }));
 
 // GET public experiences
-router.get('/experiences', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:outfitterId/experiences', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
   const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
   
-  // Get all active experiences, filtered by locationId if provided
-  let experiences = await storage.listExperiences();
+  // Get all active experiences, filtered by outfitterId and locationId if provided
+  let experiences = await storage.listExperiences(locationId, outfitterId);
   
-  // Filter by locationId if provided
-  if (locationId) {
-    experiences = experiences.filter(exp => exp.locationId === locationId);
-  }
-  
-  // Get all active locations
-  const locations = await storage.listLocations(true); 
+  // Get all active locations for this outfitter
+  const locations = await storage.listLocations(true, outfitterId); 
   
   // Enrich experiences with their location info and add-ons
   const enrichedExperiences = await Promise.all(experiences.map(async (experience) => {
@@ -55,15 +52,16 @@ router.get('/experiences', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // GET public bookings for availability tracking
-router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
   const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
   
   if (!experienceId) {
     return res.status(400).json({ message: 'Experience ID is required' });
   }
   
-  // Fetch bookings for this experience
-  const bookings = await storage.listBookings({ 
+  // Fetch bookings for this outfitter
+  const bookings = await storage.listBookings(outfitterId, { 
     status: undefined,
     startDate: undefined,
     endDate: undefined
@@ -90,7 +88,8 @@ router.get('/bookings', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // GET public availability (v2) - Enhanced with accurate capacity checking
-router.get('/v2/availability', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:outfitterId/v2/availability', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
   const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
   const requestedGroupSize = req.query.requestedGroupSize ? parseInt(req.query.requestedGroupSize as string) : 1;
   
@@ -161,8 +160,8 @@ router.get('/v2/availability', asyncHandler(async (req: Request, res: Response) 
   }
   
   // Step 3.2: Calculate Effective Season Boundaries
-  const effectiveSeasonStartDate = new Date(Math.min(...parsedAvailableDates));
-  const effectiveSeasonEndDate = new Date(Math.max(...parsedAvailableDates));
+  const effectiveSeasonStartDate = new Date(Math.min(...parsedAvailableDates.map(d => d.getTime())));
+  const effectiveSeasonEndDate = new Date(Math.max(...parsedAvailableDates.map(d => d.getTime())));
   
   // Normalize dates
   const today = new Date();

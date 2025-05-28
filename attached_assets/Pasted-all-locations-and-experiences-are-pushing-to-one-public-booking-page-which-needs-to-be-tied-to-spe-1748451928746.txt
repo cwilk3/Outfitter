@@ -1,0 +1,30 @@
+all locations and experiences are pushing to one public booking page,' which needs to be tied to specific outfitters. This is a vital multi-tenant isolation requirement for public-facing data.
+
+Your task is to investigate the API endpoint and corresponding backend logic responsible for providing data to these public booking pages, to identify why they are showing data from all outfitters or defaulting incorrectly.
+
+Specific Focus Areas for Investigation:
+
+Identify the Public API Endpoint(s): Determine which specific GET API endpoint(s) the frontend calls to retrieve locations, experiences, or any other data displayed on the public booking page. This might involve a path like /api/public/outfitter/:outfitterId/bookings or /api/public/locations (if it takes an outfitterId parameter).
+Locate the Route Definition(s): Find the backend route definition(s) for this identified public API endpoint(s). These are typically in server/routes/public.ts, server/routes/index.ts, or a dedicated public routes file.
+Authentication/Context Middleware: Since it's a 'public' page, requireAuth will likely not be present. However, look for how the outfitter context is supposed to be established. Is outfitterId expected as a URL parameter (e.g., req.params.outfitterId) or a query parameter (e.g., req.query.outfitterId)?
+Examine Backend Logic for Data Retrieval:
+Trace the handler function that responds to this route.
+Specifically look at how storage.listExperiences, storage.listLocations, storage.listBookings (or similar public-facing storage functions) are called.
+Determine if the outfitter's ID (derived from the URL/query parameter) is being passed to and used by the storage layer to filter the results. The data should be strictly limited to the outfitter identified in the public page's URL.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings. Answer the following questions:
+
+Identified Public API Endpoint(s) for Booking Page Data: (e.g., GET /api/public/experiences, GET /api/public/locations)
+File(s) where these routes are defined:
+How is the Outfitter expected to be identified on this public page? (e.g., URL parameter outfitterId, query parameter outfitterId, subdomain, etc. Provide relevant code snippets if found.)
+Are requireAuth or addOutfitterContext middleware applied? (Yes/No. As it's public, likely no requireAuth, but confirm if any outfitter context middleware is being used differently.)
+How are relevant storage functions (e.g., storage.listExperiences, storage.listLocations) called by these public routes? Provide the exact line(s) of code.
+Is the outfitter's ID being passed to these storage functions for filtering? (Yes/No)
+Do the relevant storage functions actively filter by outfitterId when provided (assuming they can accept it)? (Yes/No, with relevant code snippet if available)
+Any other observations: Any findings that explain the data leakage on the public booking page.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The report identifies the specific file(s) and code sections relevant to the public booking page data retrieval.
+No code changes are proposed in this step; this is purely an investigative report.
+This investigation is crucial for securing public-facing multi-tenant data. I await your detailed report."
