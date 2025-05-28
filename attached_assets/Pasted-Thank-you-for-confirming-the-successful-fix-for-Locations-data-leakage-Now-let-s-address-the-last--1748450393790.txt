@@ -1,0 +1,29 @@
+Thank you for confirming the successful fix for Locations data leakage. Now, let's address the last reported multi-tenant data leakage point: 'Upcoming Bookings which is a preview on the Dashboard.'
+
+Your task is to investigate the API endpoint and corresponding backend logic responsible for listing/displaying 'Upcoming Bookings' on the dashboard, to identify why it is showing data from other outfitters.
+
+Specific Focus Areas for Investigation:
+
+Identify the API Endpoint: Determine which specific GET API endpoint is called by the frontend to retrieve the list of 'Upcoming Bookings' displayed on the dashboard preview. This might be /api/bookings/upcoming, /api/dashboard/bookings, or a general /api/bookings call with specific filters.
+Locate the Route Definition: Find the backend route definition for this identified API endpoint (e.g., in server/routes/bookings.ts, server/routes/index.ts, or a dedicated dashboard routes file).
+Examine Middleware: Check if requireAuth and, crucially, addOutfitterContext middleware are applied to this route.
+Examine Backend Logic:
+Trace the handler function that responds to this route.
+Specifically look at how storage.listBookings (or a similar function like storage.getUpcomingBookings) is called.
+Determine if the outfitterId is being passed to and used by the storage layer to filter the results for 'Upcoming Bookings'. It should only return bookings associated with req.outfitterId.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings. Answer the following questions:
+
+Identified API Endpoint for Dashboard 'Upcoming Bookings': (e.g., GET /api/bookings/upcoming)
+File where this route is defined:
+Middleware applied to this route: (e.g., requireAuth, addOutfitterContext, none)
+How is storage.listBookings (or equivalent) called for 'Upcoming Bookings'? Provide the exact line of code.
+Is outfitterId being passed to this storage function? (Yes/No)
+Does the relevant storage function (e.g., listBookings in server/storage.ts) actively filter by outfitterId when provided? (Yes/No, with relevant code snippet if available)
+Any other observations: Any findings that explain the data leakage for Upcoming Bookings.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The report identifies the specific file(s) and code sections relevant to the Upcoming Bookings data retrieval.
+No code changes are proposed in this step; this is purely an investigative report.
+This final investigation is crucial for achieving complete multi-tenant isolation across your entire dashboard. I await your detailed report."

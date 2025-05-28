@@ -116,6 +116,7 @@ export interface IStorage {
   
   // Dashboard operations
   getDashboardStats(): Promise<any>;
+  getUpcomingBookings(limit?: number, outfitterId?: number): Promise<any[]>;
   
   // Additional methods needed by routes (avoid duplication with main interface)
   createUser(user: UpsertUser): Promise<User>;
@@ -1284,9 +1285,15 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getUpcomingBookings(limit: number = 5): Promise<any[]> {
+  async getUpcomingBookings(limit: number = 5, outfitterId?: number): Promise<any[]> {
     const now = new Date();
+    const conditions = [gte(bookings.startDate, now)]; // Start with the date condition
     
+    // Crucially, add outfitterId filtering if provided
+    if (outfitterId) {
+      conditions.push(eq(bookings.outfitterId, outfitterId));
+    }
+
     const upcomingBookings = await db.select({
       id: bookings.id,
       bookingNumber: bookings.bookingNumber,
@@ -1303,7 +1310,7 @@ export class DatabaseStorage implements IStorage {
     .from(bookings)
     .innerJoin(experiences, eq(bookings.experienceId, experiences.id))
     .innerJoin(customers, eq(bookings.customerId, customers.id))
-    .where(gte(bookings.startDate, now))
+    .where(and(...conditions)) // Use 'and' to combine all conditions
     .orderBy(bookings.startDate)
     .limit(limit);
     

@@ -1,0 +1,89 @@
+Thank you for the precise diagnosis of the 'Upcoming Bookings' data leakage. The problem is clear: outfitterId is not being passed to, nor used by, storage.getUpcomingBookings.
+
+Your task is to implement the necessary changes to ensure storage.getUpcomingBookings filters upcoming bookings by the authenticated user's outfitterId. This will involve two modifications:
+
+Modification 1: Pass req.outfitterId to storage.getUpcomingBookings in the Route Handler
+
+File: server/routes/dashboard.ts
+Location: Lines 41-46 (approximate), specifically the router.get('/upcoming-bookings', ...) route.
+
+Find this block (or similar):
+
+TypeScript
+
+router.get('/upcoming-bookings', asyncHandler(async (req: Request, res: Response) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+  const upcomingBookings = await storage.getUpcomingBookings(limit); // <--- Problematic line
+  res.json(upcomingBookings);
+}));
+Replace it with (passing req.outfitterId):
+
+TypeScript
+
+router.get('/upcoming-bookings', asyncHandler(async (req: Request, res: Response) => {
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+  const upcomingBookings = await storage.getUpcomingBookings(limit, (req as any).outfitterId); // <--- MODIFIED
+  res.json(upcomingBookings);
+}));
+Modification 2: Update storage.getUpcomingBookings to Accept and Filter by outfitterId
+
+File: server/storage.ts
+Location: The async getUpcomingBookings(...) function.
+
+Find this block (or similar, focusing on the function signature and the where clause):
+
+TypeScript
+
+async getUpcomingBookings(limit: number = 5): Promise<any[]> {
+  const now = new Date();
+  
+  const upcomingBookings = await db.select({
+    // ... field selection
+  })
+  .from(bookings)
+  .innerJoin(experiences, eq(bookings.experienceId, experiences.id))
+  .innerJoin(customers, eq(bookings.customerId, customers.id))
+  .where(gte(bookings.startDate, now))  // <-- ONLY FILTERS BY DATE
+  .orderBy(bookings.startDate)
+  .limit(limit);
+  
+  // ... rest of function
+}
+Replace it with (adding outfitterId parameter and filtering logic):
+
+TypeScript
+
+async getUpcomingBookings(limit: number = 5, outfitterId?: number): Promise<any[]> {
+  const now = new Date();
+  const conditions = [gte(bookings.startDate, now)]; // Start with the date condition
+  
+  // Crucially, add outfitterId filtering if provided
+  if (outfitterId) {
+    conditions.push(eq(bookings.outfitterId, outfitterId));
+  }
+
+  const upcomingBookings = await db.select({
+    // ... field selection
+  })
+  .from(bookings)
+  .innerJoin(experiences, eq(bookings.experienceId, experiences.id))
+  .innerJoin(customers, eq(bookings.customerId, customers.id))
+  .where(and(...conditions)) // Use 'and' to combine all conditions
+  .orderBy(bookings.startDate)
+  .limit(limit);
+  
+  // ... rest of function
+}
+Output Required for My Review:
+Once you have implemented both sets of modifications, please provide a comprehensive diff preview that includes both modified files (server/routes/dashboard.ts and server/storage.ts).
+
+Success Criteria for My Approval:
+
+Modification 1: The storage.getUpcomingBookings call in server/routes/dashboard.ts is correctly updated to pass (req as any).outfitterId.
+Modification 2: The getUpcomingBookings function in server/storage.ts is updated:
+Its signature correctly accepts outfitterId?: number.
+It includes logic to add eq(bookings.outfitterId, outfitterId) to its WHERE clause conditions if outfitterId is provided.
+It correctly uses and(...conditions) to combine the date filter with the outfitterId filter.
+No other unrelated functional code lines are affected in either file.
+The change directly resolves the Upcoming Bookings data leakage by enforcing tenant isolation at the database query level.
+I will not approve this step until these criteria are met. Once approved and implemented, we will verify the fix on the dashboard, which should then complete all identified multi-tenant isolation issues.

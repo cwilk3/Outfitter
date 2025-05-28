@@ -41,7 +41,7 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
 // Upcoming bookings
 router.get('/upcoming-bookings', asyncHandler(async (req: Request, res: Response) => {
   const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-  const upcomingBookings = await storage.getUpcomingBookings(limit);
+  const upcomingBookings = await storage.getUpcomingBookings(limit, (req as any).outfitterId);
   res.json(upcomingBookings);
 }));
 
