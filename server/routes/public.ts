@@ -5,6 +5,8 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { insertCustomerSchema, insertBookingSchema } from '@shared/schema';
 import { nanoid } from 'nanoid';
 
+console.log('🚨🚨🚨 LOADING public.ts MODULE: TOP OF FILE EXECUTED 🚨🚨🚨');
+
 const router = Router();
 
 // Route version identifier
