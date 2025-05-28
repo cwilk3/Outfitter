@@ -14,29 +14,45 @@ console.log("[ROUTE CHECK] Using PUBLIC booking route v2 - ENHANCED with debug l
 
 // GET public locations
 router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
+  // --- START NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
+  console.log('[DEBUG_INVALID_ID] Route Hit: /public/:outfitterId/locations');
+  console.log('[DEBUG_INVALID_ID] req.params.outfitterId RAW:', req.params.outfitterId);
   const outfitterId = parseInt(req.params.outfitterId as string);
+  console.log('[DEBUG_INVALID_ID] outfitterId after parseInt:', outfitterId);
+  console.log('[DEBUG_INVALID_ID] isNaN(outfitterId) result:', isNaN(outfitterId));
+  // --- END NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
 
   // --- ADDED VALIDATION ---
   if (isNaN(outfitterId)) {
+    console.log('[DEBUG_INVALID_ID] Validation FAILED: Returning 400.'); // Log if validation fires
     return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
   }
   // --- END ADDED VALIDATION ---
 
   // Get all active locations for public display, filtered by outfitterId
+  console.log('[DEBUG_INVALID_ID] Validation PASSED. Proceeding to storage.listLocations with outfitterId:', outfitterId); // Log if validation passes
   const locations = await storage.listLocations(true, outfitterId);
   res.json(locations);
 }));
 
 // GET public experiences
 router.get('/:outfitterId/experiences', asyncHandler(async (req: Request, res: Response) => {
+  // --- START NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
+  console.log('[DEBUG_INVALID_ID] Route Hit: /public/:outfitterId/experiences');
+  console.log('[DEBUG_INVALID_ID] req.params.outfitterId RAW:', req.params.outfitterId);
   const outfitterId = parseInt(req.params.outfitterId as string);
+  console.log('[DEBUG_INVALID_ID] outfitterId after parseInt:', outfitterId);
+  console.log('[DEBUG_INVALID_ID] isNaN(outfitterId) result:', isNaN(outfitterId));
+  // --- END NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
 
   // --- ADDED VALIDATION ---
   if (isNaN(outfitterId)) {
+    console.log('[DEBUG_INVALID_ID] Validation FAILED: Returning 400.'); // Log if validation fires
     return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
   }
   // --- END ADDED VALIDATION ---
 
+  console.log('[DEBUG_INVALID_ID] Validation PASSED. Proceeding to storage.listExperiences with outfitterId:', outfitterId); // Log if validation passes
   const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
   
   // Get all active experiences, filtered by outfitterId and locationId if provided
@@ -67,14 +83,22 @@ router.get('/:outfitterId/experiences', asyncHandler(async (req: Request, res: R
 
 // GET public bookings for availability tracking
 router.get('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
+  // --- START NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
+  console.log('[DEBUG_INVALID_ID] Route Hit: /public/:outfitterId/bookings');
+  console.log('[DEBUG_INVALID_ID] req.params.outfitterId RAW:', req.params.outfitterId);
   const outfitterId = parseInt(req.params.outfitterId as string);
+  console.log('[DEBUG_INVALID_ID] outfitterId after parseInt:', outfitterId);
+  console.log('[DEBUG_INVALID_ID] isNaN(outfitterId) result:', isNaN(outfitterId));
+  // --- END NEW DIAGNOSTIC LOGGING FOR INVALID ID ---
 
   // --- ADDED VALIDATION ---
   if (isNaN(outfitterId)) {
+    console.log('[DEBUG_INVALID_ID] Validation FAILED: Returning 400.'); // Log if validation fires
     return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
   }
   // --- END ADDED VALIDATION ---
 
+  console.log('[DEBUG_INVALID_ID] Validation PASSED. Proceeding to storage.listBookings with outfitterId:', outfitterId); // Log if validation passes
   const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
   
   if (!experienceId) {
