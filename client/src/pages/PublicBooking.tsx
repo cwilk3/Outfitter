@@ -316,7 +316,7 @@ function PublicBooking() {
         }
       };
       
-      const response = await apiRequest('POST', '/api/public/bookings', bookingData);
+      const response = await apiRequest('POST', `/api/public/${outfitterId}/bookings`, bookingData);
       
       setBookingConfirmation(response);
       setBookingDialogOpen(false);
