@@ -221,6 +221,28 @@ export async function registerUser(req: Request, res: Response) {
             role: role as 'admin' | 'guide'
           });
           console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
+          
+          // Generate token (moved inside successful completion)
+          const token = generateToken(newUser, outfitter.id);
+          
+          // Set cookie
+          res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+          });
+
+          return res.status(201).json({
+            message: 'Registration successful',
+            user: {
+              id: newUser.id,
+              email: newUser.email,
+              firstName: newUser.firstName,
+              lastName: newUser.lastName,
+              role: newUser.role
+            }
+          });
         } catch (error) {
           console.error('❌ Failed to create user-outfitter relationship:', error);
           throw error;
@@ -233,24 +255,6 @@ export async function registerUser(req: Request, res: Response) {
       console.error('❌ Failed to create user:', error);
       throw error;
     }
-
-    // Generate token
-    const token = generateToken(newUser, outfitter.id);
-
-    // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-
-    // Return user info with outfitter info (without password hash)
-    const { passwordHash: _, ...userResponse } = newUser;
-    res.status(201).json({
-      ...userResponse,
-      outfitterId: outfitter.id
-    });
 
   } catch (error) {
     console.error('Registration error:', error);
