@@ -1,0 +1,29 @@
+Thank you for confirming that newUser and outfitter variable scope is still the issue. We need a functional code modification to resolve this.
+
+Your primary task is to refactor the registerUser function in server/emailAuth.ts to guarantee that newUser and outfitter are always in scope and defined when generateToken (at line 239) and subsequent response logic are executed.
+
+Specific Focus Areas for Modification:
+
+Examine the control flow paths within the registerUser function, especially within its nested try-catch blocks. Pinpoint any scenario where line 239 could be reached without newUser or outfitter having been successfully assigned a value.
+Declare newUser and outfitter at a higher, accessible scope within the registerUser function (e.g., at the top of the outer try block, or outside all try-catch blocks but still within the function scope, initialized to null or undefined if necessary).
+Ensure their assignment happens conditionally within the try blocks where their creation is successful.
+Crucially, move the generateToken call, res.cookie setting, and the final res.status(201).json(...) response logic into the innermost try block where both newUser and outfitter are guaranteed to have been successfully created and assigned. This ensures these operations only occur on successful user and outfitter creation.
+Proposed Code Changes:
+You will need to provide the specific code changes. I expect to see a refactoring of variable declarations and the placement of the token/response logic.
+
+Provide a comprehensive diff preview for server/emailAuth.ts that clearly shows:
+
+The exact file path of the modified file (server/emailAuth.ts).
+The approximate line numbers where the change occurred.
+The current code block that contains the nested try-catch blocks and the problematic token/response logic.
+The modified code block that correctly resolves the scope issue by ensuring newUser and outfitter are in scope and correctly handles the token generation and response.
+Success Criteria for My Approval:
+
+The ReferenceError: newUser is not defined (or for outfitter) at line 239 or any other line is completely resolved.
+newUser and outfitter are correctly declared and assigned such that they are always in scope when generateToken and the final success response are called.
+The token is generated, the cookie is set, and the 201 success response is sent only upon successful creation of both user and outfitter.
+Critical Verification: After implementing this functional fix, when a sign-up attempt is made:
+The diagnostic logs (--- START of Registration Handler ---, Initial req.body received:, Enter registerUser function. req.body:, REGISTER FUNCTION CALLED) that we previously placed in server/emailAuth.ts MUST now appear correctly in the console output.
+The sign-up process MUST complete successfully (returning a 201 status and a valid user/token response) when valid data is provided.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. Please proceed with the investigation and proposed functional fix.

@@ -143,6 +143,11 @@ export async function registerUser(req: Request, res: Response) {
   console.log('Initial req.body received:', JSON.stringify(req.body, null, 2));
   
   console.log('REGISTER FUNCTION CALLED');
+  
+  // Declare variables at function scope level to ensure accessibility
+  let newUser: User | null = null;
+  let outfitter: any | null = null;
+  
   try {
     const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
 
@@ -182,7 +187,7 @@ export async function registerUser(req: Request, res: Response) {
     });
     
     try {
-      const newUser = await storage.createUserWithPassword({
+      newUser = await storage.createUserWithPassword({
         email,
         passwordHash,
         firstName,
@@ -200,7 +205,7 @@ export async function registerUser(req: Request, res: Response) {
       });
       
       try {
-        const outfitter = await storage.createOutfitter({
+        outfitter = await storage.createOutfitter({
           name: companyName,
           email: email,
           isActive: true
@@ -222,27 +227,31 @@ export async function registerUser(req: Request, res: Response) {
           });
           console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
           
-          // Generate token (moved inside successful completion)
-          const token = generateToken(newUser, outfitter.id);
-          
-          // Set cookie
-          res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-          });
+          // Only proceed with token/response if both variables are defined
+          if (newUser && outfitter) {
+            // Generate token
+            const token = generateToken(newUser, outfitter.id);
+            
+            // Set cookie
+            res.cookie('token', token, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'strict',
+              maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
 
-          return res.status(201).json({
-            message: 'Registration successful',
-            user: {
-              id: newUser.id,
-              email: newUser.email,
-              firstName: newUser.firstName,
-              lastName: newUser.lastName,
-              role: newUser.role
-            }
-          });
+            return res.status(201).json({
+              message: 'Registration successful',
+              user: {
+                id: newUser.id,
+                email: newUser.email,
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                role: newUser.role
+              }
+            });
+          }
+          
         } catch (error) {
           console.error('❌ Failed to create user-outfitter relationship:', error);
           throw error;

@@ -1,0 +1,28 @@
+Thank you for the clear diagnosis regarding the ReferenceError: newUser is not defined. We need to directly resolve this variable scope issue within the registerUser function in server/emailAuth.ts.
+
+Your task is to re-evaluate the scope of newUser and outfitter variables and restructure the code to ensure that all operations depending on these variables (specifically token generation, cookie setting, and the final response sending) are executed only when newUser and outfitter are guaranteed to be defined and in scope.
+
+Specific Focus Area for Modification:
+
+File: server/emailAuth.ts
+Function: registerUser
+Problematic Lines: Identify all instances where newUser or outfitter are accessed outside the scope in which they are defined (e.g., the line where generateToken(newUser, outfitter.id) is called).
+Solution: Move the token generation, cookie setting, and res.status(201).json(...) response logic to the correct scope, typically immediately after newUser and outfitter have been successfully created and assigned valid values within the try block, ensuring they are accessible. Avoid defining variables inside nested blocks if they need to be accessed outside those specific blocks.
+Proposed Code Changes:
+You will need to analyze the registerUser function in server/emailAuth.ts to identify the precise lines for newUser and outfitter definition and the problematic token/response code. I cannot provide the exact "Current Code Block" lines as it varies based on your previous incomplete fix, but the change must ensure variable scope.
+
+Provide a comprehensive diff preview for server/emailAuth.ts that clearly shows:
+
+The exact file path of the modified file (server/emailAuth.ts).
+The approximate line numbers where the change occurred.
+The current code block that is causing the scope issue.
+The modified code block that correctly resolves the scope issue by moving or redefining variables/logic.
+Success Criteria for My Approval:
+
+The ReferenceError: newUser is not defined at line 239 (or any other line where it previously occurred) is completely resolved.
+The newUser and outfitter variables are correctly in scope for all operations that use them.
+The token is generated, the cookie is set, and the 201 success response is sent only after a new user and outfitter are successfully created and fully defined.
+The sign-up process, when provided with valid data, proceeds to completion (i.e., no more ReferenceError for these variables).
+No other unrelated functional code is affected.
+After implementing this fix, the diagnostic logs (--- START of Registration Handler ---, Initial req.body received:, Enter registerUser function. req.body:, REGISTER FUNCTION CALLED) that we previously placed in server/emailAuth.ts MUST now appear correctly in the console output during a successful sign-up attempt. This will confirm that the registerUser function is fully executing.
+I will not approve this step until these criteria are met. Please proceed with the investigation and proposed fix.
