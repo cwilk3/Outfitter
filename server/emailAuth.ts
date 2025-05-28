@@ -186,83 +186,79 @@ export async function registerUser(req: Request, res: Response) {
       role: role as 'admin' | 'guide'
     });
     
-    try {
-      newUser = await storage.createUserWithPassword({
-        email,
-        passwordHash,
-        firstName,
-        lastName,
-        phone,
-        role: role as 'admin' | 'guide'
-      });
-      console.log('✅ Created user successfully:', newUser);
+    // --- Start of New Granular Logging --- 
+    console.log('[DEBUG] Pre-User Creation: Value of newUser variable before assignment:', newUser);
+    newUser = await storage.createUserWithPassword({
+      email,
+      passwordHash,
+      firstName,
+      lastName,
+      phone,
+      role: role as 'admin' | 'guide'
+    });
+    console.log('[DEBUG] Post-User Creation: Value of newUser variable after assignment:', JSON.stringify(newUser, null, 2));
+    console.log('[DEBUG] Post-User Creation: Type of newUser variable:', typeof newUser);
 
-      // Create outfitter for this user
-      console.log('Creating outfitter with data:', {
-        name: companyName,
-        email: email,
-        isActive: true
-      });
-      
-      try {
-        outfitter = await storage.createOutfitter({
-          name: companyName,
-          email: email,
-          isActive: true
+    if (!newUser) {
+        console.error('[DEBUG] CRITICAL: newUser is null or undefined immediately after storage.createUserWithPassword attempt!');
+        throw new Error('Failed to create user or newUser variable not assigned correctly.');
+    }
+
+    console.log('[DEBUG] Pre-Outfitter Creation: Value of outfitter variable before assignment:', outfitter);
+    outfitter = await storage.createOutfitter({
+      name: companyName,
+      email: email,
+      isActive: true
+    });
+    console.log('[DEBUG] Post-Outfitter Creation: Value of outfitter variable after assignment:', JSON.stringify(outfitter, null, 2));
+    console.log('[DEBUG] Post-Outfitter Creation: Type of outfitter variable:', typeof outfitter);
+
+    if (!outfitter) {
+        console.error('[DEBUG] CRITICAL: outfitter is null or undefined immediately after storage.createOutfitter attempt!');
+        throw new Error('Failed to create outfitter or outfitter variable not assigned correctly.');
+    }
+    
+    console.log('[DEBUG] Pre-UserOutfitter Link: newUser value:', JSON.stringify(newUser, null, 2), 'outfitter value:', JSON.stringify(outfitter, null, 2));
+    const userOutfitter = await storage.createUserOutfitter({
+      userId: newUser.id,
+      outfitterId: outfitter.id,
+      role: role as 'admin' | 'guide'
+    });
+    console.log('[DEBUG] Post-UserOutfitter Link: userOutfitter value:', JSON.stringify(userOutfitter, null, 2));
+    console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
+
+    // Check right before the token generation and response area
+    console.log('[DEBUG] Approaching token generation. newUser type:', typeof newUser, 'Value:', JSON.stringify(newUser, null, 2));
+    console.log('[DEBUG] Approaching token generation. outfitter type:', typeof outfitter, 'Value:', JSON.stringify(outfitter, null, 2));
+    // --- End of New Granular Logging --- 
+
+    if (newUser && outfitter) {
+        console.log('[DEBUG] newUser and outfitter are valid. Proceeding to generate token and send response.');
+        const token = generateToken(newUser, outfitter.id);
+        console.log('[DEBUG] Token generated:', token ? '****** (exists)' : 'null or undefined');
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 
         });
-        console.log('✅ Created outfitter successfully:', outfitter);
+        console.log('[DEBUG] Cookie set. Preparing JSON response.');
 
-        // Link user to outfitter
-        console.log('Creating user-outfitter relationship with data:', {
-          userId: newUser.id,
-          outfitterId: outfitter.id,
-          role: role as 'admin' | 'guide'
+        console.log('[DEBUG] About to destructure newUser for response. newUser value:', JSON.stringify(newUser, null, 2));
+        const { passwordHash: _, ...userResponse } = newUser; 
+        console.log('[DEBUG] userResponse after destructuring:', JSON.stringify(userResponse, null, 2));
+
+        res.status(201).json({
+            ...userResponse,
+            outfitterId: outfitter.id
         });
-        
-        try {
-          const userOutfitter = await storage.createUserOutfitter({
-            userId: newUser.id,
-            outfitterId: outfitter.id,
-            role: role as 'admin' | 'guide'
-          });
-          console.log('✅ Created user-outfitter relationship successfully:', userOutfitter);
-          
-          // Only proceed with token/response if both variables are defined
-          if (newUser && outfitter) {
-            // Generate token
-            const token = generateToken(newUser, outfitter.id);
-            
-            // Set cookie
-            res.cookie('token', token, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'strict',
-              maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
-
-            return res.status(201).json({
-              message: 'Registration successful',
-              user: {
-                id: newUser.id,
-                email: newUser.email,
-                firstName: newUser.firstName,
-                lastName: newUser.lastName,
-                role: newUser.role
-              }
-            });
-          }
-          
-        } catch (error) {
-          console.error('❌ Failed to create user-outfitter relationship:', error);
-          throw error;
-        }
-      } catch (error) {
-        console.error('❌ Failed to create outfitter:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('❌ Failed to create user:', error);
-      throw error;
+        console.log('[DEBUG] Success response sent.');
+    } else {
+        console.error('[DEBUG] CRITICAL LOGIC ERROR: newUser or outfitter is falsy before token/response section, despite earlier checks.', 
+          { newUserExists: !!newUser, outfitterExists: !!outfitter }
+        );
+        return res.status(500).json({ error: 'Internal server error after data creation steps due to missing user/outfitter variables.' });
     }
 
   } catch (error) {

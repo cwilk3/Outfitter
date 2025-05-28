@@ -1,0 +1,129 @@
+Prompt for Replit AI: Implement Ultra-Granular Logging in registerUser for Debugging ReferenceError
+
+Project: "Outfitter" File to Modify: server/emailAuth.ts Function to Modify: registerUser
+
+Context: We are debugging a persistent ReferenceError: newUser is not defined at line 239 in the registerUser function. Previous logs indicate that database operations (user creation, outfitter creation, linking) appear successful before this error. The error is reported around the stage of token generation or final response construction. We need to add very detailed logging to trace the state of newUser and outfitter variables throughout the try block.
+
+Instructions:
+
+Ensure Latest Code: Please verify you are working with the latest version of server/emailAuth.ts, especially one where newUser and outfitter are declared with let at the top of the registerUser function scope (e.g., let newUser: User | null = null;).
+Modify registerUser Function: Insert the following console.log statements at the specified locations within the main try block of the registerUser function. Be precise with the placement.
+export async function registerUser(req: Request, res: Response) {
+  // Existing initial logs (keep them or ensure these new ones are also present near the top)
+  console.log('Enter registerUser function. req.body:', JSON.stringify(req.body, null, 2));
+  console.log('REGISTER FUNCTION CALLED');
+\  let newUser: User | null = null;
+  let outfitter: any | null = null; // Ideally: Outfitter | null, if Outfitter type is available
+\  try {
+    const { email, password, firstName, lastName, phone, role = 'admin', companyName } = req.body;
+
+    // Initial validation (keep this)
+    if (!email || !password || !firstName || !companyName) {
+      return res.status(400).json({ 
+        error: 'Email, password, first name, and company name are required' 
+      });
+    }
+
+    // Existing user check (keep this)
+    const existingUser = await storage.getUserByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists with this email' });
+    }
+
+    console.log('=== REGISTRATION DEBUG START ==='); // Existing log
+    console.log('Registration data received:', { email, firstName, lastName, phone, role, companyName }); // Existing log
+
+    console.log('Hashing password...'); // Existing log
+    const passwordHash = await hashPassword(password);
+    console.log('Password hashed successfully'); // Existing log
+
+    // --- Start of New Granular Logging --- 
+    console.log('[DEBUG] Pre-User Creation: Value of newUser variable before assignment:', newUser);
+    newUser = await storage.createUserWithPassword({
+      email,
+      passwordHash,
+      firstName,
+      lastName,
+      phone,
+      role: role as 'admin' | 'guide'
+    });
+    console.log('[DEBUG] Post-User Creation: Value of newUser variable after assignment:', JSON.stringify(newUser, null, 2));
+    console.log('[DEBUG] Post-User Creation: Type of newUser variable:', typeof newUser);
+
+    if (!newUser) {
+        console.error('[DEBUG] CRITICAL: newUser is null or undefined immediately after storage.createUserWithPassword attempt!');
+        throw new Error('Failed to create user or newUser variable not assigned correctly.'); // Important to stop execution if this happens
+    }
+
+    console.log('[DEBUG] Pre-Outfitter Creation: Value of outfitter variable before assignment:', outfitter);
+    outfitter = await storage.createOutfitter({
+      name: companyName,
+      email: email,
+      isActive: true
+    });
+    console.log('[DEBUG] Post-Outfitter Creation: Value of outfitter variable after assignment:', JSON.stringify(outfitter, null, 2));
+    console.log('[DEBUG] Post-Outfitter Creation: Type of outfitter variable:', typeof outfitter);
+
+    if (!outfitter) {
+        console.error('[DEBUG] CRITICAL: outfitter is null or undefined immediately after storage.createOutfitter attempt!');
+        throw new Error('Failed to create outfitter or outfitter variable not assigned correctly.'); // Important to stop execution
+    }
+    
+    console.log('[DEBUG] Pre-UserOutfitter Link: newUser value:', JSON.stringify(newUser, null, 2), 'outfitter value:', JSON.stringify(outfitter, null, 2));
+    const userOutfitter = await storage.createUserOutfitter({
+      userId: newUser.id, // This would fail if newUser is null/undefined or not an object with id
+      outfitterId: outfitter.id, // This would fail if outfitter is null/undefined or not an object with id
+      role: role as 'admin' | 'guide'
+    });
+    console.log('[DEBUG] Post-UserOutfitter Link: userOutfitter value:', JSON.stringify(userOutfitter, null, 2));
+    console.log('✅ Created user-outfitter relationship successfully:', userOutfitter); // Existing log, ensure it's after the new ones
+
+    // Check right before the token generation and response area
+    console.log('[DEBUG] Approaching token generation. newUser type:', typeof newUser, 'Value:', JSON.stringify(newUser, null, 2));
+    console.log('[DEBUG] Approaching token generation. outfitter type:', typeof outfitter, 'Value:', JSON.stringify(outfitter, null, 2));
+    // --- End of New Granular Logging --- 
+
+    if (newUser && outfitter) { // This if condition should now be more reliably informed
+        console.log('[DEBUG] newUser and outfitter are valid. Proceeding to generate token and send response.');
+        const token = generateToken(newUser, outfitter.id);
+        console.log('[DEBUG] Token generated:', token ? '****** (exists)' : 'null or undefined');
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 
+        });
+        console.log('[DEBUG] Cookie set. Preparing JSON response.');
+
+        // This is the area around the reported line 239
+        console.log('[DEBUG] About to destructure newUser for response. newUser value:', JSON.stringify(newUser, null, 2));
+        const { passwordHash: _, ...userResponse } = newUser; 
+        console.log('[DEBUG] userResponse after destructuring:', JSON.stringify(userResponse, null, 2));
+
+        res.status(201).json({
+            ...userResponse,
+            outfitterId: outfitter.id
+        });
+        console.log('[DEBUG] Success response sent.');
+    } else {
+        console.error('[DEBUG] CRITICAL LOGIC ERROR: newUser or outfitter is falsy before token/response section, despite earlier checks. This should not happen if throws were effective.', 
+          { newUserExists: !!newUser, outfitterExists: !!outfitter }
+        );
+        // Ensure a response is sent if this unexpected path is taken
+        return res.status(500).json({ error: 'Internal server error after data creation steps due to missing user/outfitter variables.' });
+    }
+
+  } catch (error) {
+    console.error('Registration error in main try catch:', error); // Existing log
+    // Add more details to the error if possible
+    const errorMessage = error instanceof Error ? error.message : 'Unknown registration error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Registration error details:', { errorMessage, errorStack, caughtError: error });
+    return res.status(500).json({ error: 'Registration failed', details: errorMessage });
+  }
+}
+Output Required: After implementing these logging changes, please perform another sign-up attempt that previously triggered the ReferenceError. Capture and provide the full, exact console output from all logs (both existing and newly added) that are triggered by that attempt. This output is critical.
+Confirm Exact Line 239 (if error persists): If the ReferenceError: newUser is not defined still occurs, please confirm the exact line of code that the stack trace points to as line 239 in the modified file.
+Goal: These logs are designed to give us maximum visibility into the state of newUser and outfitter at every crucial step. This should help us finally understand if newUser is not being assigned, is becoming undefined unexpectedly, or if the error is indeed a misleading stack trace from an issue elsewhere (like within generateToken or one of the storage calls if they don't throw errors properly but return undefined).
+
