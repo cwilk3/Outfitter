@@ -1,0 +1,23 @@
+Thank you for reporting these critical new errors and the observed data leakage. We must address these immediately. The 401 (Unauthorized) error for /api/user-outfitters is the first priority.
+
+Your task is to investigate why the GET /api/user-outfitters endpoint is returning a 401 (Unauthorized) status. This error is reported from OutfitterContext.tsx.
+
+Specific Focus Areas for Investigation:
+
+Locate the route definition for GET /api/user-outfitters. This is likely in a file like server/routes/users.ts, server/routes/auth.ts, or your main router configuration.
+Examine its middleware: Check what authentication or authorization middleware is applied to this specific route.
+Check for required authentication: Does this route explicitly require authentication? If so, verify that the request from the frontend is indeed sending a valid authentication token (e.g., JWT in a cookie or Authorization header).
+Confirm the handler: Ensure the function handling this route is correctly extracting user information (specifically req.user or req.outfitterId) if it's an authenticated route.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report answering the following questions:
+
+File where GET /api/user-outfitters is defined:
+Authentication middleware applied to this route: (e.g., authenticateJWT, isUserAuthenticated, etc.)
+Is this route intended to be authenticated? (Yes/No, and why)
+Observations on token presence/validity: (e.g., "Frontend is sending token but it's invalid," "No token is being sent," "Token is valid but middleware is failing.")
+Any other observations: Any other findings regarding the 401 error.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+No code changes are proposed in this step; this is purely an investigative report.
+Understanding the cause of this 401 error is essential before we can address the dashboard data issues. I await your report

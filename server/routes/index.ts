@@ -39,7 +39,7 @@ router.get('/settings', async (req, res) => {
 });
 
 // User-outfitter relationship routes (moved from main routes)
-router.get('/user-outfitters', async (req, res) => {
+router.get('/user-outfitters', requireAuth, addOutfitterContext, async (req, res) => {
   try {
     const user = (req as any).user;
     if (!user) {

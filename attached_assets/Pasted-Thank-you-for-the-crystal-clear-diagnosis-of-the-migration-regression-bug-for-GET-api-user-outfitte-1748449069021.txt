@@ -1,0 +1,65 @@
+Thank you for the crystal-clear diagnosis of the migration regression bug for GET /api/user-outfitters. This is the core issue that needs to be resolved to ensure proper authentication and outfitterId context for this route.
+
+Your task is to add the requireAuth and addOutfitterContext middleware to the GET /api/user-outfitters route definition in server/routes/index.ts. This will restore the correct authentication pattern as it existed in the legacy route.
+
+Specific Focus Area for Modification:
+
+File: server/routes/index.ts
+Location: Lines 42-55 (approximate), where the router.get('/user-outfitters', ...) route is currently defined.
+Proposed Code Changes:
+
+Find this block (or similar):
+
+TypeScript
+
+// ... (other route definitions)
+
+router.get('/user-outfitters', async (req, res) => {
+  try {
+    const user = (req as any).user;
+    if (!user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const userOutfitters = await storage.getUserOutfitters(user.id);
+    res.json(userOutfitters);
+  } catch (error) {
+    console.error('Error fetching user outfitters:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+Replace it with (adding the middleware):
+
+TypeScript
+
+import { requireAuth } from '../middleware/auth'; // Ensure this import exists or add it at the top of the file
+import { addOutfitterContext } from '../middleware/outfitter'; // Ensure this import exists or add it at the top of the file
+
+// ... (other route definitions)
+
+router.get('/user-outfitters', requireAuth, addOutfitterContext, async (req, res) => {
+  try {
+    const user = (req as any).user; // req.user should now be populated by requireAuth
+    if (!user) { // This check is now redundant if requireAuth guarantees user, but harmless to keep
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const userOutfitters = await storage.getUserOutfitters(user.id);
+    res.json(userOutfitters);
+  } catch (error) {
+    console.error('Error fetching user outfitters:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+Output Required for My Review:
+Once you have implemented this fix, please provide a comprehensive diff preview that includes:
+
+The exact file path of the modified file (server/routes/index.ts).
+The approximate line numbers where the change occurred.
+The current code block before your modification.
+The modified code block after your change.
+Success Criteria for My Approval:
+
+The requireAuth and addOutfitterContext middleware functions are correctly added to the GET /api/user-outfitters route definition in server/routes/index.ts.
+Any necessary import statements for requireAuth and addOutfitterContext are confirmed to be present (or added) at the top of the file.
+No other unrelated code lines are affected.
+The change directly resolves the identified migration regression by applying the correct authentication pattern.
+I will not approve this step until these criteria are met. Once approved and implemented, we will re-verify the dashboard functionalit

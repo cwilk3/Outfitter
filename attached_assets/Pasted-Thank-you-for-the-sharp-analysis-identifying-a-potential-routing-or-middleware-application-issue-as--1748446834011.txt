@@ -1,0 +1,37 @@
+Thank you for the sharp analysis identifying a potential routing or middleware application issue as the core problem for GET /api/user-outfitters. We need to uncover the root cause of this route interception/masking.
+
+Your primary task is to thoroughly investigate the application's router mounting chain, middleware application order, and any potential route conflicts that could be preventing GET /api/user-outfitters from correctly executing its intended handler with proper authentication context.
+
+Specific Focus Areas for Investigation:
+
+Main Application Entry Point (e.g., server/index.ts or app.ts):
+
+Examine how the main Express app is initialized.
+Identify the order in which global middleware (like body parsers, cookie parsers, authentication middleware) are applied using app.use(...).
+Crucially, examine how individual route files or routers (e.g., authRoutes, userRoutes, etc.) are imported and mounted using app.use('/api', someRouter) or similar. Pay close attention to the order of these mounts.
+Authentication Middleware Application:
+
+Verify where requireAuth and addOutfitterContext are defined and how they are typically applied to routes.
+Is there any global or router-level application of requireAuth or addOutfitterContext that might be conditionally applied or misconfigured for /api/user-outfitters?
+Route Definition for /api/user-outfitters:
+
+Re-examine server/routes/index.ts (or wherever it's defined) to confirm its current structure and its relative position to other routes.
+Potential Route Conflicts/Masking:
+
+Search the entire server/ directory for any other files that might define a route that matches /api/user-outfitters or a more general pattern (e.g., /api/user/:id, /api/:resource). Pay special attention to:
+Any _old or _disabled files (as routes_old_corrupted.ts.DISABLED was mentioned).
+Files mounted with app.use that could intercept requests for /api/user-outfitters earlier in the chain.
+Consider how your development server (e.g., Vite/Webpack dev server) might be handling /api/ requests and if it has any proxy rules that could be interfering.
+Output Required for My Review (No Code Changes Yet):
+Based on your investigation, please provide a detailed report outlining your findings. Answer the following questions:
+
+Main Router Mounting Order: Describe the sequence of app.use() calls for main routers and middleware in your application's entry point.
+Authentication Middleware Application Context: Explain how requireAuth and addOutfitterContext are generally applied (globally, per-router, per-route) and if there are any specific conditions.
+Conflicting Route Definitions (if found): Detail any other route definitions that could potentially match or intercept GET /api/user-outfitters. Provide file paths and relevant code snippets.
+Hypothesized Core Issue: Based on your findings, what is your most likely conclusion about why this specific route is being intercepted/masked?
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The report identifies the specific file(s) and code sections relevant to the router mounting and potential conflicts.
+No code changes are proposed in this step; this is purely an investigative report.
+This investigation is critical for understanding and resolving the architectural problem. I await your detailed report
