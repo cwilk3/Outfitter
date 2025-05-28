@@ -15,6 +15,13 @@ console.log("[ROUTE CHECK] Using PUBLIC booking route v2 - ENHANCED with debug l
 // GET public locations
 router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
   const outfitterId = parseInt(req.params.outfitterId as string);
+
+  // --- ADDED VALIDATION ---
+  if (isNaN(outfitterId)) {
+    return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
+  }
+  // --- END ADDED VALIDATION ---
+
   // Get all active locations for public display, filtered by outfitterId
   const locations = await storage.listLocations(true, outfitterId);
   res.json(locations);
@@ -23,6 +30,13 @@ router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Res
 // GET public experiences
 router.get('/:outfitterId/experiences', asyncHandler(async (req: Request, res: Response) => {
   const outfitterId = parseInt(req.params.outfitterId as string);
+
+  // --- ADDED VALIDATION ---
+  if (isNaN(outfitterId)) {
+    return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
+  }
+  // --- END ADDED VALIDATION ---
+
   const locationId = req.query.locationId ? parseInt(req.query.locationId as string) : undefined;
   
   // Get all active experiences, filtered by outfitterId and locationId if provided
@@ -54,6 +68,13 @@ router.get('/:outfitterId/experiences', asyncHandler(async (req: Request, res: R
 // GET public bookings for availability tracking
 router.get('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Response) => {
   const outfitterId = parseInt(req.params.outfitterId as string);
+
+  // --- ADDED VALIDATION ---
+  if (isNaN(outfitterId)) {
+    return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
+  }
+  // --- END ADDED VALIDATION ---
+
   const experienceId = req.query.experienceId ? parseInt(req.query.experienceId as string) : undefined;
   
   if (!experienceId) {

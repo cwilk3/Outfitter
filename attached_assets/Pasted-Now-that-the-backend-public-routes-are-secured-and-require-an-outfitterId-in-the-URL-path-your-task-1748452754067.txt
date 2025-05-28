@@ -1,0 +1,63 @@
+Now that the backend public routes are secured and require an outfitterId in the URL path, your task is to update the frontend application to consume these new secure URLs.
+
+Your primary goal is to modify the frontend to:
+
+Extract the outfitterId from the URL path for the public booking pages.
+Construct and use the new secure API URLs for locations, experiences, bookings, and v2/availability.
+Specific Focus Areas for Modification:
+
+Frontend Routing Configuration:
+
+Locate the frontend routing file (e.g., src/App.tsx, src/router/index.ts, src/pages/PublicBookingPage.tsx where routes are defined).
+Update the route path for the public booking page to include :outfitterId (e.g., /public/:outfitterId).
+Public Booking Page Component/Hook:
+
+Identify the main component or hook responsible for rendering the public booking page and making API calls (e.g., src/pages/PublicBookingPage.tsx, src/hooks/usePublicBookingData.ts, or a dedicated api/public service file).
+Extract outfitterId: Use the appropriate frontend routing hook (e.g., useParams from react-router-dom if React) to get the outfitterId from the URL.
+Modify API Calls: Update all fetch or Axios calls for GET /api/public/locations, /api/public/experiences, /api/public/bookings, and /api/public/v2/availability to dynamically insert the extracted outfitterId into the URL.
+Proposed Code Changes:
+
+You will need to analyze the frontend codebase to provide the exact BEFORE and AFTER blocks, as I don't have direct access. However, the changes should follow this pattern:
+
+Example: Frontend Routing (Conceptual)
+
+TypeScript
+
+// BEFORE:
+<Route path="/public-booking" element={<PublicBookingPage />} />
+// AFTER:
+<Route path="/public/:outfitterId" element={<PublicBookingPage />} />
+Example: Public Booking Page Component/API Service (Conceptual)
+
+TypeScript
+
+// BEFORE:
+// const fetchPublicLocations = async () => {
+//   const response = await fetch('/api/public/locations');
+//   return response.json();
+// };
+// AFTER:
+// import { useParams } from 'react-router-dom'; // if using React Router
+// const { outfitterId } = useParams();
+// const fetchPublicLocations = async (outfitterId: string) => {
+//   const response = await fetch(`/api/public/${outfitterId}/locations`);
+//   return response.json();
+// };
+// // ... then ensure components call it with the extracted outfitterId
+Apply this pattern to all four public API calls (locations, experiences, bookings, v2/availability).
+
+Output Required for My Review:
+Please provide a comprehensive diff preview of all modified frontend files, clearly showing:
+
+The exact file paths (e.g., src/App.tsx, src/pages/PublicBookingPage.tsx, src/api/public.ts).
+The approximate line numbers where changes occurred.
+The current code block before your modification.
+The modified code block after your change.
+Success Criteria for My Approval:
+
+Frontend routing is updated to include :outfitterId for the public booking page.
+The outfitterId is correctly extracted from the URL within the relevant frontend component(s) or hook(s).
+All four public API calls (/api/public/locations, /api/public/experiences, /api/public/bookings, /api/public/v2/availability) are updated to construct the URLs with the extracted outfitterId (e.g., /api/public/${outfitterId}/locations).
+No other unrelated functional code is affected.
+The public booking pages now display data correctly filtered by the outfitterId in the URL (this will be verified manually after approval).
+I will not approve this step until these criteria are met. Once approved and implemented, we will manually test the public booking pages with different outfitterIds to confirm complete multi-tenant isolation.

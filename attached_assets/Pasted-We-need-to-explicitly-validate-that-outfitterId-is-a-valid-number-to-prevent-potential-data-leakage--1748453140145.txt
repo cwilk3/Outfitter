@@ -1,0 +1,54 @@
+We need to explicitly validate that outfitterId is a valid number to prevent potential data leakage.
+
+Your task is to add a validation check in the public route handlers within server/routes/public.ts to ensure that the outfitterId extracted from req.params is a valid number. If it's not, return a 400 Bad Request or 404 Not Found response.
+
+This will affect the GET /api/public/:outfitterId/locations, GET /api/public/:outfitterId/experiences, and GET /api/public/:outfitterId/bookings routes.
+
+Specific Focus Areas for Modification:
+
+File: server/routes/public.ts
+Location: Inside each of the three public route handlers, immediately after outfitterId is extracted using parseInt(req.params.outfitterId as string).
+Add Validation: Insert an if (isNaN(outfitterId)) check.
+Proposed Code Changes (applying to all three routes: locations, experiences, bookings):
+
+Example for GET /api/public/:outfitterId/locations handler:
+
+Find this block (or similar, after outfitterId extraction):
+
+TypeScript
+
+router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
+  // Get all active locations for public display, filtered by outfitterId
+  const locations = await storage.listLocations(true, outfitterId);
+  res.json(locations);
+}));
+Replace it with (adding the isNaN check):
+
+TypeScript
+
+router.get('/:outfitterId/locations', asyncHandler(async (req: Request, res: Response) => {
+  const outfitterId = parseInt(req.params.outfitterId as string);
+
+  // --- ADDED VALIDATION ---
+  if (isNaN(outfitterId)) {
+    return res.status(400).json({ error: 'Invalid Outfitter ID format.' });
+  }
+  // --- END ADDED VALIDATION ---
+
+  // Get all active locations for public display, filtered by outfitterId
+  const locations = await storage.listLocations(true, outfitterId);
+  res.json(locations);
+}));
+Apply this identical validation pattern to the handlers for GET /api/public/:outfitterId/experiences and GET /api/public/:outfitterId/bookings within server/routes/public.ts.
+
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for server/routes/public.ts.
+
+Success Criteria for My Approval:
+
+An if (isNaN(outfitterId)) check is correctly added to all three public route handlers (locations, experiences, bookings) immediately after outfitterId is extracted and parsed.
+If isNaN(outfitterId) is true, the handler returns a 400 Bad Request response (or similar error like 404) with an appropriate error message.
+No other unrelated functional code lines are affected.
+The change directly resolves the potential data leakage by preventing the outfitterId filter from being bypassed due to malformed input.
+I will not approve this step until these criteria are met. Once approved and implemented, we will proceed with the frontend implementation, knowing the backend is fully robust. "
