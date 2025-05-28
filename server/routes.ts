@@ -136,6 +136,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     res.status(200).json({ success: true, message: 'Location deleted successfully' });
   });
+
+  // Add users endpoint for staff management
+  app.get('/api/users', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      // Import dependencies
+      const { requireAuth } = await import('./emailAuth');
+      const { addOutfitterContext } = await import('./outfitterContext');
+      const { storage } = await import('./storage');
+      
+      // Manual authentication check
+      const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+        requireAuth(req as any, res, (error?: any) => {
+          if (error) {
+            resolve({ error: error.message || 'Authentication failed' });
+          } else {
+            resolve({ user: (req as any).user });
+          }
+        });
+      });
+
+      if (authResult.error || !authResult.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Add outfitter context
+      await new Promise<void>((resolve) => {
+        addOutfitterContext(req as any, res, () => resolve());
+      });
+
+      const user = authResult.user;
+      const outfitterId = user.outfitterId;
+
+      if (!outfitterId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Get all users for this outfitter
+      const users = await storage.getUsersByOutfitterId(outfitterId);
+      
+      // Remove password hashes from response
+      const sanitizedUsers = users.map(user => {
+        const { passwordHash, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+
+      res.json(sanitizedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
   
   // Mount all API routes under /api prefix
   app.use('/api', apiRoutes);

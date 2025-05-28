@@ -23,6 +23,7 @@ export interface IStorage {
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   getUserWithRole(userId: string): Promise<User & {outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
+  getUsersByOutfitterId(outfitterId: number): Promise<User[]>;
   
   // Outfitter operations
   createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
@@ -214,6 +215,27 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(users).where(eq(users.role, role));
     }
     return db.select().from(users);
+  }
+
+  async getUsersByOutfitterId(outfitterId: number): Promise<User[]> {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+        profileImageUrl: users.profileImageUrl,
+        role: users.role,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+      .where(eq(userOutfitters.outfitterId, outfitterId));
+    
+    return result;
   }
 
   // Outfitter operations
