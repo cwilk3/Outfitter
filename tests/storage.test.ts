@@ -15,7 +15,7 @@ jest.mock('../server/db', () => ({
   }
 }));
 
-const mockDb = require('../server/db').db as jest.Mocked<any>;
+const mockDb = require('../server/db').db;
 
 describe('DatabaseStorage - Experience Guide Assignment Tests', () => {
   let storage: DatabaseStorage;
