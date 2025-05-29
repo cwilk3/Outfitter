@@ -47,11 +47,48 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
   const user = (req as any).user;
   const experienceData = {
     ...validatedData,
-    outfitterId: (req as any).user?.outfitterId
+    outfitterId: (req as any).user?.outfitterId,
+    guideId: validatedData.guideId, // Ensure this line is present or added
   };
 
   const experience = await storage.createExperience(experienceData);
   res.status(201).json(experience);
+}));
+
+router.put('/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID' });
+  }
+
+  if (!outfitterId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // Validate request body - .partial() allows for updating only some fields
+  const validatedData = insertExperienceSchema.partial().parse(req.body);
+
+  // TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE update
+  const existingExperience = await storage.getExperience(experienceId); // Assuming storage.getExperience fetches by ID
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    return res.status(404).json({ error: "Experience not found or not authorized" });
+  }
+  
+  console.log('✅ [TENANT-VERIFIED] Updating experience', { experienceId, outfitterId, updateData: validatedData });
+
+  // The 'storage.updateExperience' function will be created in the next step
+  const updatedExperience = await storage.updateExperience(experienceId, validatedData, outfitterId);
+
+  if (!updatedExperience) {
+    // This might occur if the update failed internally or experience disappeared
+    return res.status(404).json({ message: 'Experience not found or update failed' });
+  }
+  
+  console.log('🔄 [SUCCESS] Experience updated', { experienceId });
+  res.status(200).json(updatedExperience);
 }));
 
 // Delete experience (admin only)
