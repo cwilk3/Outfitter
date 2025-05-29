@@ -292,15 +292,6 @@ function PublicBooking() {
         return;
       }
       
-      // 🔍 DIAGNOSTIC LOG 1: Frontend calculation
-      console.log('🔍 [FRONTEND] Price calculation summary:', {
-        experiencePrice: selectedExperience.price,
-        guests: data.guests,
-        basePrice: summary.basePrice,
-        addonsTotal: summary.addonsTotal,
-        finalTotal: summary.total
-      });
-      
       const bookingData = {
         experienceId: selectedExperience.id,
         customerDetails: {
@@ -325,19 +316,7 @@ function PublicBooking() {
         }
       };
       
-      // 🔍 DIAGNOSTIC LOG 2: Data being sent to backend
-      console.log('🔍 [FRONTEND] Booking data being sent:', {
-        paymentTotalAmount: bookingData.payment.totalAmount,
-        bookingDataComplete: bookingData
-      });
-      
       const response = await apiRequest('POST', `/api/public/${outfitterId}/bookings`, bookingData);
-      
-      // 🔍 DIAGNOSTIC LOG 3: Backend response
-      console.log('🔍 [FRONTEND] Backend response received:', {
-        responseBookingTotalAmount: response.booking?.totalAmount,
-        fullResponse: response
-      });
       
       setBookingConfirmation(response);
       setBookingDialogOpen(false);

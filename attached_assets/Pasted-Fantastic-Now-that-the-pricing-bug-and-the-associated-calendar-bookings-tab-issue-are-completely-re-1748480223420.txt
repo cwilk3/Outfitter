@@ -1,0 +1,30 @@
+Fantastic! Now that the pricing bug and the associated calendar/bookings tab issue are completely resolved, we need to clean up the temporary diagnostic logging that helped us pinpoint the problem.
+
+Your task is to remove all the diagnostic logging related to the pricing bug from both the frontend and backend.
+
+Specific Instructions:
+
+1. File: client/src/pages/PublicBooking.tsx
+Remove these console.log statements from the onSubmit function:
+console.log('🔍 [FRONTEND] Price calculation summary:', ...);
+console.log('🔍 [FRONTEND] Booking data being sent:', ...);
+console.log('🔍 [FRONTEND] Backend response received:', ...);
+2. File: server/routes/public.ts
+Remove all console.log statements that were added specifically for debugging the pricing bug. This includes (but is not limited to):
+console.log('🔍 [BACKEND] Raw request body:', JSON.stringify(req.body, null, 2));
+console.log('🔍 [BACKEND] Payment extraction:', ...);
+console.log('🔍 [BACKEND] Price calculation breakdown:', ...);
+console.log('🔍 [BACKEND] About to save to database:', ...);
+console.log('🔍 [BACKEND] Database booking created:', ...);
+console.log('🔍 [BACKEND] Final response preparation:', ...);
+Any console.log that starts with [PUBLIC_BOOKING] if it was part of this temporary diagnostic set (e.g., console.log('[PUBLIC_BOOKING] Received booking request at ...');).
+Ensure that the console.log for [ROUTE DEBUG] Booking request received - route version 2 ENHANCED is also removed, as it was part of this specific debugging phase.
+Output Required for My Review:
+Please provide a comprehensive diff preview that shows the removal of these specific diagnostic logs from both client/src/pages/PublicBooking.tsx and server/routes/public.ts.
+
+Success Criteria for My Approval:
+
+All high-verbosity diagnostic logs related to the pricing bug are removed from both frontend and backend files.
+The functional logic of the booking flow (including the price calculation, routing, database interactions, and responses) remains completely intact and functional.
+No other unrelated code lines are affected.
+I will not approve further steps until these criteria are met. This cleanup ensures your code is production-ready

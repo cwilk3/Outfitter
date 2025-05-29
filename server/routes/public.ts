@@ -280,14 +280,6 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
   }
   
   try {
-    console.log("[ROUTE DEBUG] Booking request received - route version 2 ENHANCED");
-    console.log('\n🔵 ========== PUBLIC BOOKING REQUEST START ==========');
-    console.log(`[PUBLIC_BOOKING] Received booking request at /api/public/${outfitterId}/bookings`);
-    console.log('[PUBLIC_BOOKING] Full Request Body:', JSON.stringify(req.body, null, 2));
-
-    // 🔍 DIAGNOSTIC LOG 4: Request received
-    console.log('🔍 [BACKEND] Raw request body:', JSON.stringify(req.body, null, 2));
-  
   const { 
     experienceId, 
     customerDetails,
@@ -296,13 +288,6 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
     payment,
     selectedAddons = []
   } = req.body;
-
-  // 🔍 DIAGNOSTIC LOG 5: Extracted payment data
-  console.log('🔍 [BACKEND] Payment extraction:', {
-    paymentObject: payment,
-    paymentTotalAmount: payment?.totalAmount,
-    paymentTotalAmountType: typeof payment?.totalAmount
-  });
   
   console.log('\n📋 [DEBUG] Extracted Fields:');
   console.log(`   experienceId: ${experienceId}`);
@@ -375,17 +360,6 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
   const finalTotalAmount = (parsedTotalAmount && parsedTotalAmount > 0) 
     ? parsedTotalAmount 
     : calculatedFallbackTotal;
-
-  // 🔍 DIAGNOSTIC LOG 6: Price calculation process
-  console.log('🔍 [BACKEND] Price calculation breakdown:', {
-    experiencePrice: experience.price,
-    experiencePriceType: typeof experience.price,
-    finalGroupSize: finalGroupSize,
-    calculatedFallbackTotal: calculatedFallbackTotal,
-    parsedTotalAmount: parsedTotalAmount,
-    finalTotalAmountUsed: finalTotalAmount,
-    source: (parsedTotalAmount && parsedTotalAmount > 0) ? 'FRONTEND' : 'BACKEND_FALLBACK'
-  });
 
   console.log(`   Final Total Amount Used: ${finalTotalAmount}`);
   console.log(`   Total Source: ${(parsedTotalAmount && parsedTotalAmount > 0) ? 'PROVIDED' : 'CALCULATED'}`);
@@ -515,20 +489,7 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
   console.log(`     groupSize: ${bookingData.groupSize}`);
   console.log(`     outfitterId: ${bookingData.outfitterId}`);
   
-  // 🔍 DIAGNOSTIC LOG 7: Database save preparation
-  console.log('🔍 [BACKEND] About to save to database:', {
-    bookingDataTotalAmount: bookingData.totalAmount,
-    bookingDataTotalAmountType: typeof bookingData.totalAmount
-  });
-
   const booking = await storage.createBooking(bookingData);
-  
-  // 🔍 DIAGNOSTIC LOG 8: Database response
-  console.log('🔍 [BACKEND] Database booking created:', {
-    databaseBookingId: booking.id,
-    databaseTotalAmount: booking.totalAmount,
-    databaseTotalAmountType: typeof booking.totalAmount
-  });
   
   console.log('\n✅ [SUCCESS] Booking Created in Database:');
   console.log(`   Database Booking ID: ${booking.id}`);
