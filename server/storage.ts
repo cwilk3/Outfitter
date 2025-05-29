@@ -58,7 +58,7 @@ export interface IStorage {
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
   createExperience(experience: InsertExperience): Promise<Experience>;
-  updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;
+  updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null>;
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]>;
   
@@ -390,48 +390,86 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExperience(experienceData: InsertExperience): Promise<Experience> {
-    const [experience] = await db
+    const [newExperience] = await db
       .insert(experiences)
       .values(experienceData)
       .returning();
-    return experience;
+    
+    if (newExperience && experienceData.guideId) {
+      await db.insert(experienceGuides).values({
+        experienceId: newExperience.id,
+        guideId: experienceData.guideId,
+        // isPrimary: true, // Optional: set to true if this directly assigned guide is considered primary
+      });
+    }
+    return newExperience;
   }
 
-  async updateExperience(id: number, experienceData: Partial<InsertExperience>): Promise<Experience | undefined> {
-    // First, get the current experience data to ensure we don't lose the locationId
-    const currentExperience = await this.getExperience(id);
-    if (!currentExperience) {
-      console.log(`[STORAGE] ERROR: Experience with ID ${id} not found in updateExperience`);
-      return undefined;
+  async updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null> {
+    // First, verify the experience exists and belongs to the outfitter.
+    // This also fetches the current guideId if we need to compare.
+    const existingExperienceCheck = await db.query.experiences.findFirst({
+      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+      columns: { id: true, outfitterId: true, guideId: true } // Ensure guideId is in your experiences table schema
+    });
+
+    if (!existingExperienceCheck) {
+      console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
+      return null;
+    }
+
+    const { guideId: newGuideId, ...otherExperienceData } = updateData;
+    let currentExperienceDetails: Experience | undefined = undefined;
+
+    // Update main experience details if other data is provided
+    if (Object.keys(otherExperienceData).length > 0) {
+      const results = await db.update(experiences)
+        .set({ ...otherExperienceData, updatedAt: new Date() }) // Assuming an 'updatedAt' field
+        .where(and(eq(experiences.id, experienceId), eq(experiences.outfitterId, outfitterId)))
+        .returning();
+      currentExperienceDetails = results[0];
+      if (!currentExperienceDetails) {
+          console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
+          return null; // Update failed
+      }
+    }
+
+    // Handle guideId update if 'guideId' property was explicitly part of the updateData
+    if (updateData.hasOwnProperty('guideId')) {
+      // Step 1: Remove existing guide assignments for this experience from the junction table.
+      await db.delete(experienceGuides)
+        .where(eq(experienceGuides.experienceId, experienceId));
+
+      if (newGuideId && typeof newGuideId === 'string' && newGuideId.trim() !== '') {
+        // Step 2a: If a new, valid guideId is provided, add it to the junction table.
+        await db.insert(experienceGuides).values({
+          experienceId: experienceId,
+          guideId: newGuideId,
+          // isPrimary: true, // Optional
+        });
+        // Step 2b: Update the guideId directly on the experiences table.
+        const guideUpdateResult = await db.update(experiences)
+          .set({ guideId: newGuideId, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId))
+          .returning();
+        currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+      } else {
+        // Step 2c: If newGuideId is null or empty, effectively unassigning the guide.
+        // Ensure guideId on the experiences table is also set to null.
+        const guideUpdateResult = await db.update(experiences)
+          .set({ guideId: null, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId))
+          .returning();
+        currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+      }
     }
     
-    console.log(`[STORAGE] Current experience before update:`, JSON.stringify(currentExperience, null, 2));
-    console.log(`[STORAGE] Incoming update data:`, JSON.stringify(experienceData, null, 2));
-    
-    // Make sure we preserve the locationId if it's not explicitly provided
-    const updateData = {
-      ...experienceData,
-      // Critical: Keep the original locationId if not provided in update
-      locationId: experienceData.locationId !== undefined ? experienceData.locationId : currentExperience.locationId,
-      updatedAt: new Date()
-    };
-    
-    console.log(`[STORAGE] Final update data with preserved locationId:`, JSON.stringify(updateData, null, 2));
-    console.log(`[STORAGE] LocationId being used for update: ${updateData.locationId} (original: ${currentExperience.locationId})`);
-    
-    const [experience] = await db
-      .update(experiences)
-      .set(updateData)
-      .where(eq(experiences.id, id))
-      .returning();
-      
-    if (!experience) {
-      console.log(`[STORAGE] ERROR: Failed to update experience with ID ${id}`);
-      return undefined;
-    }
-    
-    console.log(`[STORAGE] Experience after update:`, JSON.stringify(experience, null, 2));
-    return experience;
+    // Fetch and return the final state of the experience
+    const finalUpdatedExperience = await db.query.experiences.findFirst({
+      where: eq(experiences.id, experienceId),
+    });
+
+    return finalUpdatedExperience || null;
   }
   
   // Helper method to get experience locations by experience ID
