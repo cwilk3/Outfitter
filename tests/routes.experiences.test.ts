@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
-import express from 'express';
+import { app } from '../server/app';
 import { storage } from '../server/storage';
+import { db } from '../server/db';
 
 // Test data
 const testOutfitterId = 1;
@@ -29,68 +30,9 @@ const authHeaders = (token: string = mockAuthToken) => ({
   'Content-Type': 'application/json'
 });
 
-// Create test Express app
-const createTestApp = () => {
-  const app = express();
-  app.use(express.json());
-  
-  // Mock authentication middleware
-  app.use('/api/experiences', (req: any, res, next) => {
-    if (!req.headers.authorization) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    
-    // Mock authenticated user
-    req.user = mockAuthenticatedUser;
-    req.outfitterId = mockAuthenticatedUser.outfitterId;
-    next();
-  });
-
-  // Simplified experiences routes for testing
-  app.post('/api/experiences', async (req: any, res) => {
-    try {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
-      
-      const experienceData = {
-        ...req.body,
-        outfitterId: req.outfitterId
-      };
-      
-      const experience = await storage.createExperience(experienceData);
-      res.status(201).json(experience);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.put('/api/experiences/:id', async (req: any, res) => {
-    try {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden' });
-      }
-      
-      const experienceId = parseInt(req.params.id);
-      const experience = await storage.updateExperience(experienceId, req.body, req.outfitterId);
-      
-      if (!experience) {
-        return res.status(404).json({ message: 'Experience not found' });
-      }
-      
-      res.json(experience);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  return app;
-};
-
 describe('Experience Routes - Guide Assignment Integration Tests', () => {
   let testLocationId: number;
   let testExperienceId: number;
-  let app: express.Application;
 
   beforeAll(async () => {
     // Setup test location for experiences
@@ -106,8 +48,6 @@ describe('Experience Routes - Guide Assignment Integration Tests', () => {
   beforeEach(() => {
     // Reset authenticated user to admin for each test
     mockAuthenticatedUser = testAdminUser;
-    // Create fresh app instance for each test
-    app = createTestApp();
   });
 
   afterEach(async () => {
