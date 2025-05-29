@@ -517,6 +517,7 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
   }
   
   // Return success with booking details
+  // 🔍 DIAGNOSTIC LOG 9: Final response preparation
   const responseObject = { 
     success: true, 
     message: 'Booking created successfully',
@@ -526,10 +527,17 @@ router.post('/:outfitterId/bookings', asyncHandler(async (req: Request, res: Res
     }
   };
 
+  console.log('🔍 [BACKEND] Response being sent:', {
+    responseBookingTotalAmount: responseObject.booking.totalAmount,
+    responseBookingTotalAmountType: typeof responseObject.booking.totalAmount,
+    fullResponseBooking: responseObject.booking
+  });
+
   res.status(201).json(responseObject);
   
   // Simulate sending email notification
   console.log(`Email notification would be sent to ${customer.email} for booking ${booking.bookingNumber}`);
+  console.log('🔵 ========== PUBLIC BOOKING REQUEST END ==========\n');
   
   } catch (err) {
     console.error('🔥 Uncaught route error:', err);
