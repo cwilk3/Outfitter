@@ -1,0 +1,324 @@
+Hello Replit,
+
+I need your help to fix a bug in my application and add some related tests.
+
+**1. Summary of the Issue:**
+
+When an admin creates or edits an experience and assigns a guide to it, the guide assignment is not being saved correctly to the experience.
+
+**2. Summary of the Discovery:**
+
+The investigation revealed that the backend routes for creating (`POST /api/experiences`) and updating (`PUT /api/experiences/:id`) experiences were not designed to handle a `guideId` field directly within the experience data. The database schema for experiences also lacked a direct field for storing an assigned guide. While there was a separate system for guide assignments (`experience_guides` table and associated routes), it wasn't integrated into the primary experience creation/editing workflow.
+
+**3. Instructions for Code Modifications:**
+
+Please apply the following changes to the specified files:
+
+**A. Modify `shared/schema.ts`:**
+
+*   **Goal:** Add an optional `guideId` field to the `experiences` table schema and update the Zod schema `insertExperienceSchema` to include this new field.
+
+*   **Changes:**
+    1.  In the `experiences` table definition (within `pgTable("experiences", { ... })`), add the following line:
+        ```typescript
+guideId: varchar("guide_id").references(() => users.id), // For storing the assigned guide's ID
+        ```
+    2.  In the `insertExperienceSchema` Zod schema definition (likely derived using `createInsertSchema(experiences).extend({ ... })` or similar), ensure the `guideId` field is included and optional:
+        ```typescript
+export const insertExperienceSchema = baseExperienceSchema.extend({
+          // ... other fields (duration, capacity, price, locationId)
+          guideId: z.string().optional(), // Add this line
+        });
+        ```
+Please confirm if you received this part, and I'll send the next section for server/routes/experiences.ts.
+
+Part 2: server/routes/experiences.ts changes.
+
+**B. Modify `server/routes/experiences.ts`:**
+
+*   **Goal:** Update the experience creation route to handle `guideId`, and add a new route for updating experiences that also handles `guideId`.
+
+*   **Changes:**
+    1.  **In the `POST /` route (create experience):**
+        *   Locate the part where `experienceData` is constructed before calling `storage.createExperience`.
+        *   Modify it to include `guideId` from the validated request body:
+            ```typescript
+            // Inside router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => { ... }))
+            // After: const validatedData = insertExperienceSchema.parse(req.body);
+            const experienceData = {
+              ...validatedData,
+              outfitterId: (req as any).user?.outfitterId,
+              guideId: validatedData.guideId, // Ensure this line is present or added
+            };
+            // ... rest of the route ...
+            ```
+
+    2.  **Add a new `PUT /:id` route (update experience):**
+        *   This route should be placed logically with other experience routes (e.g., after the `POST /` route).
+        *   Implement the route as follows:
+            ```typescript
+            router.put('/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+              const experienceId = parseInt(req.params.id);
+              const user = (req as any).user;
+              const outfitterId = user?.outfitterId;
+
+              if (isNaN(experienceId)) {
+                return res.status(400).json({ message: 'Invalid experience ID' });
+              }
+
+              if (!outfitterId) {
+                return res.status(401).json({ error: "Authentication required" });
+              }
+
+              // Validate request body - .partial() allows for updating only some fields
+              const validatedData = insertExperienceSchema.partial().parse(req.body);
+
+              // TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE update
+              const existingExperience = await storage.getExperience(experienceId); // Assuming storage.getExperience fetches by ID
+              if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+                return res.status(404).json({ error: "Experience not found or not authorized" });
+              }
+              
+              console.log('✅ [TENANT-VERIFIED] Updating experience', { experienceId, outfitterId, updateData: validatedData });
+
+              // The 'storage.updateExperience' function will be created in the next step
+              const updatedExperience = await storage.updateExperience(experienceId, validatedData, outfitterId);
+
+              if (!updatedExperience) {
+                // This might occur if the update failed internally or experience disappeared
+                return res.status(404).json({ message: 'Experience not found or update failed' });
+              }
+              
+              console.log('🔄 [SUCCESS] Experience updated', { experienceId });
+              res.status(200).json(updatedExperience);
+            }));
+            ```
+        *   Ensure `insertExperienceSchema` (if not already imported) and `adminOnly` are available in this file.
+Let me know if this section is clear, and I'll proceed with server/storage.ts changes.
+
+got it
+
+Part 3: server/storage.ts changes.
+
+**C. Modify `server/storage.ts` (or the file containing your storage/database logic):**
+
+*   **Goal:** Update the `createExperience` function to handle the new `guideId` field by creating an entry in `experience_guides`. Create a new `updateExperience` function to modify experience details and manage its guide assignment in both the `experiences` table and the `experience_guides` junction table.
+
+*   **Changes:**
+
+    1.  **Update the `createExperience` function:**
+        *   Locate your existing `createExperience` function. It likely takes `experienceData` as an argument.
+        *   After the experience is inserted into the `experiences` table and you have the `newExperience` object (with its ID):
+            ```typescript
+            // Inside createExperience function:
+            // const newExperience = ... result of db.insert(experiences)...
+            
+            if (newExperience && experienceData.guideId) {
+              await db.insert(experienceGuides).values({
+                experienceId: newExperience.id,
+                guideId: experienceData.guideId,
+                // isPrimary: true, // Optional: set to true if this directly assigned guide is considered primary
+              });
+            }
+            // return newExperience;
+            ```
+        *   Ensure `db` (your Drizzle instance) and `experienceGuides` (the Drizzle schema object for the table) are accessible.
+
+    2.  **Implement or replace the `updateExperience` function:**
+        *   If you have an existing `updateExperience`, replace it. If not, add this new function.
+        *   This function needs to handle partial updates to experience data and specifically manage the `guideId` field and its corresponding entry in the `experience_guides` table.
+            ```typescript
+            async updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null> {
+              // First, verify the experience exists and belongs to the outfitter.
+              // This also fetches the current guideId if we need to compare.
+              const existingExperienceCheck = await db.query.experiences.findFirst({
+                where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+                columns: { id: true, outfitterId: true, guideId: true } // Ensure guideId is in your experiences table schema
+              });
+
+              if (!existingExperienceCheck) {
+                console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
+                return null;
+              }
+
+              const { guideId: newGuideId, ...otherExperienceData } = updateData;
+              let currentExperienceDetails: Experience | undefined = undefined;
+
+              // Update main experience details if other data is provided
+              if (Object.keys(otherExperienceData).length > 0) {
+                const results = await db.update(experiences)
+                  .set({ ...otherExperienceData, updatedAt: new Date() }) // Assuming an 'updatedAt' field
+                  .where(and(eq(experiences.id, experienceId), eq(experiences.outfitterId, outfitterId)))
+                  .returning();
+                currentExperienceDetails = results[0];
+                if (!currentExperienceDetails) {
+                    console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
+                    return null; // Update failed
+                }
+              }
+
+              // Handle guideId update if 'guideId' property was explicitly part of the updateData
+              if (updateData.hasOwnProperty('guideId')) {
+                // Step 1: Remove existing guide assignments for this experience from the junction table.
+                await db.delete(experienceGuides)
+                  .where(eq(experienceGuides.experienceId, experienceId));
+
+                if (newGuideId && typeof newGuideId === 'string' && newGuideId.trim() !== '') {
+                  // Step 2a: If a new, valid guideId is provided, add it to the junction table.
+                  await db.insert(experienceGuides).values({
+                    experienceId: experienceId,
+                    guideId: newGuideId,
+                    // isPrimary: true, // Optional
+                  });
+                  // Step 2b: Update the guideId directly on the experiences table.
+                  const guideUpdateResult = await db.update(experiences)
+                    .set({ guideId: newGuideId, updatedAt: new Date() })
+                    .where(eq(experiences.id, experienceId))
+                    .returning();
+                  currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+                } else {
+                  // Step 2c: If newGuideId is null or empty, effectively unassigning the guide.
+                  // Ensure guideId on the experiences table is also set to null.
+                  const guideUpdateResult = await db.update(experiences)
+                    .set({ guideId: null, updatedAt: new Date() })
+                    .where(eq(experiences.id, experienceId))
+                    .returning();
+                  currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+                }
+              }
+              
+              // Fetch and return the final state of the experience
+              const finalUpdatedExperience = await db.query.experiences.findFirst({
+                where: eq(experiences.id, experienceId),
+              });
+
+              return finalUpdatedExperience || null;
+            }
+            ```
+        *   **Important considerations for this function:**
+            *   Make sure `experiences`, `experienceGuides`, `eq`, `and`, `db`, `Experience`, and `InsertExperience` types/objects are correctly imported and available.
+            *   This implementation assumes `guideId` is now a direct column on the `experiences` table.
+            *   Using a database transaction (`await db.transaction(async (tx) => { ... })`) around the multiple database operations within `updateExperience` is highly recommended for atomicity. If your Drizzle `db` object supports this, you should use `tx` for the `delete`, `insert`, and `update` calls inside the transaction.
+            *   Ensure this new/updated function is correctly exported or made available via your storage service object (e.g., added to `export const storage = { ... }`).
+            *   Update the `IStorage` interface if you have one:
+                From: `updateExperience(id: number, experience: Partial<InsertExperience>): Promise<Experience | undefined>;`
+                To: `updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null>;`
+Once you confirm, I'll send the final part about tests.
+
+Part 4: Instructions for Adding Tests.
+
+**4. Instructions for Adding Tests:**
+
+Please add the following tests to ensure the changes work as expected and to prevent regressions. (These are the detailed descriptions I provided earlier).
+
+**I. Unit Tests for `server/storage.ts`**
+
+*   **Context:** These tests will likely require mocking the database interactions (e.g., using a library like `jest-mock-extended` for Drizzle ORM, or an in-memory SQLite database if feasible). Assume `db` is the Drizzle instance.
+
+*   **`createExperience` function:**
+    *   **Test Case 1.1:** When `guideId` is provided.
+        *   **Setup:** Mock `db.insert(experiences).values(...).returning(...)` to return a sample experience. Mock `db.insert(experienceGuides).values(...).returning(...)` to succeed.
+        *   **Action:** Call `storage.createExperience` with data including a `guideId`.
+        *   **Assertions:**
+            *   Verify `db.insert(experiences)` was called with the correct experience data (including `guideId` on the experience object itself).
+            *   Verify `db.insert(experienceGuides)` was called with the correct `experienceId` and `guideId`.
+            *   Verify the function returns the created experience.
+    *   **Test Case 1.2:** When `guideId` is NOT provided.
+        *   **Setup:** Mock `db.insert(experiences).values(...).returning(...)` to return a sample experience.
+        *   **Action:** Call `storage.createExperience` with data excluding `guideId`.
+        *   **Assertions:**
+            *   Verify `db.insert(experiences)` was called.
+            *   Verify `db.insert(experienceGuides)` was NOT called.
+            *   Verify the function returns the created experience.
+
+*   **`updateExperience` function:**
+    *   **Setup for all `updateExperience` tests:**
+        *   Mock `db.query.experiences.findFirst` to simulate an existing experience for a given `experienceId` and `outfitterId`.
+        *   Mock `db.update(experiences).set(...).where(...).returning(...)` to return the updated experience.
+        *   Mock `db.delete(experienceGuides).where(...)` to succeed.
+        *   Mock `db.insert(experienceGuides).values(...)` to succeed.
+
+    *   **Test Case 2.1:** Update experience details only (no change to `guideId`).
+        *   **Action:** Call `storage.updateExperience` with `updateData` not containing `guideId` property.
+        *   **Assertions:**
+            *   Verify `db.update(experiences)` was called with the new details.
+            *   Verify `db.delete(experienceGuides)` was NOT called.
+            *   Verify `db.insert(experienceGuides)` was NOT called.
+            *   Verify the `guideId` column in `experiences` table was not part of the `set` clause for this specific update if it wasn't changed.
+    *   **Test Case 2.2:** Assign a `guideId` to an experience that previously had none.
+        *   **Setup:** `existingExperience` mock should have `guideId: null`.
+        *   **Action:** Call `storage.updateExperience` with `updateData` including a new `guideId`.
+        *   **Assertions:**
+            *   Verify `db.delete(experienceGuides)` was called (to clear any old, though none expected here).
+            *   Verify `db.insert(experienceGuides)` was called with the new `guideId`.
+            *   Verify `db.update(experiences)` was called to set the new `guideId` on the `experiences` table itself.
+    *   **Test Case 2.3:** Change `guideId` on an experience.
+        *   **Setup:** `existingExperience` mock should have an `oldGuideId`.
+        *   **Action:** Call `storage.updateExperience` with `updateData` including a `newGuideId`.
+        *   **Assertions:**
+            *   Verify `db.delete(experienceGuides)` was called.
+            *   Verify `db.insert(experienceGuides)` was called with `newGuideId`.
+            *   Verify `db.update(experiences)` was called to set the `newGuideId` on the `experiences` table.
+    *   **Test Case 2.4:** Remove/unassign `guideId` (set to null).
+        *   **Setup:** `existingExperience` mock should have an existing `guideId`.
+        *   **Action:** Call `storage.updateExperience` with `updateData.guideId = null`.
+        *   **Assertions:**
+            *   Verify `db.delete(experienceGuides)` was called.
+            *   Verify `db.insert(experienceGuides)` was NOT called.
+            *   Verify `db.update(experiences)` was called to set `guideId: null` on the `experiences` table.
+    *   **Test Case 2.5:** Attempt to update an experience belonging to a different `outfitterId`.
+        *   **Setup:** Mock `db.query.experiences.findFirst` to return `null` when `outfitterId` doesn't match.
+        *   **Action:** Call `storage.updateExperience` with an `outfitterId` that doesn't own the experience.
+        *   **Assertions:** Verify the function returns `null` or throws an appropriate error.
+    *   **Test Case 2.6:** Attempt to update a non-existent experience.
+        *   **Setup:** Mock `db.query.experiences.findFirst` to return `null`.
+        *   **Action:** Call `storage.updateExperience` with a non-existent `experienceId`.
+        *   **Assertions:** Verify the function returns `null`.
+
+**II. Integration Tests for `server/routes/experiences.ts`**
+
+*   **Context:** These tests will use a testing framework like Supertest to make HTTP requests to your Express app. They will require a running test database or a well-mocked storage layer.
+
+*   **`POST /api/experiences` route:**
+    *   **Test Case 3.1:** Create experience with `guideId`.
+        *   **Request:** `POST /api/experiences` with a body including all required fields and a `guideId`. Include admin auth token.
+        *   **Assertions:**
+            *   Response status 201.
+            *   Response body contains the created experience with the `guideId` correctly set.
+            *   Verify in the database (or via a separate GET request) that the `experiences.guideId` is set and an entry exists in `experience_guides`.
+    *   **Test Case 3.2:** Create experience without `guideId`.
+        *   **Request:** `POST /api/experiences` with a body including required fields but no `guideId`. Admin auth token.
+        *   **Assertions:**
+            *   Response status 201.
+            *   Response body has `guideId: null` (or undefined).
+            *   Verify in DB that `experiences.guideId` is null and no entry in `experience_guides`.
+
+*   **`PUT /api/experiences/:id` route:**
+    *   **Setup for PUT tests:** First, create an experience (e.g., via a direct storage call or a POST request) to get a valid `experienceId`.
+    *   **Test Case 4.1:** Update experience to assign a `guideId`.
+        *   **Request:** `PUT /api/experiences/:id` with `body: { guideId: "someGuideId" }`. Admin auth token.
+        *   **Assertions:** Status 200. Response body shows updated experience with `guideId`. DB is updated.
+    *   **Test Case 4.2:** Update experience to change `guideId`.
+        *   **Request:** `PUT /api/experiences/:id` with `body: { guideId: "newGuideId" }`. Admin auth token.
+        *   **Assertions:** Status 200. DB reflects the change.
+    *   **Test Case 4.3:** Update experience to remove `guideId`.
+        *   **Request:** `PUT /api/experiences/:id` with `body: { guideId: null }`. Admin auth token.
+        *   **Assertions:** Status 200. `guideId` is null in response and DB. `experience_guides` entry removed.
+    *   **Test Case 4.4:** Update other fields, `guideId` remains unchanged.
+        *   **Setup:** Experience already has a guide.
+        *   **Request:** `PUT /api/experiences/:id` with `body: { name: "New Name" }` (no `guideId` property in body). Admin auth token.
+        *   **Assertions:** Status 200. Name is updated, `guideId` and `experience_guides` entry remain unchanged.
+    *   **Test Case 4.5:** Update non-existent experience.
+        *   **Request:** `PUT /api/experiences/99999` (invalid ID). Admin auth token.
+        *   **Assertions:** Status 404.
+    *   **Test Case 4.6:** Update without authentication.
+        *   **Request:** `PUT /api/experiences/:id` without auth token.
+        *   **Assertions:** Status 401.
+    *   **Test Case 4.7:** Update by non-admin user (if applicable, depends on `adminOnly` strictness).
+        *   **Request:** `PUT /api/experiences/:id` with a non-admin user token.
+        *   **Assertions:** Status 403.
+    *   **Test Case 4.8:** Admin attempts to update experience belonging to another outfitter (if your tenancy rules prevent this even for admins of other outfitters).
+        *   **Setup:** Create an experience for outfitter A. Admin for outfitter B attempts update.
+        *   **Assertions:** Status 404 (as it's not found for *their* outfitterId).
+
+This should provide a comprehensive set of instructions. Let me know if you need any clarification on any part!

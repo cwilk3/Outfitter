@@ -122,6 +122,7 @@ export const experiences = pgTable("experiences", {
   rules: jsonb("rules").default('[]'), // List of rules like required licenses, etc.
   amenities: jsonb("amenities").default('[]'), // List of available amenities (bird dogs, guided, etc)
   tripIncludes: jsonb("trip_includes").default('[]'), // List of what's included in the trip (lodging, meals, etc)
+  guideId: varchar("guide_id").references(() => users.id), // For storing the assigned guide's ID
   outfitterId: integer("outfitter_id").references(() => outfitters.id), // nullable for migration
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -428,7 +429,8 @@ export const insertExperienceSchema = baseExperienceSchema.extend({
   locationId: z.preprocess(
     (val) => (typeof val === 'string' ? parseInt(val, 10) : val),
     z.number().min(1)
-  )
+  ),
+  guideId: z.string().optional(), // Add this line
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({ 
