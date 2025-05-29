@@ -1,0 +1,49 @@
+Thank you for the clear diagnosis of the DialogContent accessibility error. The fix is straightforward.
+
+Your task is to add DialogHeader, DialogTitle, and DialogDescription to the main booking dialog in client/src/pages/PublicBooking.tsx to resolve the accessibility warnings.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/PublicBooking.tsx
+Location: Lines 1290-1291 (approximate), within the DialogContent component of the main booking dialog.
+Proposed Code Changes:
+
+Find this block (main booking dialog's DialogContent):
+
+TypeScript
+
+<Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+  <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+    {/* Content starts directly without proper headers */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ... existing content ... */}
+    </div>
+  </DialogContent>
+</Dialog>
+Replace it with:
+
+TypeScript
+
+<Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+  <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+    <DialogHeader> {/* <--- ADDED */}
+      <DialogTitle>Complete Your Booking</DialogTitle> {/* <--- ADDED */}
+      <DialogDescription> {/* <--- ADDED */}
+        Fill out your details to book this experience {/* <--- ADDED */}
+      </DialogDescription> {/* <--- ADDED */}
+    </DialogHeader> {/* <--- ADDED */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ... existing content ... */}
+    </div>
+  </DialogContent>
+</Dialog>
+Output Required for My Review:
+Once you have implemented this fix, please provide a comprehensive diff preview for client/src/pages/PublicBooking.tsx.
+
+Success Criteria for My Approval:
+
+DialogHeader, DialogTitle, and DialogDescription components are correctly added within the main booking dialog's DialogContent.
+The DialogTitle has a clear, descriptive title (e.g., "Complete Your Booking").
+No other unrelated code lines are affected.
+The change directly resolves the Radix UI accessibility warnings.
+I will not approve this step until these criteria are met. Once approved and implemented, we will confirm the warning is gone and then move to the next item on our MVP checklist.

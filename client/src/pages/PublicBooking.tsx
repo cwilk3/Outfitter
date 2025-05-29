@@ -597,6 +597,12 @@ function PublicBooking() {
       {/* Experience Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
         <DialogContent className="max-w-5xl p-0 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Complete Your Booking</DialogTitle>
+            <DialogDescription>
+              Fill out your details to book this experience
+            </DialogDescription>
+          </DialogHeader>
           {selectedExperience && (
             <>
               {/* Header Image */}
