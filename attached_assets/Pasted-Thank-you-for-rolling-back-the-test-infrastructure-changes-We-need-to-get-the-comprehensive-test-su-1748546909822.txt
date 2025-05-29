@@ -1,0 +1,184 @@
+Thank you for rolling back the test infrastructure changes. We need to get the comprehensive test suite for guide assignment fully runnable using a more controlled and isolated mocking strategy.
+
+Your primary task is to implement the unit and integration tests for the guide assignment feature, focusing on resolving import/typing issues and setting up mocks as defined below, without requiring a live PostgreSQL test database for basic unit tests.
+
+1. Unit Tests for server/storage.ts (Database Mocking)
+Goal: Test the createExperience and updateExperience methods in server/storage.ts in isolation, by mocking the database (db) interactions.
+
+File to Modify: tests/storage.test.ts
+
+Specific Instructions:
+
+Import Strategy: Ensure correct relative import paths.
+Database Mocking:
+Use jest.mock('../server/db', ...) to mock the entire db object (your Drizzle instance).
+Mock the specific Drizzle methods used in createExperience and updateExperience (e.g., db.insert, db.update, db.delete, db.query.experiences.findFirst).
+Use jest.fn() for each mocked method and control their return values (e.g., .mockResolvedValueOnce(...)).
+Test Setup:
+beforeEach should clear all mocks (jest.clearAllMocks()).
+Re-initialize storage = new DatabaseStorage() in beforeEach.
+Proposed Code Structure Example (for tests/storage.test.ts):
+
+TypeScript
+
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { DatabaseStorage } from '../server/storage';
+// Import schema types if needed for typing mocks, e.g., import { experiences, experienceGuides, users } from '@shared/schema';
+
+// --- DATABASE MOCKING ---
+jest.mock('../server/db', () => ({
+  db: {
+    insert: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    query: {
+      experiences: {
+        findFirst: jest.fn()
+      },
+      users: { // Add if storage.getUsersByOutfitterId uses it
+        findFirst: jest.fn()
+      }
+    }
+  }
+}));
+
+// Mock any other dependencies used in storage (e.g., hashPassword if called internally, or ensure it's passed in)
+// const mockHashPassword = jest.fn();
+
+const mockDb = require('../server/db').db as jest.Mocked<typeof import('../server/db').db>; // Correctly type the mocked db
+
+describe('DatabaseStorage - Experience Guide Assignment Tests', () => {
+  let storage: DatabaseStorage;
+
+  beforeEach(() => {
+    // Initialize storage with the mocked db if it takes db as a dependency, otherwise it uses the mocked import directly
+    storage = new DatabaseStorage(); // Assuming DatabaseStorage uses the imported 'db' directly
+    jest.clearAllMocks(); // Clear mocks before each test
+  });
+
+  // --- Implement specific test cases for createExperience and updateExperience (from previous plan) ---
+  // Example for createExperience (with guideId)
+  it('should create an experience and link a guide if guideId is provided', async () => {
+    const mockNewExperience = { id: 1, name: 'Test Exp', guideId: 'testGuide123' };
+    mockDb.insert.mockImplementation((table) => {
+      if (table.__get ");
+      if (table.__get "dName === 'experiences') {
+        return { values: jest.fn().mockReturnThis(), returning: jest.fn().mockResolvedValueOnce([mockNewExperience]) };
+      }
+      if (table.__get "dName === 'experience_guides') {
+        return { values: jest.fn().mockReturnThis(), returning: jest.fn().mockResolvedValueOnce([{ experienceId: 1, guideId: 'testGuide123' }]) };
+      }
+      return { values: jest.fn().mockReturnThis(), returning: jest.fn().mockResolvedValueOnce([]) };
+    });
+
+    const experienceData = { /* ... */ guideId: 'testGuide123' };
+    const result = await storage.createExperience(experienceData);
+
+    expect(mockDb.insert).toHaveBeenCalledWith(expect.any(Object), { /* ... */ guideId: 'testGuide123' });
+    expect(mockDb.insert).toHaveBeenCalledWith(expect.any(Object), { experienceId: mockNewExperience.id, guideId: 'testGuide123' });
+    expect(result).toEqual(mockNewExperience);
+  });
+  // ... continue with all other createExperience and updateExperience test cases
+});
+2. Integration Tests for server/routes/experiences.ts (Supertest & Middleware Mocking)
+Goal: Test the Express routes (POST /api/experiences, PUT /api/experiences/:id) by making HTTP requests, by mocking authentication and outfitter context middleware, and mocking the storage layer.
+
+File to Modify: tests/routes.experiences.test.ts
+
+Specific Instructions:
+
+Import Strategy: Ensure correct relative import paths.
+Supertest Setup: Import supertest and the main Express app instance.
+Middleware Mocking:
+Crucially, mock requireAuth and addOutfitterContext middleware. These should directly set req.user and req.outfitterId for test purposes, bypassing actual JWT verification.
+This can often be done by defining mock middleware functions in a test setup file or directly in the test file, and then replacing the real imports for the test environment.
+Storage Layer Mocking: Mock the storage object to control what the routes' handlers receive from the database. This keeps tests isolated from the database.
+Authentication Mocking: Set up mockAuthenticatedUser and testAdminUser variables that can be modified beforeEach test to simulate different authenticated users.
+Proposed Code Structure Example (for tests/routes.experiences.test.ts):
+
+TypeScript
+
+import request from 'supertest';
+import express from 'express'; // Import express for mocking app structure if needed
+// Import your main Express app instance, e.g., import { app } from '../server/index'; // Adjust path as needed
+// Assuming your real app is exported from server/index.ts
+
+// Mocks for authentication middleware (if directly imported in routes file)
+// Example: Assuming your routes file imports requireAuth and addOutfitterContext
+jest.mock('../server/middleware/auth', () => ({
+  requireAuth: jest.fn((req: any, res: any, next: any) => {
+    req.user = mockAuthenticatedUser; // Set mock user
+    next();
+  })
+}));
+
+jest.mock('../server/middleware/outfitter', () => ({
+  addOutfitterContext: jest.fn((req: any, res: any, next: any) => {
+    req.outfitterId = mockAuthenticatedUser.outfitterId; // Set mock outfitterId
+    next();
+  })
+}));
+
+// Mock the storage layer
+jest.mock('../server/storage', () => ({
+  storage: {
+    createExperience: jest.fn(),
+    updateExperience: jest.fn(),
+    getExperience: jest.fn(),
+    // ... mock other storage methods used by routes
+  }
+}));
+
+// You might need to import the real app or setup a test-specific app instance.
+// If your main app is in server/index.ts and exports 'app', then:
+import { app } from '../server/index'; // Ensure app is exported for testing
+
+// Define mock users
+let mockAuthenticatedUser: { id: string; outfitterId: number; role: string; };
+const testAdminUser = { id: 'admin123', outfitterId: 1, role: 'admin' };
+const testGuideUser = { id: 'guide456', outfitterId: 1, role: 'guide' };
+const testOtherOutfitterAdmin = { id: 'adminOther', outfitterId: 2, role: 'admin' };
+
+
+describe('Experience Routes - Guide Assignment Integration Tests', () => {
+  // Mock the storage instance (if needed for typing, otherwise directly use mock above)
+  const mockStorage = require('../server/storage').storage as jest.Mocked<typeof import('../server/storage').storage>;
+
+  beforeEach(() => {
+    jest.clearAllMocks(); // Clear mocks before each test
+    // Reset authenticated user to admin for each test by default
+    mockAuthenticatedUser = { ...testAdminUser }; // Deep copy
+  });
+
+  // --- Implement specific test cases for POST and PUT routes (from previous plan) ---
+  // Example for POST route (create with guideId)
+  it('POST /api/experiences should create an experience with a guideId', async () => {
+    const experienceData = { /* ... */ guideId: testGuideUser.id };
+    mockStorage.createExperience.mockResolvedValueOnce({ id: 1, /* ... */ guideId: testGuideUser.id });
+
+    const response = await request(app) // Use supertest with your express app
+      .post('/api/experiences')
+      .set('Authorization', 'Bearer dummy-token') // Simulate auth token
+      .send(experienceData);
+
+    expect(response.status).toBe(201);
+    expect(response.body.guideId).toBe(testGuideUser.id);
+    expect(mockStorage.createExperience).toHaveBeenCalledWith(
+      expect.objectContaining({ guideId: testGuideUser.id })
+    );
+  });
+  // ... continue with all other POST and PUT route test cases
+});
+Output Required for My Review:
+
+Once you have successfully resolved these technical issues and the tests are fully runnable using the described mocking strategy:
+
+Provide a comprehensive diff preview of all modified test files (tests/storage.test.ts and tests/routes.experiences.test.ts, and any test utility files like jest.config.js or tests/setup.ts if they are necessary for this specific mocking strategy).
+Report the complete results of running the entire test suite. This should clearly indicate a PASS or FAIL for each individual test case we outlined previously.
+Success Criteria for My Approval:
+
+All test files are free of import errors and typing issues.
+The tests are fully runnable within your environment using the defined mocking strategy (no reliance on a live PostgreSQL database for unit/integration tests).
+The diff preview clearly shows the fixes to the test setup (imports, mocks, infrastructure).
+A complete report of the test results is provided, indicating success for all relevant test cases.
+I will not approve further steps until these criteria are met. Please proceed with fixing these technical issues to make the tests runnable.
