@@ -1,0 +1,95 @@
+Thank you for pinpointing the exact issue to storage.getUsersByOutfitterId(). This is a critical multi-tenant data leakage.
+
+Your task is to add highly targeted diagnostic logging within the storage.getUsersByOutfitterId() function in server/storage.ts to trace the database query's construction and its raw results.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: Inside the async getUsersByOutfitterId(...) function, specifically around the db.select()...where(...) query.
+Proposed Code Changes (applying to getUsersByOutfitterId):
+
+Find this block (within getUsersByOutfitterId function):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
+  const conditions = [eq(userOutfitters.outfitterId, outfitterId)];
+  
+  if (roles && roles.length > 0) {
+    conditions.push(inArray(users.role, roles));
+  }
+ 
+  const result = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      passwordHash: users.passwordHash,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions));
+  
+  return result;
+}
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
+  console.log('--- DIAGNOSTIC: getUsersByOutfitterId Query ---'); // <--- ADD THIS LINE
+  console.log('🔍 [GET_USERS_DB_DEBUG] Parameters: outfitterId:', outfitterId, 'roles:', roles); // <--- ADD THIS LINE
+
+  const conditions = [eq(userOutfitters.outfitterId, outfitterId)];
+  
+  if (roles && roles.length > 0) {
+    conditions.push(inArray(users.role, roles));
+  }
+  console.log('🔍 [GET_USERS_DB_DEBUG] Constructed WHERE conditions count:', conditions.length); // <--- ADD THIS LINE
+  // Note: Drizzle does not easily expose the raw SQL query string for logging purposes.
+  // We'll rely on logging the conditions and the final result.
+
+  const result = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      passwordHash: users.passwordHash,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions));
+
+  console.log('🔍 [GET_USERS_DB_DEBUG] Raw DB query result (count):', result.length); // <--- ADD THIS LINE
+  console.log('🔍 [GET_USERS_DB_DEBUG] Raw DB query result (sample IDs, roles, outfitterIds):', 
+    result.map(u => ({ id: u.id, role: u.role, outfitterId: (u as any).outfitterId })) // Cast to any to get outfitterId if it's not in User type
+  ); // <--- ADD THIS LINE
+  
+  return result;
+}
+Also, ensure the following Drizzle import is present at the top of server/storage.ts if it's not already:
+import { eq, and, inArray } from 'drizzle-orm'; (specifically inArray and and)
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts. After approval, you will perform a new test request from the frontend (to fetch guides for an experience) and provide the complete console output from these new logs.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [GET_USERS_DB_DEBUG] prefix are correctly added within the storage.getUsersByOutfitterId function.
+The logs correctly capture function parameters, constructed conditions count, and raw database query results (including IDs, roles, and outfitterId for diagnostic purposes).
+The necessary Drizzle imports (eq, and, inArray) are confirmed present.
+No other unrelated functional code lines are affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to understand the database query's behavior. 
