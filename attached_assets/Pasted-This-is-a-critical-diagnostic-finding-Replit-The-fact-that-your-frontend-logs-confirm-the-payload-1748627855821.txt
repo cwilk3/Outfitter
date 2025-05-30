@@ -1,0 +1,193 @@
+This is a critical diagnostic finding, Replit!
+
+The fact that your frontend logs confirm the payload is perfectly prepared, assignGuideMutation.mutate() is called, but absolutely no network request appears in the browser's network tab or server logs, points directly to a silent failure within the React Query useMutation hook or the apiRequest function it utilizes.
+
+This is a very specific type of bug, and your analysis of the probable causes (mutation hook config, React Query setup, apiRequest issue, authentication header problem) is accurate. The empty error objects {} from the client further support a silent synchronous or immediate promise rejection before a network call can even be initiated.
+
+We need to add logging directly to the core of the mutation's execution.
+
+Your immediate task is to add highly targeted diagnostic logging within the assignGuideMutation's mutationFn and inside the apiRequest function itself, along with an explicit onError handler for the mutation.
+
+Here is the exact prompt for Replit:
+
+EXACT PROMPT FOR REPLIT: Implement Diagnostic Logging for assignGuideMutation and apiRequest
+
+"Thank you for this critical discovery. The problem is squarely within the frontend's API call mechanism: the mutation is not executing a network request.
+
+Your primary task is to implement diagnostic logging directly within the assignGuideMutation's mutationFn and inside the apiRequest function. Also, ensure the useMutation hook has an onError callback to capture any errors.
+
+Specific Focus Areas for Modification:
+
+1. Modify assignGuideMutation Definition (Add Logging to mutationFn and onError)
+File: client/src/components/ui/experience-guides.tsx
+Location: Where assignGuideMutation is defined using useMutation.
+Proposed Code Changes (applying to experience-guides.tsx):
+
+Find this block (the useMutation definition for assignGuideMutation):
+
+TypeScript
+
+const assignGuideMutation = useMutation({
+  mutationFn: async ({ guideId, isPrimary }: { guideId: string; isPrimary: boolean }) => {
+    // This is the current mutationFn
+    // ... potentially calls apiRequest('POST', `/api/experiences/${experienceId}/guides`, { guideId, isPrimary });
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] });
+    toast({
+      title: 'Guide assigned!',
+      description: 'The guide has been successfully assigned to this experience.',
+    });
+  },
+  // onError: (error) => { /* ... */ } // May or may not exist
+});
+Replace it with (adding mutationFn logging and explicit onError):
+
+TypeScript
+
+const assignGuideMutation = useMutation({
+  mutationFn: async ({ guideId, isPrimary }: { guideId: string; isPrimary: boolean }) => {
+    // --- START NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+    console.log('🔍 [MUTATION_FN_DEBUG] MutationFn called.');
+    console.log('🔍 [MUTATION_FN_DEBUG] Payload received by mutationFn:', { guideId, isPrimary, experienceId });
+    // --- END NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+
+    // Assuming this is the line that calls apiRequest
+    const response = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, { guideId, isPrimary });
+    
+    // --- POST-API_REQUEST_DEBUG ---
+    console.log('🔍 [MUTATION_FN_DEBUG] apiRequest call completed. Response:', response);
+    // --- END POST-API_REQUEST_DEBUG ---
+    return response;
+  },
+  onSuccess: () => {
+    // ... existing onSuccess logic ...
+  },
+  onError: (error) => { // <--- ADD/UPDATE THIS onError BLOCK
+    console.error('❌ [MUTATION_ERROR] Error during guide assignment mutation:', error);
+    if (error instanceof Error) {
+      console.error('❌ [MUTATION_ERROR] Error message:', error.message);
+      console.error('❌ [MUTATION_ERROR] Error stack:', error.stack);
+    } else if (typeof error === 'object' && error !== null) {
+      console.error('❌ [MUTATION_ERROR] Full error object:', JSON.stringify(error, null, 2));
+    } else {
+      console.error('❌ [MUTATION_ERROR] Unknown error type:', error);
+    }
+    toast({
+      title: 'Assignment failed',
+      description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      variant: 'destructive',
+    });
+  },
+});
+2. Modify apiRequest Function (Add Logging and Error Handling)
+File: client/src/lib/queryClient.ts (as inferred from import { apiRequest } from "@/lib/queryClient";)
+Location: Within the apiRequest function definition.
+Proposed Code Changes (applying to queryClient.ts):
+
+Find this block (the apiRequest function):
+
+TypeScript
+
+export const apiRequest = async (method: string, url: string, data?: any) => {
+  const token = getCookie('token'); // Assuming getCookie is defined elsewhere
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(errorData.message || 'API request failed');
+  }
+
+  return response.json();
+};
+Replace it with (adding diagnostic logs and more robust error handling):
+
+TypeScript
+
+export const apiRequest = async (method: string, url: string, data?: any) => {
+  // --- START APIREQUEST DIAGNOSTIC LOGGING ---
+  console.log('🔍 [API_REQUEST_DEBUG] apiRequest called.');
+  console.log('🔍 [API_REQUEST_DEBUG] Method:', method);
+  console.log('🔍 [API_REQUEST_DEBUG] URL:', url);
+  console.log('🔍 [API_REQUEST_DEBUG] Request Body (data):', JSON.stringify(data, null, 2));
+  // --- END APIREQUEST DIAGNOSTIC LOGGING ---
+
+  const token = getCookie('token'); // Assuming getCookie is defined elsewhere
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    console.log('🔍 [API_REQUEST_DEBUG] Authorization header added.'); // Log auth header presence
+  } else {
+    console.warn('⚠️ [API_REQUEST_DEBUG] No token found for API request.'); // Warn if no token
+  }
+  
+  try { // <--- ADD TRY-CATCH BLOCK FOR NETWORK ERRORS
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    console.log('🔍 [API_REQUEST_DEBUG] Response received. Status:', response.status); // Log response status
+
+    if (!response.ok) {
+      let errorData = null;
+      try {
+        errorData = await response.json(); // Try to parse error JSON
+      } catch (e) {
+        // If response is not JSON, use status text or a generic message
+        errorData = { message: response.statusText || 'API request failed: Non-JSON error response' };
+      }
+      console.error('❌ [API_REQUEST_DEBUG] API response NOT OK. Error data:', errorData); // Log detailed error
+      throw new Error(errorData.message || `API request failed with status ${response.status}`);
+    }
+
+    // Attempt to parse JSON response for success cases
+    let responseJson = null;
+    try {
+      responseJson = await response.json();
+      console.log('🔍 [API_REQUEST_DEBUG] Response JSON parsed successfully.');
+    } catch (e) {
+      console.warn('⚠️ [API_REQUEST_DEBUG] Response not JSON or empty for OK status.');
+    }
+    
+    return responseJson; // Return parsed JSON or null/undefined if not JSON
+  } catch (error) {
+    console.error('❌ [API_REQUEST_DEBUG] Network or fetch error:', error); // Capture network errors
+    if (error instanceof Error) {
+      throw error; // Re-throw standard Error objects
+    } else {
+      throw new Error('Network or unexpected error during API request.'); // Wrap other errors
+    }
+  }
+};
+Output Required for My Review:
+Once you have implemented these modifications, please provide:
+
+A comprehensive diff preview of client/src/components/ui/experience-guides.tsx.
+A comprehensive diff preview of client/src/lib/queryClient.ts.
+The complete console output from the browser's developer tools after a guide assignment attempt (this should now include the new [MUTATION_FN_DEBUG] and [API_REQUEST_DEBUG] logs, and potentially a more detailed error from [MUTATION_ERROR] or [API_REQUEST_DEBUG]).
+Success Criteria for My Approval (for this diagnostic phase):
+
+All specified diagnostic logs are added to both experience-guides.tsx (mutation definition) and queryClient.ts (apiRequest function).
+The onError callback in useMutation is updated to capture detailed error information.
+apiRequest includes a try-catch block to capture network/fetch-level errors.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+This logging and enhanced error handling are crucial to pinpoint the exact failure point. I await your detailed report.

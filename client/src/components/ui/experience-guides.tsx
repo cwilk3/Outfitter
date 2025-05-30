@@ -91,10 +91,20 @@ export function ExperienceGuides({
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
     mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
+      // --- START NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+      console.log('🔍 [MUTATION_FN_DEBUG] MutationFn called.');
+      console.log('🔍 [MUTATION_FN_DEBUG] Payload received by mutationFn:', { guideId: data.guideId, isPrimary: data.isPrimary, experienceId });
+      // --- END NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+
       console.log(`[CLIENT] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
       console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
       
       try {
+        // --- START FETCH DIAGNOSTIC LOGGING ---
+        console.log('🔍 [FETCH_DEBUG] About to perform experience verification fetch.');
+        console.log('🔍 [FETCH_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
+        // --- END FETCH DIAGNOSTIC LOGGING ---
+
         // First, try to get the actual experience details to ensure it exists
         const experienceCheck = await fetch(`/api/experiences/${experienceId}`);
         
@@ -106,15 +116,26 @@ export function ExperienceGuides({
         const experienceData = await experienceCheck.json();
         console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
         
+        // --- START GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
+        console.log('🔍 [FETCH_DEBUG] About to perform guide assignment fetch.');
+        console.log('🔍 [FETCH_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
+        console.log('🔍 [FETCH_DEBUG] Assignment Method: POST');
+        console.log('🔍 [FETCH_DEBUG] Assignment Headers:', { 'Content-Type': 'application/json' });
+        console.log('🔍 [FETCH_DEBUG] Assignment Body:', JSON.stringify(data));
+        // --- END GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
+
         // Now perform the guide assignment
         const response = await fetch(`/api/experiences/${experienceId}/guides`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            // Note: No Authorization header - this might be the issue!
           },
           body: JSON.stringify(data),
         });
         
+        console.log('🔍 [FETCH_DEBUG] Guide assignment response received. Status:', response.status);
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`[CLIENT] Guide assignment failed: ${response.status} ${errorText}`);
@@ -142,6 +163,14 @@ export function ExperienceGuides({
         return result;
       } catch (error) {
         console.error('[CLIENT] Error in guide assignment process:', error);
+        // --- START ENHANCED ERROR LOGGING ---
+        if (error instanceof Error) {
+          console.error('❌ [MUTATION_FN_DEBUG] Error message:', error.message);
+          console.error('❌ [MUTATION_FN_DEBUG] Error stack:', error.stack);
+        } else {
+          console.error('❌ [MUTATION_FN_DEBUG] Non-Error object thrown:', error);
+        }
+        // --- END ENHANCED ERROR LOGGING ---
         throw error;
       }
     },
@@ -170,9 +199,21 @@ export function ExperienceGuides({
       setSelectedGuideId('');
     },
     onError: (error) => {
+      // --- START ENHANCED MUTATION ERROR LOGGING ---
+      console.error('❌ [MUTATION_ERROR] Error during guide assignment mutation:', error);
+      if (error instanceof Error) {
+        console.error('❌ [MUTATION_ERROR] Error message:', error.message);
+        console.error('❌ [MUTATION_ERROR] Error stack:', error.stack);
+      } else if (typeof error === 'object' && error !== null) {
+        console.error('❌ [MUTATION_ERROR] Full error object:', JSON.stringify(error, null, 2));
+      } else {
+        console.error('❌ [MUTATION_ERROR] Unknown error type:', error);
+      }
+      // --- END ENHANCED MUTATION ERROR LOGGING ---
+
       toast({
         title: 'Error',
-        description: 'Failed to assign guide. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to assign guide. Please try again.',
         variant: 'destructive',
       });
       console.error('[CLIENT] Error assigning guide:', error);
