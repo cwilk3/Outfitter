@@ -1,0 +1,35 @@
+Thank you for diagnosing the draftMode issue. The problem is clear: the ExperienceGuides component is incorrectly being set to draftMode because the isCreating variable itself is evaluating to true when editing an existing experience.
+
+Your primary task is to investigate the logic that determines the value of the isCreating variable in client/src/pages/Experiences.tsx and implement a fix to ensure it accurately reflects whether the user is creating a new experience or editing an existing one.
+
+Specific Focus Areas for Investigation:
+
+File: client/src/pages/Experiences.tsx
+Locate isCreating: Find where the isCreating variable is declared and how its value is derived. It might be:
+Based on a URL parameter (e.g., /experiences/new vs. /experiences/:id).
+Based on the presence of selectedExperience state or prop.
+A direct useState variable that's not being updated correctly.
+Add Diagnostic Logging: Temporarily add console.log statements to trace isCreating's value.
+Log isCreating immediately after its declaration.
+Log the value of any variables or conditions used to determine isCreating.
+Proposed Code Changes:
+
+You will need to analyze the Experiences.tsx file to propose the exact diff. The fix will involve ensuring isCreating is true only when a new experience is being created, and false when an existing experience is being edited.
+
+Output Required for My Review:
+Based on your investigation, please provide:
+
+A detailed report outlining your findings:
+How isCreating is currently determined.
+Why it's incorrect when editing.
+Relevant code snippets from client/src/pages/Experiences.tsx.
+A proposed diff preview of the code changes to correctly set isCreating.
+Proposed diagnostic logging (to be included in the diff) to confirm the fix's behavior.
+Success Criteria for My Approval (for this investigation and proposed fix phase):
+
+The root cause of isCreating being incorrect is clearly identified.
+The proposed diff correctly modifies the logic to determine isCreating.
+isCreating will be true only for new experiences and false for existing experiences.
+Diagnostic logging is included to verify the fix.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This fix is crucial for the ExperienceGuides component to operate in the correct mode

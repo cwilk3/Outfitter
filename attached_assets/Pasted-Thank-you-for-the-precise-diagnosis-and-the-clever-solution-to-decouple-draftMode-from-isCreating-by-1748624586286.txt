@@ -1,0 +1,88 @@
+Thank you for the precise diagnosis and the clever solution to decouple draftMode from isCreating by using !selectedExperience?.id. This is the correct approach.
+
+Your primary task is to implement the proposed changes in client/src/pages/Experiences.tsx to correctly set the draftMode prop and manage onChange for the ExperienceGuides component.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Experiences.tsx
+Location: Within the openEditDialog function (Line 713 approximate) and where the ExperienceGuides component is rendered (Line 1603 approximate, or wherever it is rendered).
+Proposed Code Changes:
+
+1. Update openEditDialog function (Add Diagnostic Logs):
+Find this block (in openEditDialog function, around Line 713):
+
+TypeScript
+
+const openEditDialog = async (experience: Experience) => {
+  setSelectedExperience(experience);
+  
+  // ... loading logic ...
+  
+  // Set to whatever step the user wants to start editing from (default to basic info)
+  setCurrentStep(1);
+  setIsCreating(true); // Keep dialog open
+};
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+const openEditDialog = async (experience: Experience) => {
+  setSelectedExperience(experience);
+  
+  // Add diagnostic logging
+  console.log("🔍 [EDIT_DIALOG_DEBUG] Opening edit dialog for existing experience:", experience.id);
+  console.log("🔍 [EDIT_DIALOG_DEBUG] Setting isCreating to true (to open dialog)");
+  
+  // Load all necessary data before showing the dialog to ensure a smooth editing experience
+  console.log("Opening edit dialog for experience:", experience); // This is likely existing log
+  
+  // ... existing loading logic ...
+  
+  // Set to whatever step the user wants to start editing from (default to basic info)
+  setCurrentStep(1);
+  setIsCreating(true); // Keep dialog open, as it controls Dialog visibility
+};
+2. Update ExperienceGuides Component Usage:
+Find this block (where ExperienceGuides is rendered, around Line 1603):
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  readOnly={false}
+  draftMode={isCreating} // <--- Problematic line
+  initialDraftGuides={draftGuides}
+  onChange={(guides) => {
+    if (isCreating) { // <--- Problematic line
+      setDraftGuides(guides);
+    }
+  }}
+/>
+Replace it with:
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  readOnly={false}
+  draftMode={!selectedExperience?.id} // <--- FIX: Derive draftMode from existence of experience ID
+  // Add diagnostic logging for draftMode decision
+  console.log("🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode:", !selectedExperience?.id, "for experience ID:", selectedExperience?.id); // <--- ADDED LOG
+  initialDraftGuides={draftGuides}
+  onChange={(guides) => {
+    if (!selectedExperience?.id) { // <--- FIX: Only use draft mode for new experiences (no ID yet)
+      setDraftGuides(guides);
+    }
+  }}
+/>
+Output Required for My Review:
+Once you have implemented this fix, please provide a comprehensive diff preview for client/src/pages/Experiences.tsx.
+
+Success Criteria for My Approval:
+
+The draftMode prop for ExperienceGuides is correctly set to !selectedExperience?.id.
+The onChange prop's conditional logic for setDraftGuides is correctly updated to if (!selectedExperience?.id).
+Diagnostic logs are added as specified in both openEditDialog and around ExperienceGuides usage.
+No other unrelated functional code is affected.
+The change directly resolves the ExperienceGuides component incorrectly operating in draft mode for existing experiences.
+I will not approve further steps until these criteria are met. Once approved and implemented, we will resume manual verification of guide assignment saving.

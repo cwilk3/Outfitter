@@ -1,0 +1,35 @@
+Thank you for the detailed analysis. The answers to the diagnostic questions confirm the problem is on the frontend: the guide assignment action is not triggering the necessary API call to save.
+
+Your primary task is to investigate the frontend component (client/src/components/ui/experience-guides.tsx as previously identified) to pinpoint why the guide assignment is not being saved (i.e., why the API call is not being triggered).
+
+Specific Focus Areas for Investigation:
+
+Event Handlers:
+
+Examine the "Assign" or "Save" button related to guide assignment. What onClick or onSubmit handler is attached to it?
+Trace this handler's execution path.
+Form Submission Logic:
+
+If a form is involved, verify its onSubmit or handleSubmit function. Is it correctly configured?
+Is it calling the backend API (e.g., apiRequest('POST', ...) or apiRequest('PUT', ...) for experience updates) with the guideId included in the payload?
+Frontend Validation:
+
+Are there any frontend validation rules that might be silently failing or preventing the form submission, even if fields appear valid? Check the form's state (e.g., isValid, errors if using react-hook-form).
+Error Logging:
+
+Add temporary console.log statements within the relevant frontend event handlers and submission functions to trace the execution flow and the data being prepared for submission.
+Explicitly look for any unhandled JavaScript errors in the browser console.
+Output Required for My Review:
+Based on your investigation, please provide:
+
+A detailed report outlining your findings:
+Identified root cause (e.g., "Missing onClick handler," "Validation preventing handleSubmit," "API call not constructed").
+Relevant code snippets from the frontend component.
+A proposed diff preview of the code changes to fix the issue, ensuring the guide assignment API call is correctly triggered and the guideId is included in the payload.
+Success Criteria for My Approval (for this investigation and proposed fix phase):
+
+The root cause of the missing API call is clearly identified.
+The proposed diff correctly modifies the frontend logic to trigger the guide assignment API call.
+The guideId is correctly included in the payload sent to the backend.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This is a critical step to enable guide assignment saving.

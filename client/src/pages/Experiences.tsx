@@ -576,6 +576,10 @@ export default function Experiences() {
   const openEditDialog = async (experience: Experience) => {
     setSelectedExperience(experience);
     
+    // Add diagnostic logging
+    console.log("🔍 [EDIT_DIALOG_DEBUG] Opening edit dialog for existing experience:", experience.id);
+    console.log("🔍 [EDIT_DIALOG_DEBUG] Setting isCreating to true (to open dialog)");
+    
     // Load all necessary data before showing the dialog to ensure a smooth editing experience
     console.log("Opening edit dialog for experience:", experience);
     
@@ -710,7 +714,7 @@ export default function Experiences() {
     
     // Set to whatever step the user wants to start editing from (default to basic info)
     setCurrentStep(1);
-    setIsCreating(true);
+    setIsCreating(true); // Keep dialog open, as it controls Dialog visibility
   };
 
   // Open delete confirmation dialog
@@ -2118,10 +2122,12 @@ export default function Experiences() {
                     <ExperienceGuides
                       experienceId={selectedExperience?.id || 0}
                       readOnly={false}
-                      draftMode={isCreating}
+                      draftMode={!selectedExperience?.id}
                       initialDraftGuides={draftGuides}
                       onChange={(guides) => {
-                        if (isCreating) {
+                        // Add diagnostic logging for draftMode decision
+                        console.log("🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode:", !selectedExperience?.id, "for experience ID:", selectedExperience?.id);
+                        if (!selectedExperience?.id) {
                           setDraftGuides(guides);
                         }
                       }}
