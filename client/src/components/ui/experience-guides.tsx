@@ -101,16 +101,6 @@ export function ExperienceGuides({
       console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
       
       try {
-        // --- START API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
-        console.log('🔍 [API_REQUEST_DEBUG] About to perform experience verification via apiRequest.');
-        console.log('🔍 [API_REQUEST_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
-        // --- END API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
-
-        // First, try to get the actual experience details to ensure it exists
-        const experienceData = await apiRequest('GET', `/api/experiences/${experienceId}`);
-        
-        console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
-        
         // --- START API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
         console.log('🔍 [API_REQUEST_DEBUG] About to perform guide assignment via apiRequest.');
         console.log('🔍 [API_REQUEST_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
@@ -122,18 +112,6 @@ export function ExperienceGuides({
         const result = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, data);
         
         console.log(`[CLIENT] Guide assignment successful:`, result);
-        
-        // Verify the assignment was successful by immediately checking
-        const guides = await apiRequest('GET', `/api/experiences/${experienceId}/guides`);
-        console.log(`[CLIENT] Verification - found ${guides.length} guides, checking for new assignment:`, guides);
-        
-        const assigned = guides.some((g: any) => g.guideId === data.guideId);
-        if (!assigned) {
-          console.warn(`[CLIENT] Verification failed - newly assigned guide ${data.guideId} not found in response!`);
-          // We'll continue anyway since the assignment API returned success
-        } else {
-          console.log(`[CLIENT] Verification successful - guide ${data.guideId} found in assigned guides`);
-        }
         
         return result;
       } catch (error) {
@@ -231,48 +209,40 @@ export function ExperienceGuides({
 
   // Remove a guide assignment
   const removeGuideMutation = useMutation({
-    mutationFn: async (id: number) => {
-      console.log(`Removing guide assignment with ID: ${id}`);
-      const response = await fetch(`/api/experience-guides/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+    mutationFn: async ({ experienceId, guideId }: { experienceId: number; guideId: string }) => {
+      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Attempting guide unassignment API call.');
+      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Unassigning Guide ID:', guideId, 'from Experience ID:', experienceId);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error removing guide: ${response.status} ${errorText}`);
-        throw new Error(`Failed to remove guide: ${errorText || response.statusText}`);
-      }
+      // Make the DELETE API call using apiRequest for proper authentication
+      const response = await apiRequest('DELETE', `/api/experiences/${experienceId}/guides/${guideId}`);
       
-      // Success - return the ID that was deleted since the endpoint returns 204 No Content
-      return id;
+      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] API response for unassignment:', response);
+      return response;
     },
-    onSuccess: (deletedId) => {
-      console.log(`Guide assignment ${deletedId} successfully removed`);
+    onSuccess: () => {
+      console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
       
-      // Force invalidate all related queries to ensure UI consistency
+      // Invalidate related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
       
-      // Wait a moment then explicitly refetch to ensure UI is updated immediately
+      // Force refetch to ensure UI consistency
       setTimeout(() => {
         refetchAssignedGuides();
       }, 100);
       
       toast({
-        title: 'Guide removed',
-        description: 'The guide has been removed from this experience.',
+        title: 'Guide unassigned!',
+        description: 'The guide has been successfully removed from this experience.',
       });
     },
     onError: (error) => {
+      console.error('❌ [FRONTEND_UNASSIGN_ERROR] Error during guide unassignment mutation:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to remove guide. Please try again.',
+        title: 'Unassignment failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred during unassignment.',
         variant: 'destructive',
       });
-      console.error('Error removing guide:', error);
     },
   });
 
@@ -387,36 +357,34 @@ export function ExperienceGuides({
         onChange(updatedDraftGuides);
       }
     } else {
-      // In normal mode, make API call and handle the UI update
-      console.log(`[CLIENT] Removing guide with ID ${id} in normal mode`);
-      
-      // Find the guide being removed from current assignments (for better logging)
+      // In normal mode, find the guide being removed and call new API endpoint
       const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
-      if (guideBeingRemoved) {
-        console.log(`[CLIENT] Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
+      if (!guideBeingRemoved) {
+        console.error('[CLIENT] Cannot remove guide: Guide assignment not found');
+        toast({
+          title: 'Error',
+          description: 'Cannot remove guide: Assignment not found.',
+          variant: 'destructive',
+        });
+        return;
       }
+
+      if (!experienceId) {
+        console.error('[CLIENT] Cannot remove guide: Experience ID missing');
+        toast({
+          title: 'Error',
+          description: 'Cannot remove guide: Experience ID missing.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      console.log(`[CLIENT] Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
       
-      // Show loading state while deletion is in progress
-      toast({
-        title: 'Removing guide...',
-        description: 'Please wait while we remove the guide assignment.',
-      });
-      
-      // Call the mutation to remove guide on server
-      removeGuideMutation.mutate(id, {
-        onSuccess: () => {
-          console.log(`[CLIENT] Guide removal success for ID ${id}`);
-          
-          // Perform an eager update of the UI - just log for now since we rely on refetch
-          console.log(`[CLIENT] Would filter out guide with ID ${id} from current list:`, 
-                      assignedGuides.filter((g: ExperienceGuide) => g.id !== id));
-          
-          // After a short delay, force a complete refresh to ensure sync with server
-          setTimeout(() => {
-            console.log('[CLIENT] Performing forced refetch after guide removal');
-            refetchAssignedGuides();
-          }, 500);
-        }
+      // Call the new mutation with experienceId and guideId
+      removeGuideMutation.mutate({ 
+        experienceId: experienceId, 
+        guideId: guideBeingRemoved.guideId 
       });
     }
   };

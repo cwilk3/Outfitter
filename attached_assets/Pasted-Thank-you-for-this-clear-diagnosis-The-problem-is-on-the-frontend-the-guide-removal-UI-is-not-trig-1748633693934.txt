@@ -1,0 +1,107 @@
+Thank you for this clear diagnosis. The problem is on the frontend: the guide removal UI is not triggering the DELETE API call.
+
+Your primary task is to implement the frontend logic in client/src/components/ui/experience-guides.tsx to make a DELETE /api/experiences/:id/guides/:guideId API call using apiRequest when a guide is unassigned.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Locate "X" button logic: Find the code associated with the "X" (remove) button next to an assigned guide. This is likely an onClick handler that currently only modifies local state.
+Implement useMutation for Deletion:
+Add a new useMutation hook for guide deletion. Its mutationFn will perform the DELETE API call.
+Include onSuccess to update UI state and invalidate queries.
+Include onError to display error messages.
+Wire up "X" button: Modify the onClick handler of the "X" button to call this new useMutation's mutate method.
+Proposed Code Changes (applying to experience-guides.tsx):
+
+1. Add removeGuideMutation (around existing assignGuideMutation):
+TypeScript
+
+import { apiRequest } from '@/lib/queryClient'; // Ensure this is imported at the top
+
+// ... (existing assignGuideMutation definition) ...
+
+const removeGuideMutation = useMutation({
+  mutationFn: async ({ experienceId, guideId }: { experienceId: number; guideId: string }) => {
+    console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Attempting guide unassignment API call.');
+    console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Unassigning Guide ID:', guideId, 'from Experience ID:', experienceId);
+    
+    // Make the DELETE API call
+    const response = await apiRequest('DELETE', `/api/experiences/${experienceId}/guides/${guideId}`);
+    
+    console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] API response for unassignment:', response);
+    return response;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); // Invalidate current assigned guides
+    queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
+    toast({
+      title: 'Guide unassigned!',
+      description: 'The guide has been successfully removed from this experience.',
+    });
+    // This will trigger a re-fetch of assigned guides, updating the UI
+  },
+  onError: (error) => {
+    console.error('❌ [FRONTEND_UNASSIGN_ERROR] Error during guide unassignment mutation:', error);
+    toast({
+      title: 'Unassignment failed',
+      description: error instanceof Error ? error.message : 'An unknown error occurred during unassignment.',
+      variant: 'destructive',
+    });
+  },
+});
+2. Wire up "X" button in AssignedGuides section (around assignedGuides.map):
+Find this block (within your assigned guides rendering logic, looking for onClick for the "X" button):
+
+TypeScript
+
+// ... inside assignedGuides.map((guide: ExperienceGuide) => ( ... ))
+<div className="flex items-center space-x-2">
+  <span className="font-medium">{guide.user?.firstName} {guide.user?.lastName}</span>
+  {/* Assuming this is the "X" button or similar remove control */}
+  <button
+    onClick={() => {
+      // Current logic likely just removes from local state:
+      // const updatedGuides = assignedGuides.filter((g: ExperienceGuide) => g.guideId !== guide.guideId);
+      // setAssignedGuides(updatedGuides); // Or similar local state update
+      // toast({ title: 'Guide removed', description: '...', variant: 'destructive' }); // Premature toast
+    }}
+    className="ml-2 text-red-500 hover:text-red-700"
+  >
+    X
+  </button>
+</div>
+// ...
+Replace it with (calling the new removeGuideMutation):
+
+TypeScript
+
+// ... inside assignedGuides.map((guide: ExperienceGuide) => ( ... ))
+<div className="flex items-center space-x-2">
+  <span className="font-medium">{guide.user?.firstName} {guide.user?.lastName}</span>
+  {/* Call removeGuideMutation on click */}
+  <button
+    onClick={() => {
+      if (experienceId) { // Ensure experienceId is available
+        removeGuideMutation.mutate({ experienceId: experienceId, guideId: guide.guideId });
+      } else {
+        console.error("Cannot unassign guide: Experience ID is missing.");
+        toast({ title: 'Error', description: 'Cannot unassign guide: Experience ID missing.', variant: 'destructive' });
+      }
+    }}
+    className="ml-2 text-red-500 hover:text-red-700"
+  >
+    X
+  </button>
+</div>
+// ...
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval:
+
+A new removeGuideMutation useMutation hook is added, correctly configured to make a DELETE API call via apiRequest.
+The removeGuideMutation includes onSuccess to invalidate queries and display a success toast, and onError for error feedback.
+The "X" button's onClick handler is updated to call removeGuideMutation.mutate() with the correct experienceId and guideId.
+Diagnostic logs are included in removeGuideMutation's mutationFn.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This is the crucial frontend fix for guide unassignment! 
