@@ -1,0 +1,140 @@
+Thank you for identifying that the POST request is still using direct fetch() calls without authentication headers. This is the critical piece preventing the route from being reached correctly.
+
+Your primary task is to modify the mutationFn of assignGuideMutation in client/src/components/ui/experience-guides.tsx to use the apiRequest function for its network calls, ensuring proper authentication.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the mutationFn definition of assignGuideMutation.
+Proposed Code Changes:
+
+Find this block (the mutationFn's body, focusing on the fetch calls):
+
+TypeScript
+
+const assignGuideMutation = useMutation({
+  mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
+    // --- START NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+    console.log('🔍 [MUTATION_FN_DEBUG] MutationFn called.');
+    console.log('🔍 [MUTATION_FN_DEBUG] Payload received by mutationFn:', { guideId: data.guideId, isPrimary: data.isPrimary, experienceId });
+    // --- END NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+    
+    console.log(`[CLIENT] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
+    console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
+    
+    try {
+      // --- START FETCH DIAGNOSTIC LOGGING ---
+      console.log('🔍 [FETCH_DEBUG] About to perform experience verification fetch.');
+      console.log('🔍 [FETCH_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
+      // --- END FETCH DIAGNOSTIC LOGGING ---
+      
+      // First, try to get the actual experience details to ensure it exists
+      const experienceCheck = await fetch(`/api/experiences/${experienceId}`); // <--- THIS FETCH
+      
+      if (!experienceCheck.ok) {
+        console.error(`[CLIENT] Experience ${experienceId} check failed: ${experienceCheck.status}`);
+        throw new Error(`Cannot find experience with ID ${experienceId}`);
+      }
+      
+      const experienceData = await experienceCheck.json();
+      console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
+      
+      // --- START GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
+      console.log('🔍 [FETCH_DEBUG] About to perform guide assignment fetch.');
+      console.log('🔍 [FETCH_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
+      console.log('🔍 [FETCH_DEBUG] Assignment Method: POST');
+      console.log('🔍 [FETCH_DEBUG] Assignment Headers:', { 'Content-Type': 'application/json' });
+      console.log('🔍 [FETCH_DEBUG] Assignment Body:', JSON.stringify(data));
+      // --- END GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
+      
+      // Now perform the guide assignment
+      const response = await fetch(`/api/experiences/${experienceId}/guides`, { // <--- THIS FETCH
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Note: No Authorization header - this might be the issue!
+        },
+        body: JSON.stringify(data),
+      });
+      
+      console.log('🔍 [FETCH_DEBUG] Guide assignment response received. Status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[CLIENT] Guide assignment failed: ${response.status} ${errorText}`);
+        throw new Error(`Failed to assign guide: ${errorText || response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log(`[CLIENT] Guide assignment successful:`, result);
+      
+      // ... rest of existing verification logic ...
+      
+      return result;
+    } catch (error) {
+      // ... error handling ...
+      throw error;
+    }
+  },
+  // ... onSuccess, onError
+});
+Replace it with (using apiRequest for both fetches, ensure apiRequest is imported):
+
+TypeScript
+
+import { apiRequest } from '@/lib/queryClient'; // Ensure this is imported at the top
+
+const assignGuideMutation = useMutation({
+  mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
+    // --- START NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+    console.log('🔍 [MUTATION_FN_DEBUG] MutationFn called.');
+    console.log('🔍 [MUTATION_FN_DEBUG] Payload received by mutationFn:', { guideId: data.guideId, isPrimary: data.isPrimary, experienceId });
+    // --- END NEW MUTATIONFN DIAGNOSTIC LOGGING ---
+    
+    console.log(`[CLIENT] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
+    console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
+    
+    try {
+      // --- START API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
+      console.log('🔍 [API_REQUEST_DEBUG] About to perform experience verification via apiRequest.');
+      console.log('🔍 [API_REQUEST_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
+      // --- END API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
+      
+      // First, try to get the actual experience details to ensure it exists
+      const experienceData = await apiRequest('GET', `/api/experiences/${experienceId}`); // <--- USE apiRequest
+      
+      console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
+      
+      // --- START API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
+      console.log('🔍 [API_REQUEST_DEBUG] About to perform guide assignment via apiRequest.');
+      console.log('🔍 [API_REQUEST_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
+      console.log('🔍 [API_REQUEST_DEBUG] Assignment Method: POST');
+      console.log('🔍 [API_REQUEST_DEBUG] Assignment Body:', JSON.stringify(data));
+      // --- END API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
+      
+      // Now perform the guide assignment
+      const result = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, data); // <--- USE apiRequest
+      
+      console.log(`[CLIENT] Guide assignment successful:`, result);
+      
+      // ... rest of existing verification logic ...
+      
+      return result;
+    } catch (error) {
+      console.error('[CLIENT] Error in guide assignment process:', error);
+      // ... existing robust error handling ...
+      throw error;
+    }
+  },
+  // ... onSuccess, onError (these were already updated in the previous diagnostic step, ensure they stay)
+});
+Output Required for My Review:
+Once you have implemented this functional fix, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval:
+
+The mutationFn of assignGuideMutation is updated to use apiRequest for both the GET experience check and the POST guide assignment.
+The apiRequest import is present.
+The diagnostic logging from the previous step is correctly adapted or retained (e.g., [MUTATION_FN_DEBUG] logs that are relevant for apiRequest calls).
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This is the crucial functional fix for enabling guide assignment saving! 

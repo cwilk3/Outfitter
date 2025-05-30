@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Guide {
   id: string;
@@ -100,64 +101,38 @@ export function ExperienceGuides({
       console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
       
       try {
-        // --- START FETCH DIAGNOSTIC LOGGING ---
-        console.log('🔍 [FETCH_DEBUG] About to perform experience verification fetch.');
-        console.log('🔍 [FETCH_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
-        // --- END FETCH DIAGNOSTIC LOGGING ---
+        // --- START API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
+        console.log('🔍 [API_REQUEST_DEBUG] About to perform experience verification via apiRequest.');
+        console.log('🔍 [API_REQUEST_DEBUG] Experience check URL:', `/api/experiences/${experienceId}`);
+        // --- END API_REQUEST DIAGNOSTIC LOGGING FOR EXPERIENCE CHECK ---
 
         // First, try to get the actual experience details to ensure it exists
-        const experienceCheck = await fetch(`/api/experiences/${experienceId}`);
+        const experienceData = await apiRequest('GET', `/api/experiences/${experienceId}`);
         
-        if (!experienceCheck.ok) {
-          console.error(`[CLIENT] Experience ${experienceId} check failed: ${experienceCheck.status}`);
-          throw new Error(`Cannot find experience with ID ${experienceId}`);
-        }
-        
-        const experienceData = await experienceCheck.json();
         console.log(`[CLIENT] Verified experience exists: ${experienceData.name} (ID: ${experienceData.id})`);
         
-        // --- START GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
-        console.log('🔍 [FETCH_DEBUG] About to perform guide assignment fetch.');
-        console.log('🔍 [FETCH_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
-        console.log('🔍 [FETCH_DEBUG] Assignment Method: POST');
-        console.log('🔍 [FETCH_DEBUG] Assignment Headers:', { 'Content-Type': 'application/json' });
-        console.log('🔍 [FETCH_DEBUG] Assignment Body:', JSON.stringify(data));
-        // --- END GUIDE ASSIGNMENT FETCH DIAGNOSTIC LOGGING ---
+        // --- START API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
+        console.log('🔍 [API_REQUEST_DEBUG] About to perform guide assignment via apiRequest.');
+        console.log('🔍 [API_REQUEST_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
+        console.log('🔍 [API_REQUEST_DEBUG] Assignment Method: POST');
+        console.log('🔍 [API_REQUEST_DEBUG] Assignment Body:', JSON.stringify(data));
+        // --- END API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
 
         // Now perform the guide assignment
-        const response = await fetch(`/api/experiences/${experienceId}/guides`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // Note: No Authorization header - this might be the issue!
-          },
-          body: JSON.stringify(data),
-        });
+        const result = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, data);
         
-        console.log('🔍 [FETCH_DEBUG] Guide assignment response received. Status:', response.status);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[CLIENT] Guide assignment failed: ${response.status} ${errorText}`);
-          throw new Error(`Failed to assign guide: ${errorText || response.statusText}`);
-        }
-        
-        const result = await response.json();
         console.log(`[CLIENT] Guide assignment successful:`, result);
         
         // Verify the assignment was successful by immediately checking
-        const verifyResponse = await fetch(`/api/experiences/${experienceId}/guides`);
-        if (verifyResponse.ok) {
-          const guides = await verifyResponse.json();
-          console.log(`[CLIENT] Verification - found ${guides.length} guides, checking for new assignment:`, guides);
-          
-          const assigned = guides.some((g: any) => g.guideId === data.guideId);
-          if (!assigned) {
-            console.warn(`[CLIENT] Verification failed - newly assigned guide ${data.guideId} not found in response!`);
-            // We'll continue anyway since the assignment API returned success
-          } else {
-            console.log(`[CLIENT] Verification successful - guide ${data.guideId} found in assigned guides`);
-          }
+        const guides = await apiRequest('GET', `/api/experiences/${experienceId}/guides`);
+        console.log(`[CLIENT] Verification - found ${guides.length} guides, checking for new assignment:`, guides);
+        
+        const assigned = guides.some((g: any) => g.guideId === data.guideId);
+        if (!assigned) {
+          console.warn(`[CLIENT] Verification failed - newly assigned guide ${data.guideId} not found in response!`);
+          // We'll continue anyway since the assignment API returned success
+        } else {
+          console.log(`[CLIENT] Verification successful - guide ${data.guideId} found in assigned guides`);
         }
         
         return result;
