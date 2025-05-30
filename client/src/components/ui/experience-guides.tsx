@@ -341,6 +341,14 @@ export function ExperienceGuides({
 
   // Handle removing a guide
   const handleRemoveGuide = (id: number) => {
+    // --- START NEW REMOVE_DEBUG LOGGING ---
+    console.log('--- DIAGNOSTIC: handleRemoveGuide Called ---');
+    console.log('🔍 [REMOVE_DEBUG] ID passed to handleRemoveGuide:', id);
+    console.log('🔍 [REMOVE_DEBUG] Current assignedGuides array (state):', JSON.stringify(assignedGuides, null, 2));
+    console.log('🔍 [REMOVE_DEBUG] Current experienceId (prop):', experienceId);
+    console.log('🔍 [REMOVE_DEBUG] Current draftMode (prop):', draftMode);
+    // --- END NEW REMOVE_DEBUG LOGGING ---
+
     if (draftMode) {
       // In draft mode, remove from local state
       const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== id);
@@ -359,8 +367,9 @@ export function ExperienceGuides({
     } else {
       // In normal mode, find the guide being removed and call new API endpoint
       const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
+      console.log('🔍 [REMOVE_DEBUG] Result of assignedGuides.find():', guideBeingRemoved);
       if (!guideBeingRemoved) {
-        console.error('[CLIENT] Cannot remove guide: Guide assignment not found');
+        console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id);
         toast({
           title: 'Error',
           description: 'Cannot remove guide: Assignment not found.',

@@ -1,0 +1,75 @@
+Thank you for this detailed analysis. The problem is clear: handleRemoveGuide is likely failing silently due to a data state mismatch.
+
+Your primary task is to implement highly targeted diagnostic logging at the very beginning of the handleRemoveGuide function in client/src/components/ui/experience-guides.tsx to understand the state of inputs and variables.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The very first lines inside the handleRemoveGuide function declaration.
+Proposed Code Changes (applying to experience-guides.tsx):
+
+Find this block (the handleRemoveGuide function definition):
+
+TypeScript
+
+// REPLACE the handleRemoveGuide function (lines 372-422) with this:
+const handleRemoveGuide = (id: number) => {
+  if (draftMode) {
+    // ... draft mode logic ...
+  } else {
+    // In normal mode, find the guide being removed and call new API endpoint
+    const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
+    if (!guideBeingRemoved) {
+      console.error('[CLIENT] Cannot remove guide: Guide assignment not found');
+      toast({
+        title: 'Error',
+        description: 'Cannot remove guide: Assignment not found.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // ... rest of function
+  }
+};
+Replace it with (adding diagnostic logs at the start):
+
+TypeScript
+
+// REPLACE the handleRemoveGuide function (lines 372-422) with this:
+const handleRemoveGuide = (id: number) => {
+  // --- START NEW REMOVE_DEBUG LOGGING ---
+  console.log('--- DIAGNOSTIC: handleRemoveGuide Called ---');
+  console.log('🔍 [REMOVE_DEBUG] ID passed to handleRemoveGuide:', id);
+  console.log('🔍 [REMOVE_DEBUG] Current assignedGuides array (state):', JSON.stringify(assignedGuides, null, 2));
+  console.log('🔍 [REMOVE_DEBUG] Current experienceId (prop):', experienceId);
+  // --- END NEW REMOVE_DEBUG LOGGING ---
+
+  if (draftMode) {
+    // ... draft mode logic ...
+  } else {
+    // In normal mode, find the guide being removed and call new API endpoint
+    const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
+    console.log('🔍 [REMOVE_DEBUG] Result of assignedGuides.find():', guideBeingRemoved); // <--- LOG FIND RESULT
+    if (!guideBeingRemoved) {
+      console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id); // <--- ENHANCE ERROR LOG
+      toast({
+        title: 'Error',
+        description: 'Cannot remove guide: Assignment not found.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    // ... rest of function
+  }
+};
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx. After approval, you will perform a new test (attempting to remove a guide) and provide the complete console output from these new logs.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [REMOVE_DEBUG] prefix are correctly added at the very beginning of the handleRemoveGuide function.
+The logs correctly capture id (parameter), assignedGuides (state), experienceId (prop), and the result of the .find() method.
+The console.error for !guideBeingRemoved is enhanced to include the id.
+No other unrelated functional code lines are affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to understand the frontend data state. 
