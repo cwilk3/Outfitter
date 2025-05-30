@@ -172,6 +172,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      console.log('--- DIAGNOSTIC: GET /api/users Role Filtering ---');
+      console.log('🔍 [API_USERS_DEBUG] req.query:', JSON.stringify(req.query, null, 2));
+      console.log('🔍 [API_USERS_DEBUG] req.query.role RAW:', req.query.role);
+      console.log('🔍 [API_USERS_DEBUG] typeof req.query.role:', typeof req.query.role);
+
       // Extract role(s) flexibly: allow 'role=guide' or 'role=admin,guide'
       let roles: string[] | undefined;
       if (typeof req.query.role === 'string' && req.query.role) {
@@ -179,6 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (Array.isArray(req.query.role)) {
         roles = req.query.role.map(r => r.toString()); // Ensure array of strings
       }
+      console.log('🔍 [API_USERS_DEBUG] Processed roles array:', roles);
 
       // Get users for this outfitter, filtered by role(s)
       const users = await storage.getUsersByOutfitterId(outfitterId, roles);

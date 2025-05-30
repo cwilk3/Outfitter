@@ -1,0 +1,62 @@
+Thank you for this detailed analysis. The problem is clear: the role parameter is not being processed correctly by the backend's /api/users endpoint, despite the frontend sending it.
+
+Your primary task is to add highly targeted diagnostic logging within the GET /api/users route handler in server/routes.ts to trace the role parameter's extraction and processing.
+
+Specific Focus Areas for Modification:
+
+File: server/routes.ts
+Location: Within the router.get('/api/users', ...) handler, specifically where req.query.role is extracted and the roles array is constructed.
+Proposed Code Changes:
+
+Find this block (within the GET /api/users handler, after outfitterId extraction):
+
+TypeScript
+
+// Inside the router.get('/api/users', ...) handler:
+// ...
+// Extract role(s) flexibly: allow 'role=guide' or 'role=admin,guide'
+let roles: string[] | undefined;
+if (typeof req.query.role === 'string' && req.query.role) {
+    roles = req.query.role.split(',').map(r => r.trim());
+} else if (Array.isArray(req.query.role)) {
+    roles = req.query.role.map(r => r.toString());
+}
+
+// Get users for this outfitter, filtered by role(s)
+const users = await storage.getUsersByOutfitterId(outfitterId, roles);
+
+// ... rest of handler
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+// Inside the router.get('/api/users', ...) handler:
+// ...
+console.log('--- DIAGNOSTIC: GET /api/users Role Filtering ---'); // <--- ADD THIS LINE
+console.log('🔍 [API_USERS_DEBUG] req.query:', JSON.stringify(req.query, null, 2)); // <--- ADD THIS LINE
+console.log('🔍 [API_USERS_DEBUG] req.query.role RAW:', req.query.role); // <--- ADD THIS LINE
+console.log('🔍 [API_USERS_DEBUG] typeof req.query.role:', typeof req.query.role); // <--- ADD THIS LINE
+
+// Extract role(s) flexibly: allow 'role=guide' or 'role=admin,guide'
+let roles: string[] | undefined;
+if (typeof req.query.role === 'string' && req.query.role) {
+    roles = req.query.role.split(',').map(r => r.trim());
+} else if (Array.isArray(req.query.role)) {
+    roles = req.query.role.map(r => r.toString());
+}
+console.log('🔍 [API_USERS_DEBUG] Processed roles array:', roles); // <--- ADD THIS LINE
+
+// Get users for this outfitter, filtered by role(s)
+const users = await storage.getUsersByOutfitterId(outfitterId, roles);
+
+// ... rest of handler
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/routes.ts. After approval, you will perform a new test request from the frontend (to fetch guides for an experience) and provide the complete console output from these new logs.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [API_USERS_DEBUG] prefix are correctly added within the GET /api/users route handler in server/routes.ts.
+The logs correctly capture req.query, req.query.role (raw), its typeof, and the final roles array.
+No other unrelated functional code lines are affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to understand why the role parameter is not being processed.
