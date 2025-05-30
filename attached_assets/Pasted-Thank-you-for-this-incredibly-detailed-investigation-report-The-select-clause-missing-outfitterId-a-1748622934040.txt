@@ -1,0 +1,87 @@
+Thank you for this incredibly detailed investigation report. The select clause missing outfitterId and the missing user_outfitters record for John Guide are the definitive issues.
+
+Your primary task is to implement the following functional code fix in server/storage.ts and then perform the necessary data correction in the database.
+
+Specific Focus Areas for Modification:
+
+1. Modify storage.getUsersByOutfitterId Select Clause:
+File: server/storage.ts
+Location: Inside the async getUsersByOutfitterId(...) function, specifically the .select({ ... }) block.
+Proposed Code Changes:
+
+Find this block (the .select({ ... }) within getUsersByOutfitterId):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
+  // ...
+  const result = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      passwordHash: users.passwordHash,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions));
+  // ...
+}
+Replace it with (adding outfitterId to the select clause, aliased from userOutfitters):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
+  // ...
+  const result = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      passwordHash: users.passwordHash,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      // --- ADDED THIS LINE ---
+      outfitterId: userOutfitters.outfitterId // Select outfitterId from the joined table
+      // --- END ADDED LINE ---
+    })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions));
+  // ...
+}
+Also, ensure the User type definition in @shared/schema.ts (or wherever User is defined) is updated to include outfitterId: number; if it's not already. If User type is not easily modifiable in @shared, ensure this is handled by casting (e.g., (u as any).outfitterId) in the specific places where it's needed for now, and note it as a cleanup. For the return value of getUsersByOutfitterId, it should be Promise<Array<User & { outfitterId: number }>> or similar to explicitly type the selected outfitterId.
+
+2. Data Correction: Add user_outfitters Record for John Guide
+You identified that "John Guide (ID: test_guide_001)" is missing from the user_outfitters table. This is why he's not appearing.
+Action: Insert a record into the user_outfitters table to link John Guide (test_guide_001) to Outfitter ID 1, with a 'guide' role.
+Proposed Database Command:
+
+SQL
+
+INSERT INTO user_outfitters (user_id, outfitter_id, role, is_active, created_at, updated_at)
+VALUES ('test_guide_001', 1, 'guide', true, NOW(), NOW())
+ON CONFLICT (user_id, outfitter_id) DO NOTHING; -- Prevents errors if already exists
+(Ensure the user_id for John Guide is exactly test_guide_001 and outfitter ID is 1 as per your system's data).
+Output Required for My Review:
+Once you have implemented both the code modification and the data correction:
+
+Provide a comprehensive diff preview for server/storage.ts showing the change to the .select({ ... }) clause.
+Confirm that the database command to add John Guide's user_outfitters record was executed successfully.
+Success Criteria for My Approval:
+
+The outfitterId: userOutfitters.outfitterId field is correctly added to the .select({ ... }) clause in storage.getUsersByOutfitterId.
+The database record for John Guide (test_guide_001) is successfully inserted into the user_outfitters table, linking him to outfitter_id: 1 as a 'guide'.
+No other unrelated functional code lines are affected.
+The change directly resolves the outfitterId: undefined issue in query results and makes John Guide appear.
+I will not approve this step until these criteria are met. Once approved and implemented, we will retest the guide assignment dropdown and full guide assignment functionality.

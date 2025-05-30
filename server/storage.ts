@@ -233,6 +233,7 @@ export class DatabaseStorage implements IStorage {
         role: users.role,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
+        outfitterId: userOutfitters.outfitterId // Select outfitterId from the joined table
       })
       .from(users)
       .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
