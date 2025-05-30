@@ -60,11 +60,11 @@ export function ExperienceGuides({
   const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides);
   const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1);
 
-  // Fetch available guides with 'guide' role
+  // Fetch available guides with 'admin' and 'guide' roles
   const { data: availableGuides = [] } = useQuery({
-    queryKey: ['/api/users', { role: 'guide' }],
+    queryKey: ['/api/users', { roles: ['admin', 'guide'] }],
     queryFn: async () => {
-      const response = await fetch('/api/users?role=guide');
+      const response = await fetch('/api/users?role=admin,guide');
       if (!response.ok) throw new Error('Failed to fetch guides');
       return response.json();
     },

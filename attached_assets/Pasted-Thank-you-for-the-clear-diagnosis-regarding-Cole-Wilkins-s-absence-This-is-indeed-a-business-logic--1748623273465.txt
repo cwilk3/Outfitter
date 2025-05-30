@@ -1,0 +1,47 @@
+Thank you for the clear diagnosis regarding Cole Wilkins's absence. This is indeed a business logic decision, and we've already clarified our preference: both 'admin' and 'guide' roles should be selectable for experience assignment.
+
+Your primary task is to modify the frontend API call for available guides to request both 'admin' and 'guide' roles, leveraging the flexible role filtering capability we implemented on the backend.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/PublicBooking.tsx (Based on your previous analysis, the relevant useQuery is in this file, under experience-guides.tsx context from the report).
+Note: The analysis pointed to experience-guides.tsx, but then showed the useQuery in PublicBooking.tsx. I will assume it's PublicBooking.tsx as that's where we've been making frontend changes, and you explicitly referenced lines within it for other public API calls. If the useQuery is actually in a separate component/hook, please adjust accordingly.
+Location: The useQuery call that fetches availableGuides (as described in your analysis).
+Proposed Code Changes:
+
+Find this block (the useQuery for availableGuides):
+
+TypeScript
+
+const { data: availableGuides = [] } = useQuery({
+  queryKey: ['/api/users', { role: 'guide' }], // <--- This queryKey needs updating
+  queryFn: async () => {
+    const response = await fetch('/api/users?role=guide');  // <--- This URL needs updating
+    if (!response.ok) throw new Error('Failed to fetch guides');
+    return response.json();
+  },
+});
+Replace it with (modifying queryKey and queryFn to request both 'admin' and 'guide' roles):
+
+TypeScript
+
+const { data: availableGuides = [] } = useQuery({
+  queryKey: ['/api/users', { roles: ['admin', 'guide'] }], // <--- Update queryKey to reflect multiple roles
+  queryFn: async () => {
+    // Request both 'admin' and 'guide' roles
+    const response = await fetch('/api/users?role=admin,guide'); // <--- Update URL to request both roles
+    if (!response.ok) throw new Error('Failed to fetch guides');
+    return response.json();
+  },
+});
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/pages/PublicBooking.tsx (or client/src/components/experience-guides.tsx if the useQuery is actually located there).
+
+Success Criteria for My Approval:
+
+The useQuery call for availableGuides is modified to request both 'admin' and 'guide' roles.
+The queryKey includes outfitterId if that's part of the standard pattern for this query to ensure proper caching. (My previous prompt already set queryKey: ['/api/users', { role: 'guide' }], so adding outfitterId here if it's missing for this query would be good).
+The queryFn's URL correctly includes ?role=admin,guide.
+No other unrelated functional code lines are affected.
+The change directly implements the business logic decision to allow admins as assignable guides.
+I will not approve this step until these criteria are met. Once approved and implemented, we will retest the guide assignment dropdown.
