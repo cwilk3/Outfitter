@@ -1,0 +1,91 @@
+Thank you for definitively identifying the missing POST /api/experiences/:id/guides route. This is the core reason guide assignments are not saving.
+
+Your primary task is to implement this missing route in server/routes/experiences.ts. This route will handle assigning a guide to an experience.
+
+Specific Focus Areas for Modification:
+
+File: server/routes/experiences.ts
+Location: Place this new route logically with other experience-related routes (e.g., after the PUT /:id route for experiences, or near your other POST routes if that's a cleaner pattern).
+Proposed Code Changes:
+
+Add this new route block:
+
+TypeScript
+
+import { requireAuth } from '../middleware/auth'; // Ensure these are imported
+import { addOutfitterContext } from '../middleware/outfitter'; // Ensure these are imported
+import { adminOnly } from '../middleware/auth'; // Ensure this is imported for admin restriction
+import { asyncHandler } from '../utils/asyncHandler'; // Ensure this is imported
+import { storage } from '../storage'; // Ensure this is imported
+import { z } from 'zod'; // Ensure zod is imported if not already
+
+// Define a schema for the guide assignment payload
+const assignGuideSchema = z.object({
+  guideId: z.string().min(1, 'Guide ID is required'),
+  isPrimary: z.boolean().optional(), // Optional, if you're using this flag
+});
+
+router.post('/:id/guides', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id as string);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Validate path parameter
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
+  }
+
+  // Validate request body
+  const { guideId, isPrimary } = assignGuideSchema.parse(req.body);
+
+  // Basic authentication/authorization checks (middleware should handle most)
+  if (!user || !outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE assignment
+  const existingExperience = await storage.getExperience(experienceId); // Assuming storage.getExperience fetches by ID
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    // Return 404 to obscure existence for security
+    return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
+  }
+
+  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId });
+
+  // Call storage.updateExperience to handle the guide assignment
+  // The updateExperience function already handles updating guideId on experience and junction table logic.
+  const updatedExperience = await storage.updateExperience(
+    experienceId,
+    { guideId: guideId }, // Pass the new guideId to updateExperience
+    outfitterId
+  );
+
+  if (!updatedExperience) {
+    console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to update experience with new guide:', { experienceId, guideId });
+    return res.status(500).json({ message: 'Failed to assign guide.' });
+  }
+
+  console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId });
+  res.status(200).json(updatedExperience);
+}));
+Also, ensure the following imports are present at the top of server/routes/experiences.ts if not already:
+
+import { requireAuth, adminOnly } from '../middleware/auth';
+import { addOutfitterContext } from '../middleware/outfitter';
+import { asyncHandler } from '../utils/asyncHandler';
+import { storage } from '../storage';
+import { z } from 'zod';
+Output Required for My Review:
+Once you have implemented this new route, please provide a comprehensive diff preview for server/routes/experiences.ts.
+
+Success Criteria for My Approval:
+
+The new POST /api/experiences/:id/guides route is correctly added to server/routes/experiences.ts.
+It includes requireAuth, addOutfitterContext, and adminOnly middleware.
+It correctly extracts experienceId from params and guideId (and isPrimary if used in payload) from the request body.
+It performs the necessary tenant isolation check (existingExperience.outfitterId !== outfitterId).
+It correctly calls storage.updateExperience with the experienceId, the guideId payload, and outfitterId.
+It handles success (200 OK) and error responses (400, 401, 403, 404, 500).
+Any necessary imports are present.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This is the final piece to enable guide assignment saving!

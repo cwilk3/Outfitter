@@ -320,26 +320,68 @@ router.delete('/:experienceId/addons/:addonId', adminOnly, asyncHandler(async (r
   res.status(204).end();
 }));
 
-// Experience-Location association routes (NEW - was missing!)
-router.post('/experience-locations', adminOnly, asyncHandler(async (req: Request, res: Response) => {
-  const validatedData = insertExperienceLocationSchema.parse(req.body);
+// Define schema for guide assignment payload
+const assignGuideSchema = z.object({
+  guideId: z.string().min(1, 'Guide ID is required'),
+  isPrimary: z.boolean().optional().default(false),
+});
+
+// POST /api/experiences/:id/guides - Assign a guide to an experience (admin only)
+router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id);
   const user = (req as any).user;
   const outfitterId = user?.outfitterId;
 
-  if (!outfitterId) {
-    return res.status(401).json({ error: "Authentication required" });
+  // Validate path parameter
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
   }
 
-
-
-  // Call storage function with tenant context - THIS IS THE CRITICAL FIX!
-  const result = await storage.addExperienceLocation(validatedData, outfitterId);
-  
-  if (!result) {
-    return res.status(404).json({ error: "Experience not found or unauthorized" });
+  // Validate request body
+  const validationResult = assignGuideSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    return res.status(400).json({ 
+      message: 'Invalid request data', 
+      errors: validationResult.error.errors 
+    });
   }
 
-  res.status(201).json(result);
+  const { guideId, isPrimary } = validationResult.data;
+
+  // Basic authentication/authorization checks
+  if (!user || !outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE assignment
+  const existingExperience = await storage.getExperience(experienceId);
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    // Return 404 to obscure existence for security
+    return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
+  }
+
+  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId, isPrimary });
+
+  try {
+    // Call storage.updateExperience to handle the guide assignment
+    // The updateExperience function already handles updating guideId on experience and junction table logic
+    const updatedExperience = await storage.updateExperience(
+      experienceId,
+      { guideId: guideId }, // Pass the new guideId to updateExperience
+      outfitterId
+    );
+
+    if (!updatedExperience) {
+      console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to update experience with new guide:', { experienceId, guideId });
+      return res.status(500).json({ message: 'Failed to assign guide.' });
+    }
+
+    console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId });
+    res.status(200).json(updatedExperience);
+  } catch (error) {
+    console.error('❌ [ASSIGN_GUIDE_ROUTE] Error during guide assignment:', error);
+    res.status(500).json({ message: 'Internal server error during guide assignment.' });
+  }
 }));
 
 router.get('/experience-locations', asyncHandler(async (req: Request, res: Response) => {

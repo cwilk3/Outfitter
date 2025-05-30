@@ -1,0 +1,29 @@
+Thank you for providing the detailed diff preview. The POST /api/experiences/:id/guides route is perfectly implemented and fully approved.
+
+However, you have included two routes that were not requested in the previous prompt: GET /api/experiences/:id/guides and POST /api/experience-locations. We need to ensure we stick strictly to the requested changes to maintain control over the codebase.
+
+Your primary task is to implement the approved POST /api/experiences/:id/guides route and explicitly remove the two unrequested routes.
+
+Specific Actions to Perform:
+
+Implement the POST /api/experiences/:id/guides Route:
+
+Implement this route exactly as detailed in your "PROPOSED REPLACEMENT" block from the diff preview, including the assignGuideSchema definition.
+Remove the Unrequested GET /api/experiences/:id/guides Route:
+
+Remove the entire block for this route that you added in the diff preview. It starts with // GET /api/experiences/:id/guides - Get guides assigned to an experience and ends right before your approved POST route.
+Remove the Unrequested POST /api/experience-locations Route:
+
+Remove the entire block for this route that starts with // Experience-Location association routes (NEW - was missing!) and its handler.
+Output Required for My Review:
+Please provide a comprehensive diff preview for server/routes/experiences.ts that shows:
+
+The addition of ONLY the approved POST /api/experiences/:id/guides route.
+The removal of the two unrequested routes (GET /api/experiences/:id/guides and POST /api/experience-locations).
+Success Criteria for My Approval:
+
+The POST /api/experiences/:id/guides route is correctly added as specified in the previous approval.
+The GET /api/experiences/:id/guides route (the unrequested one) is completely removed.
+The POST /api/experience-locations route (the unrequested one) is completely removed.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This will ensure our codebase remains clean and exactly as approved.
