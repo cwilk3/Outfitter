@@ -1,0 +1,75 @@
+Thank you for providing the Jest configuration and confirming the test execution timeout during test suite discovery. This points directly to a module resolution or TypeScript compilation issue within the Jest setup.
+
+As per Jules's excellent suggestion, your primary task is to simplify the ts-jest configuration within jest.config.cjs to resolve potential module resolution conflicts and compilation complexities.
+
+Specific Focus Areas for Modification:
+
+File: jest.config.cjs
+Location: Inside the transform object, specifically within the ts-jest options for TypeScript files.
+Proposed Code Changes:
+
+Find this block (within jest.config.cjs, approximately Lines 11-23):
+
+JavaScript
+
+module.exports = {
+  // ... other Jest config
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: false, // <--- NOTE: This was here in the original
+      tsconfig: {
+        module: 'commonjs',
+        target: 'es2020',
+        moduleResolution: 'node',
+        allowJs: true,
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        strict: false,
+        skipLibCheck: true,
+        forceConsistentCasingInFileNames: true
+      }
+    }]
+  },
+  // ... rest of Jest config
+};
+Replace it with (simplifying ts-jest tsconfig and adding diagnostics ignore):
+
+JavaScript
+
+module.exports = {
+  // ... other Jest config
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      // It's crucial to explicitly set useESM: false for CommonJS output when not running Node.js ESM tests
+      // For this specific setup, we'll revert to default-esm preset's useESM logic or ensure it's off if needed.
+      // However, per Jules's suggestion, focus on tsconfig overrides.
+      // The preset 'ts-jest/presets/default-esm' and useESM: true (from the previous prompt)
+      // implies ESM. Let's simplify the *internal* tsconfig overrides as suggested by Jules.
+      diagnostics: { // <--- ADD THIS DIAGNOSTICS BLOCK
+        ignoreCodes: [151001, 151002] // Add common ts-jest ESM-related diagnostic codes
+      },
+      tsconfig: { // <--- SIMPLIFIED tsconfig overrides
+        // Minimal essential overrides for Jest compilation context
+        module: 'commonjs', // Compiles TypeScript to CommonJS for Jest
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        skipLibCheck: true, // Speeds up compilation, good for testing
+        // You can remove other specific tsconfig options like 'target', 'moduleResolution', 'strict', 'forceConsistentCasingInFileNames'
+        // if they are already handled by your main tsconfig.json or cause conflict.
+        // The goal is minimal overrides.
+      }
+    }]
+  },
+  // ... rest of Jest config
+};
+Important Note: The original jest.config.cjs you provided had preset: 'ts-jest/presets/default' and useESM: false inside the transform block, but also preset: 'ts-jest/presets/default-esm' and extensionsToTreatAsEsm: ['.ts'] in your previous prompt for the diff preview before it timed out. This suggests there might be an inconsistency in ts-jest's ESM setup. For now, let's strictly follow Jules's suggestion for simplifying the tsconfig overrides.
+
+Output Required for My Review:
+
+Provide a comprehensive diff preview of the modified jest.config.cjs file.
+Success Criteria for My Approval:
+
+The diagnostics block is added to ts-jest options with ignoreCodes.
+The tsconfig overrides within ts-jest options are simplified as specified (module, esModuleInterop, allowSyntheticDefaultImports, skipLibCheck).
+No other unrelated code changes are proposed.
+I will not approve further steps until these criteria are met. Please proceed with simplifying the Jest configuration.

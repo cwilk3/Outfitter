@@ -14,17 +14,14 @@ module.exports = {
   // TypeScript transformation
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      useESM: false,
+      diagnostics: {
+        ignoreCodes: [151001, 151002]
+      },
       tsconfig: {
         module: 'commonjs',
-        target: 'es2020',
-        moduleResolution: 'node',
-        allowJs: true,
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
-        strict: false,
-        skipLibCheck: true,
-        forceConsistentCasingInFileNames: true
+        skipLibCheck: true
       }
     }]
   },
