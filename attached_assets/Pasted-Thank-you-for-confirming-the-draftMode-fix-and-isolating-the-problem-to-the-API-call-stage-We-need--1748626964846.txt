@@ -1,0 +1,69 @@
+Thank you for confirming the draftMode fix and isolating the problem to the API call stage. We need to understand why the POST /api/experiences/{id}/guides request is failing before reaching the server logs.
+
+Your primary task is to use browser developer tools to inspect the network request, and to add client-side diagnostic logging to pinpoint the exact failure point.
+
+Specific Actions to Perform:
+
+Inspect Browser Network Tab:
+
+Open your browser's developer tools.
+Go to the "Network" tab.
+Reproduce the guide assignment attempt (e.g., by editing an experience and trying to assign a guide).
+Observe the POST request to /api/experiences/:id/guides.
+Capture and report the following details for this request:
+HTTP Status Code (e.g., 200, 401, 404, 500, or a "blocked" status).
+Full Request URL.
+Request Headers (especially Authorization, Cookie, Content-Type, and any Origin headers).
+Request Payload/Body.
+Response Headers.
+Response Preview/Body.
+Any red errors or warnings in the Network tab (e.g., "CORS error," "blocked by client," "failed to load resource").
+Add Client-Side Diagnostic Logging:
+
+File: client/src/components/ui/experience-guides.tsx (or the relevant component/hook making the guide assignment POST request).
+Location: Just before the assignGuideMutation.mutate() call (or the fetch/apiRequest call if it's direct).
+Proposed Code Changes (applying to experience-guides.tsx):
+
+Find this block (within handleAssignGuide function):
+
+TypeScript
+
+// Inside handleAssignGuide function
+if (draftMode) {
+  // ... draft mode logic ...
+} else {
+  // This is where the API call is attempted
+  assignGuideMutation.mutate({ guideId: selectedGuideId, isPrimary });
+}
+Replace it with (adding diagnostic logging before mutate):
+
+TypeScript
+
+// Inside handleAssignGuide function
+if (draftMode) {
+  // ... draft mode logic ...
+} else {
+  // --- START NEW FRONTEND DIAGNOSTIC LOGGING ---
+  console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Attempting guide assignment API call.');
+  console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Guide ID being sent:', selectedGuideId);
+  console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Experience ID:', experienceId);
+  console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Request Payload for Mutation:', {
+    guideId: selectedGuideId,
+    experienceId: experienceId // Assuming experienceId is available
+  });
+  // --- END NEW FRONTEND DIAGNOSTIC LOGGING ---
+  assignGuideMutation.mutate({ guideId: selectedGuideId, isPrimary });
+}
+Output Required for My Review:
+Please provide:
+
+A detailed report from the Browser Network Tab as requested above (HTTP Status, URL, Headers, Payload, Response, Errors).
+A comprehensive diff preview of the modified client/src/components/ui/experience-guides.tsx file, showing the added diagnostic logging.
+The complete console output from the browser's developer tools after a guide assignment attempt.
+Success Criteria for My Approval (for this diagnostic phase):
+
+The browser network tab details are provided.
+The frontend diagnostic logging is correctly added.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+This investigation is crucial to identify the exact cause of the API call failure. I await your detailed report.

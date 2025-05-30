@@ -313,6 +313,18 @@ export function ExperienceGuides({
       // Determine if this should be primary (make first guide primary by default)
       const isPrimary = assignedGuides.length === 0;
       
+      // --- START NEW FRONTEND DIAGNOSTIC LOGGING ---
+      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Attempting guide assignment API call.');
+      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Guide ID being sent:', selectedGuideId);
+      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Experience ID:', experienceId);
+      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] isPrimary flag:', isPrimary);
+      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Request Payload for Mutation:', {
+        guideId: selectedGuideId,
+        isPrimary: isPrimary,
+        experienceId: experienceId
+      });
+      // --- END NEW FRONTEND DIAGNOSTIC LOGGING ---
+      
       assignGuideMutation.mutate({ 
         guideId: selectedGuideId, 
         isPrimary 
