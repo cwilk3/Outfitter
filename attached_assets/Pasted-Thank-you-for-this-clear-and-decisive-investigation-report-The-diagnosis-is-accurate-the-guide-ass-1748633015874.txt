@@ -1,0 +1,149 @@
+Thank you for this clear and decisive investigation report. The diagnosis is accurate: the guide assignment system is missing a DELETE endpoint for unassignment, which explains why the UI shows success but the changes don't persist.
+
+Your primary task is to implement the missing DELETE /api/experiences/:id/guides/:guideId route on the backend, and its corresponding storage function, to enable guide unassignment.
+
+Specific Focus Areas for Modification:
+
+1. Implement New Route: DELETE /api/experiences/:id/guides/:guideId
+File: server/routes/experiences.ts
+Location: Place this new route logically with other experience related routes (e.g., near the POST /:id/guides route we just implemented).
+Proposed Code Changes:
+
+Add this new route block:
+
+TypeScript
+
+import { requireAuth, adminOnly } from '../middleware/auth'; // Ensure these are imported
+import { addOutfitterContext } from '../middleware/outfitter'; // Ensure these are imported
+import { asyncHandler } from '../utils/asyncHandler'; // Ensure this is imported
+import { storage } from '../storage'; // Ensure this is imported
+import { z } from 'zod'; // Ensure zod is imported if not already
+
+// ... (existing POST /api/experiences/:id/guides route and other routes) ...
+
+// DELETE /api/experiences/:id/guides/:guideId - Remove a guide from an experience (admin only)
+router.delete('/:id/guides/:guideId', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id as string);
+  const guideId = req.params.guideId as string;
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Validate path parameters
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
+  }
+  if (!guideId || typeof guideId !== 'string' || guideId.trim() === '') {
+    return res.status(400).json({ message: 'Invalid guide ID format.' });
+  }
+
+  // Basic authentication/authorization checks
+  if (!user || !outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE unassignment
+  const existingExperience = await storage.getExperience(experienceId);
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    // Return 404 to obscure existence for security
+    return res.status(404).json({ error: 'Experience not found or not authorized for unassignment.' });
+  }
+
+  console.log('✅ [UNASSIGN_GUIDE_ROUTE] Attempting to unassign guide', { experienceId, guideId, outfitterId });
+
+  try {
+    // Call storage function to remove the guide assignment
+    // This function will also handle setting guideId to null on the experiences table
+    const success = await storage.removeGuideFromExperience(experienceId, guideId, outfitterId);
+
+    if (!success) {
+      // This might happen if the guide was not assigned, or experience ID mismatch
+      return res.status(404).json({ message: 'Guide not assigned to this experience or unassignment failed.' });
+    }
+
+    console.log('🔄 [SUCCESS] Guide unassigned from experience:', { experienceId, guideId });
+    res.status(204).end(); // 204 No Content for successful deletion
+  } catch (error) {
+    console.error('❌ [UNASSIGN_GUIDE_ROUTE] Error during guide unassignment:', error);
+    res.status(500).json({ message: 'Internal server error during guide unassignment.' });
+  }
+}));
+2. Implement New Storage Function: storage.removeGuideFromExperience
+File: server/storage.ts
+Location: Add this new function logically within your storage service (e.g., near updateExperience).
+Proposed Code Changes:
+
+Add this new function block:
+
+TypeScript
+
+// Add to IStorage interface if you have one:
+// removeGuideFromExperience(experienceId: number, guideId: string, outfitterId: number): Promise<boolean>;
+
+// ... (other storage functions) ...
+
+async removeGuideFromExperience(experienceId: number, guideId: string, outfitterId: number): Promise<boolean> {
+  // First, verify the experience exists and belongs to the outfitter
+  const existingExperience = await db.query.experiences.findFirst({
+    where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+    columns: { id: true, outfitterId: true, guideId: true }
+  });
+
+  if (!existingExperience) {
+    console.error(`[STORAGE_REMOVE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId} for removal.`);
+    return false; // Experience not found or not authorized
+  }
+
+  // Check if the guide is actually assigned to this experience.
+  // This is crucial, as the updateExperience function ensures consistency.
+  if (existingExperience.guideId !== guideId) {
+    console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but a different guide (${existingExperience.guideId}) is currently assigned.`);
+    return false; // Not assigned or already a different guide
+  }
+
+  // Use a transaction for atomicity if multiple DB operations are involved
+  try {
+    await db.transaction(async (tx) => {
+      // Step 1: Remove the specific guide from the junction table
+      await tx.delete(experienceGuides)
+        .where(and(
+          eq(experienceGuides.experienceId, experienceId),
+          eq(experienceGuides.guideId, guideId)
+        ));
+
+      // Step 2: Set guideId to null in the experiences table if this was the primary guide
+      await tx.update(experiences)
+        .set({ guideId: null, updatedAt: new Date() })
+        .where(eq(experiences.id, experienceId));
+    });
+
+    console.log(`[STORAGE_REMOVE_SUCCESS] Guide ${guideId} successfully unassigned from experience ${experienceId}.`);
+    return true;
+  } catch (error) {
+    console.error(`[STORAGE_REMOVE_ERROR] Database error during guide unassignment for experience ${experienceId}, guide ${guideId}:`, error);
+    return false;
+  }
+}
+Output Required for My Review:
+Once you have implemented both the new route and the new storage function, please provide a comprehensive diff preview that includes both modified files (server/routes/experiences.ts and server/storage.ts).
+
+Success Criteria for My Approval:
+
+DELETE /api/experiences/:id/guides/:guideId route:
+Is correctly added to server/routes/experiences.ts.
+Includes adminOnly middleware (which should cover requireAuth and addOutfitterContext).
+Correctly extracts experienceId and guideId from params.
+Performs isNaN validation for experienceId and basic format check for guideId.
+Includes tenant isolation check (existingExperience.outfitterId !== outfitterId).
+Correctly calls storage.removeGuideFromExperience with experienceId, guideId, and outfitterId.
+Returns 204 No Content on success and appropriate errors.
+storage.removeGuideFromExperience function:
+Is correctly implemented in server/storage.ts.
+Its signature matches (experienceId: number, guideId: string, outfitterId: number): Promise<boolean>.
+Includes tenant verification for existingExperience.
+Correctly uses db.transaction (as recommended) for atomicity.
+Deletes the specific experienceGuides entry for the experienceId and guideId.
+Sets experiences.guideId to null for that experienceId.
+Returns true on success, false on failure/not found.
+The IStorage interface (if present) is updated.
+No other unrelated functional code lines are affected.
+I will not approve this step until these criteria are met. This is the crucial fix for guide unassignment!

@@ -384,6 +384,53 @@ router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Res
   }
 }));
 
+// DELETE /api/experiences/:id/guides/:guideId - Remove a guide from an experience (admin only)
+router.delete('/:id/guides/:guideId', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id);
+  const guideId = req.params.guideId;
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Validate path parameters
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
+  }
+  if (!guideId || typeof guideId !== 'string' || guideId.trim() === '') {
+    return res.status(400).json({ message: 'Invalid guide ID format.' });
+  }
+
+  // Basic authentication/authorization checks
+  if (!user || !outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE unassignment
+  const existingExperience = await storage.getExperience(experienceId);
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    // Return 404 to obscure existence for security
+    return res.status(404).json({ error: 'Experience not found or not authorized for unassignment.' });
+  }
+
+  console.log('✅ [UNASSIGN_GUIDE_ROUTE] Attempting to unassign guide', { experienceId, guideId, outfitterId });
+
+  try {
+    // Call storage function to remove the guide assignment
+    // This function will also handle setting guideId to null on the experiences table
+    const success = await storage.removeGuideFromExperienceByGuideId(experienceId, guideId, outfitterId);
+
+    if (!success) {
+      // This might happen if the guide was not assigned, or experience ID mismatch
+      return res.status(404).json({ message: 'Guide not assigned to this experience or unassignment failed.' });
+    }
+
+    console.log('🔄 [SUCCESS] Guide unassigned from experience:', { experienceId, guideId });
+    res.status(204).end(); // 204 No Content for successful deletion
+  } catch (error) {
+    console.error('❌ [UNASSIGN_GUIDE_ROUTE] Error during guide unassignment:', error);
+    res.status(500).json({ message: 'Internal server error during guide unassignment.' });
+  }
+}));
+
 router.get('/experience-locations', asyncHandler(async (req: Request, res: Response) => {
   const locations = await storage.getAllExperienceLocations();
   res.json(locations);

@@ -46,6 +46,7 @@ export interface IStorage {
   updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>): Promise<ExperienceGuide | undefined>;
   removeGuideFromExperience(id: number): Promise<void>;
   removeGuideFromExperienceWithTenant(id: number, outfitterId: number): Promise<void>;
+  removeGuideFromExperienceByGuideId(experienceId: number, guideId: string, outfitterId: number): Promise<boolean>;
   getExperiencesForGuide(guideId: string): Promise<Experience[]>;
 
   // Location operations
@@ -928,6 +929,50 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(experiences, eq(experienceGuides.experienceId, experiences.id))
       .where(eq(experienceGuides.guideId, guideId))
       .then(rows => rows.map(row => row.experience));
+  }
+
+  // Remove a guide from an experience by guideId (new implementation for DELETE route)
+  async removeGuideFromExperienceByGuideId(experienceId: number, guideId: string, outfitterId: number): Promise<boolean> {
+    // First, verify the experience exists and belongs to the outfitter
+    const existingExperience = await db.query.experiences.findFirst({
+      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+      columns: { id: true, outfitterId: true, guideId: true }
+    });
+
+    if (!existingExperience) {
+      console.error(`[STORAGE_REMOVE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId} for removal.`);
+      return false; // Experience not found or not authorized
+    }
+
+    // Check if the guide is actually assigned to this experience.
+    // This is crucial, as the updateExperience function ensures consistency.
+    if (existingExperience.guideId !== guideId) {
+      console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but a different guide (${existingExperience.guideId}) is currently assigned.`);
+      return false; // Not assigned or already a different guide
+    }
+
+    // Use a transaction for atomicity if multiple DB operations are involved
+    try {
+      await db.transaction(async (tx) => {
+        // Step 1: Remove the specific guide from the junction table
+        await tx.delete(experienceGuides)
+          .where(and(
+            eq(experienceGuides.experienceId, experienceId),
+            eq(experienceGuides.guideId, guideId)
+          ));
+
+        // Step 2: Set guideId to null in the experiences table if this was the primary guide
+        await tx.update(experiences)
+          .set({ guideId: null, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId));
+      });
+
+      console.log(`[STORAGE_REMOVE_SUCCESS] Guide ${guideId} successfully unassigned from experience ${experienceId}.`);
+      return true;
+    } catch (error) {
+      console.error(`[STORAGE_REMOVE_ERROR] Database error during guide unassignment for experience ${experienceId}, guide ${guideId}:`, error);
+      return false;
+    }
   }
   
   // ADDON INVENTORY PER-DAY TRACKING

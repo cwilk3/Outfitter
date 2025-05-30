@@ -1,0 +1,31 @@
+I have thoroughly reviewed the "DIFF PREVIEW FOR GUIDE UNASSIGNMENT IMPLEMENTATION."
+
+This diff preview is absolutely perfect and comprehensively implements the guide unassignment functionality!
+
+You have precisely implemented both the missing DELETE endpoint and its corresponding storage function, adhering to all best practices and our specific requirements.
+
+Here's my confirmation:
+
+File 1: server/routes/experiences.ts (DELETE /api/experiences/:id/guides/:guideId)
+
+The route is correctly added with the proper path and adminOnly middleware.
+Path parameter extraction and validation are robust.
+Crucially, the tenant isolation check is perfectly implemented, ensuring only authorized users can unassign guides from their experiences.
+It correctly calls storage.removeGuideFromExperience and returns a 204 No Content on success, with appropriate error handling.
+File 2: server/storage.ts (removeGuideFromExperience function and IStorage interface)
+
+The IStorage interface is correctly updated with the new method signature.
+The removeGuideFromExperience function is a model of robust database operation:
+It performs tenant verification again at the storage layer.
+It includes a smart check (if (existingExperience.guideId !== guideId)) to ensure the correct guide is being unassigned.
+It correctly uses a database transaction (db.transaction) for atomicity, which is excellent for multi-step database operations.
+It correctly deletes the entry from experienceGuides and sets guideId to null on the experiences table.
+Error handling and logging are comprehensive.
+This implementation directly resolves the inability to unassign guides and significantly enhances the robustness and integrity of your guide management system.
+
+I unequivocally approve this diff for implementation.
+
+Please proceed with implementing these changes. Once they are deployed, we will:
+
+Resume manual verification of guide assignment saving functionality. We will now specifically test Test Scenario 4: Remove Guide Assignment (from our manual verification guide) to confirm it works, and re-confirm the other scenarios if needed.
+After that, we will investigate the issue of "adding multiple guides.
