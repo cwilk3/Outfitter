@@ -1,0 +1,41 @@
+Thank you for confirming the complete success of the guide assignment functionality! This is a tremendous achievement.
+
+Now, let's address the new errors you're noticing regarding deleting or unassigning guides from an experience. This is crucial for full guide management.
+
+Your primary task is to investigate what happens when you attempt to delete or unassign a guide from an existing experience, to understand why errors are occurring.
+
+Specific Actions to Perform:
+
+Reproduce the Issue:
+
+Go to an experience that currently has a guide assigned.
+Enter "Edit" mode for that experience.
+Attempt to "Clear" or "Unassign" the guide (or select a "No Guide" option if available).
+Save/Update the experience.
+Capture Diagnostic Information:
+
+Browser Console Output: Capture any new console.log messages or JavaScript errors that appear in the browser developer tools.
+Browser Network Tab: Inspect the API call made when you attempt to unassign/delete the guide.
+HTTP Status Code.
+Full Request URL.
+Request Headers.
+Request Payload/Body (confirming guideId: null or similar is sent).
+Response Headers.
+Response Preview/Body.
+Any red errors/warnings.
+Server Console Output: Capture any new console.log messages or backend errors that appear in the server console during the unassignment attempt.
+Output Required for My Review:
+Please provide:
+
+A detailed step-by-step report of your manual test, including:
+What you clicked/did.
+What you observed in the UI (e.g., guide disappeared temporarily, stayed, UI error).
+The complete console output from the browser's developer tools (both console.log and error messages).
+A detailed report from the Browser Network Tab for the API call made during the unassignment attempt.
+The complete console output from the server during the unassignment attempt.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, detailed report outlining the symptoms and captured diagnostic information.
+The report includes all requested console and network tab outputs.
+No code changes are proposed in this step; this is purely an investigative report.
+This investigation is crucial to understanding the problem with deleting/unassigning guides. I await your detailed report! 
