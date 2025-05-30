@@ -1,0 +1,108 @@
+Thank you for the diff preview. You've correctly identified the need to synchronize frontend form state. However, there's a redundancy in the proposed onSuccess callbacks that needs to be corrected.
+
+Your primary task is to implement the fix for frontend form state synchronization, ensuring that all state updates and parent notifications for guide unassignment are handled only within the main removeGuideMutation's onSuccess handler, removing any redundant inline onSuccess callbacks.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Modification 1: Update removeGuideMutation's onSuccess handler (as previously proposed and approved in principle). This will be the sole place for state updates and parent notification.
+Modification 2: Remove the inline onSuccess callback from the removeGuideMutation.mutate() call within handleRemoveGuide.
+Proposed Code Changes:
+
+1. Update removeGuideMutation's onSuccess handler (Final version):
+Find this block (the onSuccess handler within removeGuideMutation definition):
+
+TypeScript
+
+// CURRENT (Lines 220-247 from your diff):
+onSuccess: () => {
+  console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
+  
+  // Invalidate related queries to refresh UI
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+  
+  // Force refetch to ensure UI consistency
+  setTimeout(() => {
+    refetchAssignedGuides();
+  }, 100);
+  
+  toast({
+    title: 'Guide unassigned!',
+    description: 'The guide has been successfully removed from this experience.',
+  });
+},
+Replace it with (this is the correct, comprehensive onSuccess):
+
+TypeScript
+
+onSuccess: (data, variables) => { // Ensure data and variables are accessible
+  console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
+  
+  // Invalidate related queries to refresh UI
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+  queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Added this invalidation
+  
+  // Update local state by filtering the removed guide
+  const updatedAssignedGuides = (assignedGuides || []).filter(
+    (g: ExperienceGuide) => g.guideId !== variables.guideId // Use variables.guideId
+  );
+  
+  // Notify parent component about the change in assigned guides
+  if (onChange) {
+    onChange(updatedAssignedGuides); 
+  }
+  
+  // Force refetch to ensure UI consistency (optional, query invalidation usually sufficient)
+  setTimeout(() => {
+    refetchAssignedGuides();
+  }, 100);
+  
+  toast({
+    title: 'Guide unassigned!',
+    description: 'The guide has been successfully removed from this experience.',
+  });
+},
+2. Update handleRemoveGuide mutation call (Remove inline onSuccess):
+Find this block (the mutate() call within handleRemoveGuide):
+
+TypeScript
+
+// CURRENT (Lines 393-398 from your diff):
+// Call the new mutation with experienceId and guideId
+removeGuideMutation.mutate({ 
+  experienceId: experienceId, 
+  guideId: guideBeingRemoved.guideId 
+}, { // <--- This entire object needs to be removed
+  onSuccess: () => {
+    // Update local assignedGuides state immediately
+    const updatedAssignedGuides = assignedGuides.filter(
+      (g: ExperienceGuide) => g.guideId !== guideBeingRemoved.guideId
+    );
+    
+    // Notify parent component to update its form state
+    if (onChange) {
+      onChange(updatedAssignedGuides);
+    }
+  }
+});
+Replace it with (a simple mutate call without inline onSuccess):
+
+TypeScript
+
+// Call the new mutation with experienceId and guideId
+removeGuideMutation.mutate({ 
+  experienceId: experienceId, 
+  guideId: guideBeingRemoved.guideId 
+}); // <--- REMOVED THE INLINE onSUCCESS CALLBACK
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval:
+
+The removeGuideMutation's main onSuccess handler (Modification 1) is correctly updated to handle all state updates, query invalidations, and parent notifications.
+The inline onSuccess callback from the removeGuideMutation.mutate() call within handleRemoveGuide (Modification 2) is completely removed.
+No other unrelated functional code is affected.
+The change directly resolves the guide re-assignment issue by syncing frontend form state with backend removal, without redundancy.
+I will not approve this step until these criteria are met. This will ensure a clean and correct implementation.

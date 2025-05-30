@@ -1,0 +1,114 @@
+Thank you for this precise analysis. The DELETE API for guide unassignment is working perfectly, but the frontend form state is out of sync, leading to accidental re-assignment.
+
+Your primary task is to modify the handleRemoveGuide function in client/src/components/ui/experience-guides.tsx to update the form's state correctly when a guide is unassigned in 'normal' (non-draft) mode.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the handleRemoveGuide function, specifically within the else block (normal mode).
+Proposed Code Changes (applying to handleRemoveGuide):
+
+Find this block (within handleRemoveGuide's else block, after removeGuideMutation.mutate call):
+
+TypeScript
+
+    // ... inside handleRemoveGuide's else block ...
+    // Call the new mutation with experienceId and guideId
+    removeGuideMutation.mutate({ 
+      experienceId: experienceId, 
+      guideId: guideBeingRemoved.guideId 
+    });
+  }
+};
+Replace it with (adding logic to update local assignedGuides state and notify parent):
+
+TypeScript
+
+    // ... inside handleRemoveGuide's else block ...
+    // Call the new mutation with experienceId and guideId
+    removeGuideMutation.mutate({ 
+      experienceId: experienceId, 
+      guideId: guideBeingRemoved.guideId 
+    }, {
+      onSuccess: () => {
+        // Optimistically update UI or ensure a re-fetch handles it
+        // Ensure the local 'assignedGuides' state is updated immediately
+        const updatedAssignedGuides = assignedGuides.filter(
+          (g: ExperienceGuide) => g.guideId !== guideBeingRemoved.guideId
+        );
+        // Assuming there's a setter for assignedGuides, or it's derived from a query that will invalidate
+        // For now, let's assume `assignedGuides` is derived from the query, and query invalidation will handle the UI update.
+        // The most critical part is to inform the PARENT component about the change if 'onChange' is used for submission payload.
+        if (onChange) { // <--- ADD THIS BLOCK
+            onChange(updatedAssignedGuides); // Notify parent to update its form state
+        }
+      }
+    });
+  }
+};
+Also, ensure the removeGuideMutation's onSuccess handler (the one directly passed to useMutation) is updated to include onChange as well, as it's the ultimate source of truth for the parent component's form state.
+
+Find removeGuideMutation definition (lines 233-277 approximate) onSuccess block:
+
+TypeScript
+
+const removeGuideMutation = useMutation({
+  // ...
+  onSuccess: () => {
+    // ... existing invalidation and toast ...
+    if (onChange) { // <--- ADD THIS BLOCK
+        // You'll need the 'data' passed to onSuccess to filter. Or rely on query invalidation.
+        // For simplicity, let's just invalidate queries and then ensure the parent reads updated data.
+        // If assignedGuides is local state in this component, you'll need to update it here too.
+    }
+  },
+  // ...
+});
+Replace removeGuideMutation's onSuccess handler with this, ensuring onChange is called:
+
+TypeScript
+
+const removeGuideMutation = useMutation({
+  // ...
+  onSuccess: (data, variables) => { // Access 'variables' to get the guideId that was removed
+    console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience.');
+    
+    // Invalidate related queries to refresh UI data
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
+    
+    // Update local state by filtering the removed guide
+    const updatedAssignedGuides = (assignedGuides || []).filter(
+        (g: ExperienceGuide) => g.guideId !== variables.guideId
+    );
+    // Assuming setAssignedGuides exists or similar state update in this component
+    // If not, rely solely on query invalidation to update state.
+    
+    // Notify parent component about the change in assigned guides
+    if (onChange) { // <--- CRITICAL: Pass the updated list to the parent
+        onChange(updatedAssignedGuides); 
+    }
+    
+    toast({
+      title: 'Guide unassigned!',
+      description: 'The guide has been successfully removed from this experience.',
+    });
+  },
+  onError: (error) => {
+    // ... existing onError ...
+  },
+});
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval:
+
+The handleRemoveGuide function (in 'normal' mode) correctly calls removeGuideMutation.mutate().
+The removeGuideMutation's onSuccess callback:
+Correctly filters assignedGuides to create updatedAssignedGuides.
+Calls onChange(updatedAssignedGuides) to notify the parent component and update its form state.
+The assignedGuides state (if managed locally within experience-guides.tsx) is correctly updated.
+No other unrelated functional code is affected.
+The change directly resolves the guide re-assignment issue by syncing frontend form state with backend removal.
+I will not approve this step until these criteria are met. This will complete the guide unassignment functionality!

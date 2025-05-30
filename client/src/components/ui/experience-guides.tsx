@@ -219,12 +219,23 @@ export function ExperienceGuides({
       console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] API response for unassignment:', response);
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
       
       // Invalidate related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] });
+      
+      // Update local state by filtering the removed guide
+      const updatedAssignedGuides = (assignedGuides || []).filter(
+        (g: ExperienceGuide) => g.guideId !== variables.guideId
+      );
+      
+      // Notify parent component about the change in assigned guides
+      if (onChange) {
+        onChange(updatedAssignedGuides); 
+      }
       
       // Force refetch to ensure UI consistency
       setTimeout(() => {
