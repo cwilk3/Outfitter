@@ -1,0 +1,32 @@
+Thank you for the critical diagnostic report. The fact that tests/minimal.test.ts also times out definitively confirms a fundamental issue with Jest's setup in this environment.
+
+Your primary task is to halt all further debugging and investigation into Jest's execution environment issues. We will consider getting the test runner fully operational as a separate, deferred infrastructure task.
+
+Instead, we will now proceed with manual verification of the guide assignment feature.
+
+Specific Actions to Perform:
+
+Confirm the current state of the server/emailAuth.ts and server/routes/experiences.ts files:
+
+Ensure that all the functional code changes related to the guide assignment feature (adding guideId to schemas, routes, and storage functions) are still correctly applied and active in the running application. (The changes from Phase A, B, and C of our guide assignment fix).
+Specifically, the guideId column should exist in the database, createExperience and updateExperience in server/storage.ts should handle guideId, and the POST and PUT routes in server/routes/experiences.ts should be passing/handling guideId and performing tenant checks.
+Prepare for Manual Verification Steps:
+
+Provide the steps necessary for me to manually test the guide assignment feature in the running application. These steps should cover:
+Creating a new experience and assigning a guide during creation.
+Editing an existing experience to assign a guide.
+Editing an existing experience to change a guide.
+Editing an existing experience to remove a guide.
+Verifying that assigned guides appear correctly on the experience details.
+Verifying multi-tenant isolation (e.g., ensure guides for other outfitters cannot be assigned, or that experiences from other outfitters cannot be edited).
+Output Required for My Review:
+Please provide:
+
+Confirmation that the functional guide assignment code changes are still active in the current application state.
+A detailed, step-by-step guide for manually verifying the guide assignment feature in the running application, covering the scenarios outlined above.
+Success Criteria for My Approval:
+
+Confirmation that the functional code changes for guide assignment are present and active.
+A clear, actionable guide for manual verification.
+No further attempts to debug Jest or run automated tests are made at this time.
+I will not approve further steps until these criteria are met. Please proceed with confirming the code and preparing for manual verification
