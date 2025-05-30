@@ -1,0 +1,125 @@
+Thank you for that crucial clarification. It is a very common use case to allow both 'admin' and 'guide' roles to be assignable as guides for an experience. We need to ensure the /api/users endpoint supports this flexibility.
+
+Your task is to modify the /api/users endpoint and its corresponding storage function (storage.getUsersByOutfitterId) to properly filter users by outfitterId and a flexible set of roles (allowing either a single role or multiple roles like 'admin' and 'guide').
+
+Specific Focus Areas for Modification:
+
+1. Modify Route Handler: GET /api/users
+File: server/routes/users.ts (or server/routes/index.ts if this route is defined there).
+As per previous investigations, let's assume this route is defined as a direct app.get call in server/routes.ts or server/routes/index.ts for the main API router.
+
+Location: Within the router.get('/api/users', ...) handler.
+
+Proposed Code Changes:
+
+Find this block (within the GET /api/users handler):
+
+TypeScript
+
+// Inside the router.get('/api/users', ...) handler:
+// ... authentication and outfitter context middleware would have run ...
+const user = (req as any).user;
+const outfitterId = user.outfitterId; // Assumes outfitterId is available from middleware
+const role = req.query.role as string | undefined; // <--- This line will be modified
+// ...
+
+// Get users for this outfitter, filtered by role
+const users = await storage.getUsersByOutfitterId(outfitterId, role); // <--- This call will be modified
+
+// ... rest of handler
+Replace it with (extracting role(s) flexibly and passing them):
+
+TypeScript
+
+// Inside the router.get('/api/users', ...) handler:
+// ... authentication and outfitter context middleware would have run ...
+const user = (req as any).user;
+const outfitterId = user.outfitterId; // Assumes outfitterId is available from middleware
+
+// Extract role(s) flexibly: allow 'role=guide' or 'role=admin,guide'
+// If query param is 'role=guide', it's a string. If 'role=admin,guide', Express's req.query might parse it as a string or array depending on body-parser/query-parser settings.
+// Let's explicitly handle it as a string that might need splitting.
+let roles: string[] | undefined;
+if (typeof req.query.role === 'string' && req.query.role) {
+    roles = req.query.role.split(',').map(r => r.trim()); // Split by comma and trim
+} else if (Array.isArray(req.query.role)) {
+    roles = req.query.role.map(r => r.toString()); // Ensure array of strings
+}
+
+// Get users for this outfitter, filtered by role(s)
+const users = await storage.getUsersByOutfitterId(outfitterId, roles); // <--- MODIFIED CALL TO PASS ARRAY OR UNDEFINED
+
+// ... rest of handler
+2. Modify Storage Function: storage.getUsersByOutfitterId
+File: server/storage.ts
+Location: The async getUsersByOutfitterId(...) function definition.
+
+Proposed Code Changes:
+
+Find this block (the getUsersByOutfitterId function):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, role?: string): Promise<User[]> { // <--- Old signature
+  const conditions = [eq(userOutfitters.outfitterId, outfitterId)];
+  
+  if (role) { // <--- Old filtering logic
+    conditions.push(eq(users.role, role));
+  }
+
+  const result = await db
+    .select({ /* ... */ })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions));
+  
+  return result;
+}
+Replace it with (adding roles?: string[] parameter and inArray filtering logic):
+
+TypeScript
+
+async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> { // <--- MODIFIED SIGNATURE
+  const conditions = [eq(userOutfitters.outfitterId, outfitterId)]; // Start with outfitterId condition
+  
+  if (roles && roles.length > 0) { // <--- ADD FLEXIBLE ROLE FILTERING
+    conditions.push(inArray(users.role, roles)); // Use inArray for multiple roles
+  }
+
+  const result = await db
+    .select({
+      id: users.id, // Ensure all fields are selected as before
+      email: users.email,
+      passwordHash: users.passwordHash,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+      profileImageUrl: users.profileImageUrl,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+    .where(and(...conditions)); // <--- USE 'and' TO COMBINE CONDITIONS
+  
+  return result;
+}
+Also, update the IStorage interface in server/storage.ts to reflect the new signature:
+Find: getUsersByOutfitterId(outfitterId: number, role?: string): Promise<User[]>;
+Replace: getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]>;
+
+Output Required for My Review:
+Once you have implemented both sets of modifications, please provide a comprehensive diff preview that includes both modified files (server/routes.ts or where /api/users is defined, and server/storage.ts).
+
+Success Criteria for My Approval:
+
+Route Handler: The /api/users route handler correctly extracts role(s) from req.query (handling both single string and comma-separated/array cases) and passes them as string[] | undefined to storage.getUsersByOutfitterId.
+Storage Function: The storage.getUsersByOutfitterId function:
+Its signature correctly accepts roles?: string[].
+It includes logic to add inArray(users.role, roles) to its WHERE clause conditions if roles is provided and non-empty.
+It correctly uses and(...conditions) to combine outfitterId and roles filters.
+IStorage Interface: The interface is updated to match the new function signature.
+No other unrelated functional code lines are affected in either file.
+The change directly resolves the /api/users endpoint's failure to filter by role while supporting multiple roles.
+I will not approve this step until these criteria are met. Once approved and implemented, we will retest the guide assignment dropdown functionality. 

@@ -23,7 +23,7 @@ export interface IStorage {
   updateUser(id: string, user: Partial<UpsertUser>): Promise<User | undefined>;
   getUserWithRole(userId: string): Promise<User & {outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
-  getUsersByOutfitterId(outfitterId: number): Promise<User[]>;
+  getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]>;
   
   // Outfitter operations
   createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
@@ -217,8 +217,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users);
   }
 
-  async getUsersByOutfitterId(outfitterId: number): Promise<User[]> {
-    const result = await db
+  async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
+    let query = db
       .select({
         id: users.id,
         email: users.email,
@@ -235,7 +235,17 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
       .where(eq(userOutfitters.outfitterId, outfitterId));
     
-    return result;
+    if (roles && roles.length > 0) {
+      const validRoles = roles.filter(role => role === 'admin' || role === 'guide') as ('admin' | 'guide')[];
+      if (validRoles.length > 0) {
+        query = query.where(and(
+          eq(userOutfitters.outfitterId, outfitterId),
+          inArray(users.role, validRoles)
+        ));
+      }
+    }
+    
+    return await query;
   }
 
   // Outfitter operations

@@ -172,8 +172,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Get all users for this outfitter
-      const users = await storage.getUsersByOutfitterId(outfitterId);
+      // Extract role(s) flexibly: allow 'role=guide' or 'role=admin,guide'
+      let roles: string[] | undefined;
+      if (typeof req.query.role === 'string' && req.query.role) {
+        roles = req.query.role.split(',').map(r => r.trim()); // Split by comma and trim
+      } else if (Array.isArray(req.query.role)) {
+        roles = req.query.role.map(r => r.toString()); // Ensure array of strings
+      }
+
+      // Get users for this outfitter, filtered by role(s)
+      const users = await storage.getUsersByOutfitterId(outfitterId, roles);
       
       // Remove password hashes from response
       const sanitizedUsers = users.map(user => {
