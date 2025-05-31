@@ -376,9 +376,10 @@ export function ExperienceGuides({
         onChange(updatedDraftGuides);
       }
     } else {
-      // In normal mode, find the guide being removed and call new API endpoint
-      const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id);
-      console.log('🔍 [REMOVE_DEBUG] Result of assignedGuides.find():', guideBeingRemoved);
+      // This branch is for editing existing experiences (normal mode)
+      // Find the guide in draftGuides, as it holds the current UI state for editing
+      const guideBeingRemoved = draftGuides.find((g: any) => g.id === id || g.tempId === id);
+      console.log('🔍 [REMOVE_DEBUG] Result of draftGuides.find() in normal mode:', guideBeingRemoved);
       if (!guideBeingRemoved) {
         console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id);
         toast({
@@ -405,6 +406,17 @@ export function ExperienceGuides({
       removeGuideMutation.mutate({ 
         experienceId: experienceId, 
         guideId: guideBeingRemoved.guideId 
+      }, {
+        onSuccess: () => {
+          // Update local draftGuides state immediately
+          const updatedDraftGuides = draftGuides.filter(
+            (g: any) => g.guideId !== guideBeingRemoved.guideId
+          );
+          // Call onChange to notify parent component and update its form state
+          if (onChange) {
+            onChange(updatedDraftGuides);
+          }
+        }
       });
     }
   };

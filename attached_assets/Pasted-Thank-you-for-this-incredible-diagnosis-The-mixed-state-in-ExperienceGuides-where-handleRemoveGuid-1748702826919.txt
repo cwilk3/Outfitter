@@ -1,0 +1,91 @@
+Thank you for this incredible diagnosis. The mixed state in ExperienceGuides, where handleRemoveGuide looks in assignedGuides while draftGuides holds the actual UI state in edit mode, is the root cause.
+
+Your primary task is to modify the handleRemoveGuide function in client/src/components/ui/experience-guides.tsx so that when draftMode is false (normal mode, for editing existing experiences), it correctly uses the draftGuides array as its source of truth for finding and updating guides.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the handleRemoveGuide function, specifically within the else block (normal mode).
+Proposed Code Changes (applying to handleRemoveGuide):
+
+Find this block (within handleRemoveGuide's else block):
+
+TypeScript
+
+const handleRemoveGuide = (id: number) => {
+  // ... existing diagnostic logging ...
+  if (draftMode) {
+    // ... draft mode logic (already uses draftGuides) ...
+  } else {
+    // In normal mode, find the guide being removed and call new API endpoint
+    const guideBeingRemoved = assignedGuides.find((g: ExperienceGuide) => g.id === id); // <--- Problematic line
+    console.log('🔍 [REMOVE_DEBUG] Result of assignedGuides.find():', guideBeingRemoved);
+    if (!guideBeingRemoved) {
+      console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id);
+      // ... error toast, return ...
+    }
+    // ... rest of normal mode logic ...
+  }
+};
+Replace it with (changing the source array for find and subsequent logic):
+
+TypeScript
+
+const handleRemoveGuide = (id: number) => {
+  // ... existing diagnostic logging ...
+  if (draftMode) {
+    // This branch is for creating new experiences, uses draftGuides
+    const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== id);
+    // If we removed the primary guide, make the first guide primary (if any)
+    if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
+      updatedDraftGuides[0].isPrimary = true;
+    }
+    setDraftGuides(updatedDraftGuides); // Update local draft state
+    if (onChange) {
+      onChange(updatedDraftGuides); // Notify parent
+    }
+  } else {
+    // This branch is for editing existing experiences (normal mode)
+    // Find the guide in draftGuides, as it holds the current UI state for editing
+    const guideBeingRemoved = draftGuides.find((g: ExperienceGuide) => g.id === id || g.tempId === id); // <--- MODIFIED: Use draftGuides and check both id and tempId
+    console.log('🔍 [REMOVE_DEBUG] Result of draftGuides.find() in normal mode:', guideBeingRemoved); // <--- LOG FIND RESULT
+    if (!guideBeingRemoved) {
+      console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id);
+      toast({
+        title: 'Error',
+        description: 'Cannot remove guide: Assignment not found.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Call the new mutation with experienceId and guideId
+    removeGuideMutation.mutate({ 
+      experienceId: experienceId, 
+      guideId: guideBeingRemoved.guideId // Use guideId from found object
+    }, {
+      onSuccess: () => {
+        // After successful API call, update draftGuides and notify parent
+        const updatedAssignedGuides = draftGuides.filter(
+          (g: ExperienceGuide) => g.guideId !== guideBeingRemoved.guideId
+        );
+        if (onChange) {
+            onChange(updatedAssignedGuides); // Notify parent to update its form state
+        }
+      }
+    });
+  }
+};
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The handleRemoveGuide function's else (normal mode) block is updated to:
+Use draftGuides.find((g: ExperienceGuide) => g.id === id || g.tempId === id) to locate the guide.
+Use the guideId from the guideBeingRemoved object for the mutate call.
+In its onSuccess callback (for mutate), correctly filter draftGuides and pass the updatedAssignedGuides via onChange.
+No other unrelated functional code lines are affected.
+Diagnostic logs are correctly updated to reflect draftGuides usage.
+The change directly resolves the "guide not found" issue by correctly syncing the removal logic with the component's state.
+I will not approve this step until these criteria are met. This fix is crucial for enabling guide unassignment

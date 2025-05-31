@@ -1,0 +1,75 @@
+Thank you for the correct find logic in handleRemoveGuide. Now we need to ensure the local frontend state is updated immediately after a successful API call.
+
+Your primary task is to update the handleRemoveGuide function in client/src/components/ui/experience-guides.tsx to include an onSuccess callback directly within the removeGuideMutation.mutate() call (in the else block) to perform immediate state synchronization.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the handleRemoveGuide function, specifically within the else block, where removeGuideMutation.mutate() is called.
+Proposed Code Changes (applying to handleRemoveGuide's else block):
+
+Find this block (within handleRemoveGuide's else block, after guideBeingRemoved is found):
+
+TypeScript
+
+    // ... rest of diagnostic logging and validation ...
+    const guideBeingRemoved = draftGuides.find((g: any) => g.id === id || g.tempId === id);
+    console.log('🔍 [REMOVE_DEBUG] Result of draftGuides.find() in normal mode:', guideBeingRemoved);
+    if (!guideBeingRemoved) {
+      // ... error handling ...
+      return;
+    }
+
+    // Call the new mutation with experienceId and guideId
+    removeGuideMutation.mutate({ 
+      experienceId: experienceId, 
+      guideId: guideBeingRemoved.guideId 
+    }); // <--- THIS IS THE LINE TO MODIFY
+  }
+};
+Replace it with (adding the inline onSuccess callback):
+
+TypeScript
+
+    // ... rest of diagnostic logging and validation ...
+    const guideBeingRemoved = draftGuides.find((g: any) => g.id === id || g.tempId === id);
+    console.log('🔍 [REMOVE_DEBUG] Result of draftGuides.find() in normal mode:', guideBeingRemoved);
+    if (!guideBeingRemoved) {
+      // ... error handling ...
+      return;
+    }
+
+    // Call the new mutation with experienceId and guideId
+    removeGuideMutation.mutate({ 
+      experienceId: experienceId, 
+      guideId: guideBeingRemoved.guideId 
+    }, { // <--- ADD THIS INLINE onSUCCESS CALLBACK
+      onSuccess: () => {
+        // Update local draftGuides state immediately
+        const updatedDraftGuides = draftGuides.filter(
+          (g: ExperienceGuide) => g.guideId !== guideBeingRemoved.guideId
+        );
+        // Assuming setDraftGuides is available or onChange is used directly
+        // Call onChange to notify parent component and update its form state
+        if (onChange) {
+            onChange(updatedDraftGuides);
+        }
+        // Optional: Trigger a toast for immediate feedback (though main mutation has one)
+        // toast({ title: 'Guide removed (local)', description: 'UI updated immediately.', variant: 'success' });
+      }
+    });
+  }
+};
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this complete functional fix):
+
+The handleRemoveGuide function's else (normal mode) block has its removeGuideMutation.mutate() call updated to include an inline onSuccess callback.
+This inline onSuccess callback correctly:
+Filters draftGuides using guideBeingRemoved.guideId to create updatedDraftGuides.
+Calls onChange(updatedDraftGuides) to notify the parent component and update its form state.
+The find logic remains as draftGuides.find((g: any) => g.id === id || g.tempId === id).
+Diagnostic logs are correctly preserved or updated.
+No other unrelated functional code lines are affected.
+I will not approve this step until these criteria are met. This will complete the guide unassignment functionality from the frontend!
