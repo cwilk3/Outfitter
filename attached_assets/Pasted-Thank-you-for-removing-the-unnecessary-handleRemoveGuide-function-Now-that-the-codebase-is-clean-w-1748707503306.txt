@@ -1,0 +1,42 @@
+Thank you for removing the unnecessary handleRemoveGuide function. Now that the codebase is clean, we can focus on the actual handler.
+
+Your primary task is to locate the actual onClick handler (or equivalent event handler) for the "X" (remove guide) button in client/src/components/ui/experience-guides.tsx that is successfully triggering the removeGuideMutation.mutate() call.
+
+Once located, you must modify that handler to include the frontend state synchronization logic we previously developed.
+
+Specific Focus Areas for Investigation & Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Locate "X" Button: Find the rendering of the "X" button (or similar removal control) for assigned guides within the component's JSX (look for the assignedGuides.map section where each guide is rendered).
+Identify Actual Handler: Determine which onClick (or other event handler) is actually attached to this button and what function it calls. Trace its execution.
+Proposed Code Changes:
+
+You will need to analyze the client/src/components/ui/experience-guides.tsx file to propose the exact diff. The change will involve modifying the onClick handler of the "X" button.
+
+The logic to be transferred (from our previous handleRemoveGuide onSuccess):
+
+TypeScript
+
+// This logic needs to be executed within the actual handler that triggers the DELETE API call's onSuccess callback or directly after the mutate call if no inline callback.
+// The primary goal is to update draftGuides and call onChange.
+const updatedDraftGuides = draftGuides.filter(
+  (g: any) => g.guideId !== guideBeingRemoved.guideId // You will need to correctly identify guideBeingRemoved.guideId or the equivalent ID passed to the handler
+);
+if (onChange) {
+  onChange(updatedDraftGuides); // Notify parent component and update its form state
+}
+Output Required for My Review:
+Please provide:
+
+A detailed report outlining your findings:
+The exact JSX code for the "X" button (or removal control).
+The exact onClick (or equivalent) handler function/logic it calls.
+How removeGuideMutation.mutate() is being called from this actual handler.
+A comprehensive diff preview for client/src/components/ui/experience-guides.tsx that shows the modifications to the actual removal handler to include the state synchronization logic.
+Success Criteria for My Approval (for this functional fix):
+
+The correct onClick handler for the "X" button is identified.
+The state synchronization logic (filtering draftGuides and calling onChange) is correctly implemented within that actual handler, immediately after removeGuideMutation.mutate() is successfully called (or in its onSuccess if mutate is called with an inline handler).
+No other unrelated functional code is affected.
+The handleRemoveGuide function is confirmed to be removed.
+I will not approve further steps until these criteria are met. This will finally complete the guide unassignment functionality!

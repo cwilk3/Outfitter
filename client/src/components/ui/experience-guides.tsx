@@ -350,76 +350,10 @@ export function ExperienceGuides({
     }
   };
 
-  // Handle removing a guide
-  const handleRemoveGuide = (id: number) => {
-    // --- START NEW REMOVE_DEBUG LOGGING ---
-    console.log('--- DIAGNOSTIC: handleRemoveGuide Called ---');
-    console.log('🔍 [REMOVE_DEBUG] ID passed to handleRemoveGuide:', id);
-    console.log('🔍 [REMOVE_DEBUG] Current assignedGuides array (state):', JSON.stringify(assignedGuides, null, 2));
-    console.log('🔍 [REMOVE_DEBUG] Current experienceId (prop):', experienceId);
-    console.log('🔍 [REMOVE_DEBUG] Current draftMode (prop):', draftMode);
-    // --- END NEW REMOVE_DEBUG LOGGING ---
-
-    if (draftMode) {
-      // In draft mode, remove from local state
-      const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== id);
-      
-      // If we removed the primary guide, make the first guide primary (if any)
-      if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
-        updatedDraftGuides[0].isPrimary = true;
-      }
-      
-      setDraftGuides(updatedDraftGuides);
-      
-      // Notify parent component
-      if (onChange) {
-        onChange(updatedDraftGuides);
-      }
-    } else {
-      // This branch is for editing existing experiences (normal mode)
-      // Find the guide in draftGuides, as it holds the current UI state for editing
-      const guideBeingRemoved = draftGuides.find((g: any) => g.id === id || g.tempId === id);
-      console.log('🔍 [REMOVE_DEBUG] Result of draftGuides.find() in normal mode:', guideBeingRemoved);
-      if (!guideBeingRemoved) {
-        console.error('[CLIENT] Cannot remove guide: Guide assignment not found for ID:', id);
-        toast({
-          title: 'Error',
-          description: 'Cannot remove guide: Assignment not found.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (!experienceId) {
-        console.error('[CLIENT] Cannot remove guide: Experience ID missing');
-        toast({
-          title: 'Error',
-          description: 'Cannot remove guide: Experience ID missing.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      console.log(`[CLIENT] Removing guide ${guideBeingRemoved.guideId} from experience ${experienceId}`);
-      
-      // Call the new mutation with experienceId and guideId
-      removeGuideMutation.mutate({ 
-        experienceId: experienceId, 
-        guideId: guideBeingRemoved.guideId 
-      }, {
-        onSuccess: () => {
-          // Update local draftGuides state immediately
-          const updatedDraftGuides = draftGuides.filter(
-            (g: any) => g.guideId !== guideBeingRemoved.guideId
-          );
-          // Call onChange to notify parent component and update its form state
-          if (onChange) {
-            onChange(updatedDraftGuides);
-          }
-        }
-      });
-    }
-  };
+  // --- REMOVED handleRemoveGuide FUNCTION ---
+  // This function was not being executed by the UI button clicks.
+  // Guide removal is handled through a different code path.
+  // --- END REMOVED handleRemoveGuide FUNCTION ---
 
   // Get guide name from available guides
   const getGuideName = (guideId: string) => {
