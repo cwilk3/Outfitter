@@ -458,7 +458,41 @@ export function ExperienceGuides({
                       <Button 
                         variant="destructive" 
                         size="sm" 
-                        onClick={() => handleRemoveGuide(draftMode ? assignment.tempId : assignment.id)}
+                        onClick={() => {
+                          if (draftMode) {
+                            // In draft mode, remove from local state
+                            const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
+                            
+                            // If we removed the primary guide, make the first guide primary (if any)
+                            if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
+                              updatedDraftGuides[0].isPrimary = true;
+                            }
+                            
+                            setDraftGuides(updatedDraftGuides);
+                            
+                            // Notify parent component
+                            if (onChange) {
+                              onChange(updatedDraftGuides);
+                            }
+                          } else {
+                            // In normal mode, call API and update state
+                            removeGuideMutation.mutate({ 
+                              experienceId: experienceId!, 
+                              guideId: assignment.guideId 
+                            }, {
+                              onSuccess: () => {
+                                // Update local draftGuides state immediately
+                                const updatedDraftGuides = draftGuides.filter(
+                                  (g: any) => g.guideId !== assignment.guideId
+                                );
+                                // Call onChange to notify parent component
+                                if (onChange) {
+                                  onChange(updatedDraftGuides);
+                                }
+                              }
+                            });
+                          }
+                        }}
                         disabled={!draftMode && removeGuideMutation.isPending}
                       >
                         <X className="h-4 w-4" />
