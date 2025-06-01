@@ -1,0 +1,97 @@
+Thank you for confirming the core functionality of the 'Make Primary' button. It's excellent news that it's hitting the backend and persisting data.
+
+Now, let's debug the UI state synchronization: why the primary status isn't visually updating.
+
+Your primary task is to add highly targeted diagnostic logging within the onSuccess handler of updateGuideMutation to verify the state of assignedGuides after its update, and then confirm the rendering logic for the primary indicator in the JSX.
+
+Specific Focus Areas for Investigation:
+
+1. Add Diagnostic Logging in updateGuideMutation.onSuccess:
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the onSuccess handler of updateGuideMutation, after the updatedAssignedGuides array is created and before onChange is called.
+Proposed Code Changes (applying to experience-guides.tsx):
+
+Find this block (within updateGuideMutation's onSuccess handler):
+
+TypeScript
+
+    // ... within onSuccess(data, variables) ...
+    // Update the local assignedGuides state to reflect the primary change
+    const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({
+        ...g,
+        isPrimary: g.id === variables.id // Set the selected guide (by its assignment ID) as primary
+    }));
+
+    // If there can only be one primary, ensure others are set to false
+    if (variables.isPrimary) {
+        updatedAssignedGuides.forEach(g => {
+            if (g.id !== variables.id) {
+                g.isPrimary = false; // Set others to false
+            }
+        });
+    }
+
+    // Notify parent component about the change (if onChange is used for submission payload)
+    if (onChange) {
+        onChange(updatedAssignedGuides);
+    }
+    
+    toast({
+      title: 'Guide updated!',
+      description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
+    });
+  },
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+    // ... within onSuccess(data, variables) ...
+    // Update the local assignedGuides state to reflect the primary change
+    const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({
+        ...g,
+        isPrimary: g.id === variables.id // Set the selected guide (by its assignment ID) as primary
+    }));
+
+    // If there can only be one primary, ensure others are set to false
+    if (variables.isPrimary) {
+        updatedAssignedGuides.forEach(g => {
+            if (g.id !== variables.id) {
+                g.isPrimary = false; // Set others to false
+            }
+        });
+    }
+
+    // --- START NEW ON_SUCCESS_UI_DEBUG LOGGING ---
+    console.log('🔍 [ON_SUCCESS_UI_DEBUG] assignedGuides before update:', JSON.stringify(assignedGuides, null, 2));
+    console.log('🔍 [ON_SUCCESS_UI_DEBUG] updatedAssignedGuides generated:', JSON.stringify(updatedAssignedGuides, null, 2));
+    // --- END NEW ON_SUCCESS_UI_DEBUG LOGGING ---
+
+    // Notify parent component about the change (if onChange is used for submission payload)
+    if (onChange) {
+        console.log('🔍 [ON_SUCCESS_UI_DEBUG] Calling onChange with updatedAssignedGuides.');
+        onChange(updatedAssignedGuides);
+    } else {
+        console.warn('⚠️ [ON_SUCCESS_UI_DEBUG] onChange prop is not provided. UI might not refresh.');
+    }
+    
+    toast({
+      title: 'Guide updated!',
+      description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
+    });
+  },
+2. Confirm Primary Indicator Rendering Logic:
+File: client/src/components/ui/experience-guides.tsx
+Location: Find the JSX code where individual assigned guides are rendered. Look for any conditional rendering that checks assignment.isPrimary (or guide.isPrimary) to display a badge, star, or hide the "Make Primary" button.
+Output Required for My Review (for this investigation phase):
+Please provide:
+
+A comprehensive diff preview for client/src/components/ui/experience-guides.tsx showing the added diagnostic logging in onSuccess.
+The exact JSX code snippet that is responsible for rendering the primary indicator (e.g., the badge, star icon, or the conditional rendering of the "Make Primary" button itself based on isPrimary).
+The complete console output from the browser's developer tools after a "Make Primary" attempt, including the new logs.
+Success Criteria for My Approval (for this diagnostic phase):
+
+The onSuccess diagnostic logs are correctly added.
+The relevant JSX rendering code snippet for primary indicator is provided.
+No other unrelated functional code changes are proposed.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+This investigation is crucial to resolve the UI update issue for "Make Primary." I await your detailed report. 

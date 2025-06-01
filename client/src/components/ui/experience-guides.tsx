@@ -211,9 +211,17 @@ export function ExperienceGuides({
           });
       }
 
+      // --- START NEW ON_SUCCESS_UI_DEBUG LOGGING ---
+      console.log('🔍 [ON_SUCCESS_UI_DEBUG] assignedGuides before update:', JSON.stringify(assignedGuides, null, 2));
+      console.log('🔍 [ON_SUCCESS_UI_DEBUG] updatedAssignedGuides generated:', JSON.stringify(updatedAssignedGuides, null, 2));
+      // --- END NEW ON_SUCCESS_UI_DEBUG LOGGING ---
+
       // Notify parent component about the change (if onChange is used for submission payload)
       if (onChange) {
+          console.log('🔍 [ON_SUCCESS_UI_DEBUG] Calling onChange with updatedAssignedGuides.');
           onChange(updatedAssignedGuides);
+      } else {
+          console.warn('⚠️ [ON_SUCCESS_UI_DEBUG] onChange prop is not provided. UI might not refresh.');
       }
       
       toast({
