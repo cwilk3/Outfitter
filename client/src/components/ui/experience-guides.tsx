@@ -479,7 +479,10 @@ export function ExperienceGuides({
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();   
+                            e.stopPropagation();  
+                            
                             // --- START NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
                             console.log('--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---');
                             console.log('🔍 [PRIMARY_ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));

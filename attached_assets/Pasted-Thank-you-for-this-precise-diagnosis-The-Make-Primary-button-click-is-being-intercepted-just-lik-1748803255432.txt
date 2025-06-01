@@ -1,0 +1,66 @@
+Thank you for this precise diagnosis. The 'Make Primary' button click is being intercepted, just like the 'X' button was.
+
+Your primary task is to implement the event prevention fixes (e.preventDefault() and e.stopPropagation()) in the onClick handler for the 'Make Primary' button in client/src/components/ui/experience-guides.tsx.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The onClick handler for the "Make Primary" Button component (lines 478-511 approximate).
+Proposed Code Changes:
+
+Find this block (the onClick handler for the "Make Primary" Button):
+
+TypeScript
+
+<Button 
+  variant="outline" 
+  size="sm" 
+  onClick={() => { // <--- MODIFY THIS ARROW FUNCTION
+    // --- START NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+    console.log('--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---');
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current draftMode:', draftMode);
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current experienceId:', experienceId);
+    // --- END NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+    
+    handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
+  }}
+  disabled={!draftMode && updateGuideMutation.isPending}
+>
+  <Star className="h-4 w-4 mr-1" />
+  Make Primary
+</Button>
+Replace it with (adding event prevention):
+
+TypeScript
+
+<Button 
+  variant="outline" 
+  size="sm" 
+  onClick={(e) => { // <--- ADD 'e' PARAMETER
+    e.preventDefault();   // <--- ADD THIS LINE
+    e.stopPropagation();  // <--- ADD THIS LINE
+    
+    // --- START NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+    console.log('--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---');
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current draftMode:', draftMode);
+    console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current experienceId:', experienceId);
+    // --- END NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+    
+    handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
+  }}
+  disabled={!draftMode && updateGuideMutation.isPending}
+>
+  <Star className="h-4 w-4 mr-1" />
+  Make Primary
+</Button>
+Output Required for My Review:
+Please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx that shows the addition of e.preventDefault() and e.stopPropagation() to the onClick handler.
+
+Success Criteria for My Approval:
+
+e.preventDefault() and e.stopPropagation() are correctly added at the very beginning of the onClick handler for the "Make Primary" button.
+The e parameter is correctly added to the onClick function signature.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This will finalize the fix for "Make Primary" button functionality.
