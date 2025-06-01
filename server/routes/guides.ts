@@ -66,44 +66,7 @@ router.post('/assign/:experienceId', adminOnly, asyncHandler(async (req: Request
   res.status(201).json(guideAssignment);
 }));
 
-// Update a guide assignment (admin only) - Fixed route path to match frontend
-router.put('/experience-guides/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
-  console.log('--- DIAGNOSTIC: PUT /api/experience-guides/:id ---');
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Route Hit. Assignment ID param:', req.params.id);
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Request Body (isPrimary):', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
-  
-  const id = parseInt(req.params.id);
-  const user = (req as any).user;
-  const outfitterId = user?.outfitterId;
-  
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] User Outfitter ID:', outfitterId);
-
-  // Prepare data for validation
-  const updateData = {
-    isPrimary: req.body.isPrimary === true // Ensure boolean conversion
-  };
-
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Prepared updateData:', updateData);
-
-  if (isNaN(id)) {
-    console.error('❌ [PRIMARY_PERSIST_ERROR] Invalid assignment ID');
-    throwError('Invalid assignment ID', 400);
-  }
-
-  // Update guide assignment with tenant isolation
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Calling storage.updateGuideAssignment with:', { id, updateData, outfitterId });
-  const updatedGuide = await storage.updateGuideAssignment(id, updateData, outfitterId);
-
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Storage update result:', updatedGuide);
-
-  if (!updatedGuide) {
-    console.error('❌ [PRIMARY_PERSIST_ERROR] Storage update returned false/null.');
-    throwError('Guide assignment not found or update failed', 404);
-  }
-
-  console.log('✅ [PRIMARY_PERSIST_DEBUG] Update successful. Returning 204.');
-  res.status(204).end();
-}));
+// --- REMOVED: PUT /experience-guides/:id route (moved to server/routes/index.ts) ---
 
 // Remove a guide from an experience (admin only)
 router.delete('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {

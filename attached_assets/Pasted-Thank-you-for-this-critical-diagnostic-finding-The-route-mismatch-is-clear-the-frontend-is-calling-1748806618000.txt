@@ -1,0 +1,40 @@
+Thank you for this critical diagnostic finding. The route mismatch is clear: the frontend is calling PUT /api/experience-guides/:id, but our logic is in PUT /api/guides/experience-guides/:id.
+
+Your primary task is to locate the actual backend route handler for PUT /api/experience-guides/:id. Once found, you must transfer all the diagnostic logging and the functional isPrimary persistence logic into this correct handler.
+
+Specific Focus Areas for Investigation & Modification:
+
+Locate the Route Handler:
+
+Search: Search your entire server/routes/ directory (and server/index.ts if necessary) for the exact route definition: PUT /api/experience-guides/:id. This may involve looking for router.put('/experience-guides/:id', ...) or app.put('/api/experience-guides/:id', ...)
+File: Identify the exact file path where this route is defined.
+Transfer Diagnostic Logging:
+
+Take all the console.log statements starting with --- DIAGNOSTIC: PUT /api/experience-guides/:id --- and 🔍 [PRIMARY_PERSIST_DEBUG] (from the previous diff for server/routes/guides.ts).
+Insert these logs into the newly identified correct route handler at the appropriate positions.
+Transfer Functional Persistence Logic:
+
+Copy the functional code responsible for updating isPrimary in the database. This includes:
+Extracting id, user, outfitterId, isPrimary from req.body.
+The updateData preparation.
+The isNaN(id) validation.
+The call to storage.updateGuideAssignment(id, updateData, outfitterId); (ensure this function is correctly imported and available in the new file, or update its import path).
+The handling of updatedGuide (success/error responses 204/404/500).
+Ensure tenant isolation checks are present and correct within this handler.
+Output Required for My Review:
+Once you have successfully transferred all the logging and functional logic:
+
+Provide the exact file path of the modified file (the correct file containing PUT /api/experience-guides/:id).
+Provide a comprehensive diff preview for that file, showing:
+The addition of the diagnostic logging.
+The complete, correct functional logic for persisting isPrimary via storage.updateGuideAssignment.
+Any necessary imports (e.g., storage, middleware, throwError) are present.
+Any previous, incorrect PUT /api/experience-guides/:id in server/routes/guides.ts should ideally be removed to avoid confusion, but our immediate goal is to fix the correct one. (If server/routes/guides.ts actually contained that route, it should be removed from there).
+Success Criteria for My Approval:
+
+The correct backend route handler for PUT /api/experience-guides/:id is identified.
+All 🔍 [PRIMARY_PERSIST_DEBUG] diagnostic logs are present in this correct handler.
+The functional logic for updating isPrimary (calling storage.updateGuideAssignment with correct parameters and error handling) is fully implemented in this handler.
+Tenant isolation checks are correctly in place.
+No other unrelated functional code is affected.
+I will not approve further steps until these criteria are met. This will be the definitive fix for "Make Primary" persistence! 

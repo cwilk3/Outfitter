@@ -1,0 +1,124 @@
+Thank you for identifying the route mismatch. Your diagnosis of the problem is correct. However, adding a direct app.put in server/routes.ts would introduce technical debt and architectural inconsistency.
+
+Your primary task is to implement the PUT /api/experience-guides/:id route in an architecturally sound manner, ensuring it correctly matches the frontend's call pattern and integrates cleanly into your modular routing setup.
+
+Specific Actions to Perform:
+
+1. Move and Reconfigure the PUT /experience-guides/:id Route:
+Move From: server/routes/guides.ts (where it's currently defined as router.put('/experience-guides/:id', ...))
+Move To: server/routes/index.ts (this is your main apiRoutes router, which is mounted at /api/ in server/routes.ts).
+Modify Path: Within server/routes/index.ts, define the route path as router.put('/experience-guides/:id', ...) to match the frontend's direct call.
+Apply Middleware Idiomatically: Ensure requireAuth, addOutfitterContext, and adminOnly middleware are applied directly as arguments to the route, without the await import and new Promise wrappers.
+2. Remove Redundant/Incorrect Route:
+Remove From: server/routes/guides.ts
+Action: Delete the entire router.put('/experience-guides/:id', ...) block from this file, as its logic will now reside in server/routes/index.ts.
+3. Clean Up server/routes.ts (if applicable):
+Review the registerRoutes function in server/routes.ts. If there are any app.use calls that involve requireAuth or addOutfitterContext using the await import and new Promise wrappers for general API routes, remove those wrappers and apply the middleware directly in their respective modular router files. (Focus on the PUT /api/experience-guides/:id move first).
+Proposed Code Changes (applying to multiple files):
+
+A. Diff for server/routes/index.ts (Add the route here):
+Find this (or similar, where other routes are mounted):
+
+TypeScript
+
+import { Router } from 'express';
+// ... other imports ...
+import guidesRouter from './guides'; // Or whatever it's imported as
+
+const router = Router();
+
+// ... existing routes (e.g., publicRouter, experiencesRouter, etc.) ...
+router.use('/guides', guidesRouter); // Or wherever guidesRouter is mounted
+
+export default router;
+Replace it with (adding the new PUT route directly and its dependencies):
+
+TypeScript
+
+import { Router } from 'express';
+// ... other imports ...
+import guidesRouter from './guides'; // Keep this if guidesRouter defines other routes
+
+// Ensure these are imported from their correct middleware paths
+import { requireAuth, adminOnly } from '../middleware/auth';
+import { addOutfitterContext } from '../middleware/outfitter';
+import { asyncHandler } from '../utils/asyncHandler';
+import { storage } from '../storage'; // For storage.updateGuideAssignment
+import { throwError } from '../utils/error'; // If throwError is used
+
+const router = Router();
+
+// ... existing routes (e.g., publicRouter, experiencesRouter, etc.) ...
+
+// --- ADD THE PUT /api/experience-guides/:id ROUTE HERE ---
+router.put('/experience-guides/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  // Transfer all the diagnostic logging and persistence logic here
+  // From the 'WILL BE REPLACED WITH' section in your previous diff for server/routes/guides.ts
+  console.log('--- DIAGNOSTIC: PUT /api/experience-guides/:id ---');
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Route Hit. Assignment ID param:', req.params.id);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Request Body (isPrimary):', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
+
+  const id = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+  
+  // Prepare data for validation
+  const updateData = {
+    isPrimary: req.body.isPrimary === true // Ensure boolean conversion
+  };
+
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Parsed Assignment ID:', id);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] isPrimary from Body:', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] User Outfitter ID:', outfitterId);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Prepared updateData:', updateData);
+  
+  if (isNaN(id)) {
+    console.error('❌ [PRIMARY_PERSIST_ERROR] Invalid assignment ID');
+    throwError('Invalid assignment ID', 400);
+  }
+
+  // Update guide assignment with tenant isolation (storage function assumes it gets outfitterId)
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Calling storage.updateGuideAssignment with:', { id, updateData, outfitterId });
+  const updatedGuide = await storage.updateGuideAssignment(id, updateData, outfitterId);
+
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Storage update result:', updatedGuide);
+
+  if (!updatedGuide) {
+    console.error('❌ [PRIMARY_PERSIST_ERROR] Storage update returned false/null.');
+    throwError('Guide assignment not found or update failed', 404);
+  }
+
+  console.log('✅ [PRIMARY_PERSIST_DEBUG] Update successful. Returning 204.');
+  res.status(204).end();
+}));
+// --- END ADDED ROUTE ---
+
+router.use('/guides', guidesRouter); // Mount guidesRouter after the new route if order matters
+// ... rest of routes ...
+export default router;
+B. Diff for server/routes/guides.ts (Remove the route from here):
+Find this block (the router.put('/experience-guides/:id', ...) route):
+
+TypeScript
+
+router.put('/experience-guides/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  // ... all the content of this route ...
+}));
+Replace it with:
+
+TypeScript
+
+// --- REMOVED: PUT /experience-guides/:id route (moved to server/routes/index.ts) ---
+C. Review server/routes.ts (No direct changes proposed now, but verify context):
+Ensure that no app.use calls for requireAuth or addOutfitterContext are being done in a non-idiomatic way (e.g., await import with new Promise) for general API routes. Our primary focus is getting the PUT route correctly mounted.
+Output Required for My Review:
+Please provide comprehensive diff previews for server/routes/index.ts and server/routes/guides.ts based on these instructions.
+
+Success Criteria for My Approval:
+
+The PUT /api/experience-guides/:id route is added to server/routes/index.ts with the correct path, middleware, and full functional/diagnostic logic.
+The PUT /experience-guides/:id route is completely removed from server/routes/guides.ts.
+Middleware (requireAuth, addOutfitterContext, adminOnly, asyncHandler, storage, throwError) are correctly imported in server/routes/index.ts for this new route.
+No other unrelated functional code is affected.
+The overall routing hierarchy becomes clearer with this move.
+I will not approve further steps until these criteria are met. This will be the definitive architectural fix for "Make Primary" persistence! 
