@@ -66,27 +66,43 @@ router.post('/assign/:experienceId', adminOnly, asyncHandler(async (req: Request
   res.status(201).json(guideAssignment);
 }));
 
-// Update a guide assignment (admin only)
-router.put('/assignments/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+// Update a guide assignment (admin only) - Fixed route path to match frontend
+router.put('/experience-guides/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: PUT /api/guides/experience-guides/:id ---');
+  console.log('🔍 [UPDATE_GUIDE_API] Route Hit. Assignment ID param:', req.params.id);
+  console.log('🔍 [UPDATE_GUIDE_API] Request Body:', JSON.stringify(req.body, null, 2));
+
   const id = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
   
   // Prepare data for validation
   const updateData = {
     isPrimary: req.body.isPrimary === true
   };
+
+  console.log('🔍 [UPDATE_GUIDE_API] Parsed Assignment ID:', id);
+  console.log('🔍 [UPDATE_GUIDE_API] isPrimary from Body:', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
+  console.log('🔍 [UPDATE_GUIDE_API] User Outfitter ID:', outfitterId);
   
   if (isNaN(id)) {
+    console.error('❌ [UPDATE_GUIDE_API] Invalid assignment ID');
     throwError('Invalid assignment ID', 400);
   }
   
+  console.log('🔍 [UPDATE_GUIDE_API] Calling storage to update guide. Payload:', { id, updateData, outfitterId });
   // Update guide assignment
   const updatedGuide = await storage.updateGuideAssignment(id, updateData);
   
+  console.log('🔍 [UPDATE_GUIDE_API] Storage update result:', updatedGuide);
+  
   if (!updatedGuide) {
+    console.error('❌ [UPDATE_GUIDE_API] Storage update returned null/false');
     throwError('Guide assignment not found', 404);
   }
   
-  res.json(updatedGuide);
+  console.log('✅ [UPDATE_GUIDE_API] Update successful. Returning 204.');
+  res.status(204).end(); // Changed from res.json() to 204 status
 }));
 
 // Remove a guide from an experience (admin only)

@@ -1,0 +1,88 @@
+Thank you for definitively identifying the problem: the backend is not persisting the isPrimary change for guide assignments.
+
+Your primary task is to investigate the PUT /api/experience-guides/:id route handler to determine why it's failing to update the is_primary column in the database.
+
+Specific Focus Areas for Investigation:
+
+Locate the Route Handler:
+
+File: Likely server/routes/experiences.ts (as the frontend calls /api/experience-guides).
+Location: Find the router.put('/experience-guides/:id', ...) route definition.
+Examine Request Handling:
+
+Extract Parameters: How are req.params.id (which is the experience_guide assignment ID) and req.body.isPrimary extracted?
+Validation: Is there any validation that might prevent isPrimary from being processed?
+Trace Storage Function Call:
+
+Which storage function is called to perform the update (e.g., storage.updateExperienceGuide, storage.updateExperienceGuideAssignment)?
+What arguments are passed to this storage function?
+Add Diagnostic Logging: Add temporary console.log statements at critical points within this route handler.
+
+Proposed Code Changes (applying to server/routes/experiences.ts):
+
+Find this block (the PUT /api/experience-guides/:id route handler):
+
+TypeScript
+
+// Assuming this route exists and looks similar
+router.put('/experience-guides/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const assignmentId = parseInt(req.params.id as string);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+  const { isPrimary } = req.body; // Assuming isPrimary is directly in req.body
+
+  // ... (existing validation, tenant isolation, etc.) ...
+
+  // Call storage function to update primary status
+  const success = await storage.updateExperienceGuide(assignmentId, { isPrimary }, outfitterId); // Example call
+
+  if (!success) {
+    return res.status(404).json({ message: 'Assignment not found or update failed' });
+  }
+
+  res.status(204).end(); // Assuming 204 is returned on success
+}));
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+router.put('/experience-guides/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: PUT /api/experience-guides/:id ---'); // <--- ADD THIS LINE
+  console.log('🔍 [UPDATE_GUIDE_API] Route Hit. Assignment ID param:', req.params.id); // <--- ADD THIS LINE
+  console.log('🔍 [UPDATE_GUIDE_API] Request Body:', JSON.stringify(req.body, null, 2)); // <--- ADD THIS LINE
+
+  const assignmentId = parseInt(req.params.id as string);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+  const { isPrimary } = req.body; // Assuming isPrimary is directly in req.body
+
+  console.log('🔍 [UPDATE_GUIDE_API] Parsed Assignment ID:', assignmentId); // <--- ADD THIS LINE
+  console.log('🔍 [UPDATE_GUIDE_API] isPrimary from Body:', isPrimary, 'Type:', typeof isPrimary); // <--- ADD THIS LINE
+  console.log('🔍 [UPDATE_GUIDE_API] User Outfitter ID:', outfitterId); // <--- ADD THIS LINE
+
+  // ... (existing validation, tenant isolation, etc.) ...
+
+  // Call storage function to update primary status
+  console.log('🔍 [UPDATE_GUIDE_API] Calling storage to update guide. Payload:', { assignmentId, isPrimary, outfitterId }); // <--- ADD THIS LINE
+  const success = await storage.updateExperienceGuide(assignmentId, { isPrimary }, outfitterId); // Example call
+
+  console.log('🔍 [UPDATE_GUIDE_API] Storage update result:', success); // <--- ADD THIS LINE
+
+  if (!success) {
+    console.error('❌ [UPDATE_GUIDE_API] Storage update returned false/null.'); // <--- ADD THIS LINE
+    return res.status(404).json({ message: 'Assignment not found or update failed' });
+  }
+
+  console.log('✅ [UPDATE_GUIDE_API] Update successful. Returning 204.'); // <--- ADD THIS LINE
+  res.status(204).end();
+}));
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/routes/experiences.ts. After approval, you will perform a "Make Primary" attempt and provide the complete server console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [UPDATE_GUIDE_API] prefix are correctly added within the PUT /api/experience-guides/:id route handler.
+The logs correctly capture route parameters, request body, and storage function call results.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to identify where the update is failing on the backend
