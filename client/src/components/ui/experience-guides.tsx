@@ -458,7 +458,11 @@ export function ExperienceGuides({
                       <Button 
                         variant="destructive" 
                         size="sm" 
-                        onClick={() => {
+                        onClick={(e) => {
+                          // Prevent event bubbling and default behavior
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
                           // --- START NEW ONCLICK DIAGNOSTIC LOGGING ---
                           console.log('--- DIAGNOSTIC: X Button onClick Handler Called ---');
                           console.log('🔍 [ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
