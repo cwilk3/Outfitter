@@ -353,7 +353,7 @@ export const experienceGuidesRelations = relations(experienceGuides, ({ one }) =
     fields: [experienceGuides.experienceId],
     references: [experiences.id],
   }),
-  guide: one(users, {
+  user: one(users, {
     fields: [experienceGuides.guideId],
     references: [users.id],
   }),
@@ -518,6 +518,23 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 
 export type Experience = typeof experiences.$inferSelect;
 export type InsertExperience = z.infer<typeof insertExperienceSchema>;
+
+// Extended Experience type with assigned guides
+export type ExperienceWithGuides = Experience & {
+  assignedGuides?: Array<{
+    id: number; // experience_guide junction ID
+    guideId: string; // User ID of the guide
+    isPrimary: boolean;
+    guideUser?: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      profileImageUrl: string | null;
+      role: 'admin' | 'guide';
+    };
+  }>;
+};
 
 export type ExperienceLocation = typeof experienceLocations.$inferSelect;
 export type InsertExperienceLocation = z.infer<typeof insertExperienceLocationSchema>;

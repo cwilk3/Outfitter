@@ -1,7 +1,7 @@
 import {
   users, experiences, customers, bookings, bookingGuides, documents, payments, settings, locations, 
   experienceLocations, experienceAddons, experienceGuides, addonInventoryDates, outfitters, userOutfitters, activities,
-  type User, type UpsertUser, type Experience, type InsertExperience, 
+  type User, type UpsertUser, type Experience, type InsertExperience, type ExperienceWithGuides,
   type Customer, type InsertCustomer, type Booking, type InsertBooking,
   type BookingGuide, type InsertBookingGuide, type Document, type InsertDocument,
   type Payment, type InsertPayment, type Settings, type InsertSettings,
@@ -57,11 +57,11 @@ export interface IStorage {
   listLocations(activeOnly?: boolean, outfitterId?: number): Promise<Location[]>;
 
   // Experience operations
-  getExperience(id: number): Promise<Experience | undefined>;
+  getExperience(id: number): Promise<ExperienceWithGuides | undefined>;
   createExperience(experience: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience>;
   updateExperience(experienceId: number, updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, outfitterId: number): Promise<Experience | null>;
   deleteExperience(id: number): Promise<void>;
-  listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]>;
+  listExperiences(locationId?: number, outfitterId?: number): Promise<ExperienceWithGuides[]>;
   
   // Experience Locations operations
   getExperienceLocations(experienceId: number): Promise<Location[]>;
@@ -397,9 +397,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Experience operations
-  async getExperience(id: number): Promise<Experience | undefined> {
-    const [experience] = await db.select().from(experiences).where(eq(experiences.id, id));
-    return experience;
+  async getExperience(id: number): Promise<ExperienceWithGuides | undefined> {
+    const experienceWithGuides = await db.query.experiences.findFirst({
+      where: eq(experiences.id, id),
+      with: {
+        experienceGuides: {
+          with: {
+            user: true, // Join to get user details for each guide
+          },
+        },
+      },
+    });
+
+    if (!experienceWithGuides) {
+      return undefined;
+    }
+
+    // Transform the result to include assignedGuides array
+    const assignedGuidesFormatted = experienceWithGuides.experienceGuides.map(
+      (ag) => ({
+        id: ag.id, // Junction table ID
+        guideId: ag.guideId,
+        isPrimary: ag.isPrimary || false, // Handle null values
+        guideUser: ag.user
+          ? {
+              id: ag.user.id,
+              email: ag.user.email,
+              firstName: ag.user.firstName,
+              lastName: ag.user.lastName,
+              profileImageUrl: ag.user.profileImageUrl,
+              role: ag.user.role,
+            }
+          : undefined,
+      })
+    );
+
+    // Return the experience with the new assignedGuides array
+    const { experienceGuides: _, ...experienceWithoutJunction } = experienceWithGuides;
+    return {
+      ...experienceWithoutJunction,
+      assignedGuides: assignedGuidesFormatted,
+    };
   }
 
   async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> {
@@ -668,7 +706,7 @@ export class DatabaseStorage implements IStorage {
     console.log(`[STORAGE][DEBUG] Successfully deleted experience ID: ${id} and all related data - EXITING FUNCTION.`);
   }
 
-  async listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]> {
+  async listExperiences(locationId?: number, outfitterId?: number): Promise<ExperienceWithGuides[]> {
     const conditions = [];
     
     if (locationId) {
@@ -679,13 +717,44 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(experiences.outfitterId, outfitterId));
     }
     
-    if (conditions.length > 0) {
-      return await db.select().from(experiences)
-        .where(and(...conditions))
-        .orderBy(experiences.name);
-    }
-    
-    return await db.select().from(experiences).orderBy(experiences.name);
+    const allExperiences = await db.query.experiences.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      orderBy: experiences.name,
+      with: {
+        experienceGuides: {
+          with: {
+            user: true, // Join to get user details for each guide
+          },
+        },
+      },
+    });
+
+    // Transform the result to include assignedGuides array for each experience
+    return allExperiences.map(experienceWithGuides => {
+      const assignedGuidesFormatted = experienceWithGuides.experienceGuides.map(
+        (ag) => ({
+          id: ag.id, // Junction table ID
+          guideId: ag.guideId,
+          isPrimary: ag.isPrimary || false, // Handle null values
+          guideUser: ag.user
+            ? {
+                id: ag.user.id,
+                email: ag.user.email,
+                firstName: ag.user.firstName,
+                lastName: ag.user.lastName,
+                profileImageUrl: ag.user.profileImageUrl,
+                role: ag.user.role,
+              }
+            : undefined,
+        })
+      );
+      
+      const { experienceGuides: _, ...experienceWithoutJunction } = experienceWithGuides;
+      return {
+        ...experienceWithoutJunction,
+        assignedGuides: assignedGuidesFormatted,
+      };
+    });
   }
   
   // Experience Locations operations

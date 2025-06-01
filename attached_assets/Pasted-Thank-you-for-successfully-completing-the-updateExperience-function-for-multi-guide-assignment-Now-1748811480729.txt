@@ -1,0 +1,188 @@
+Thank you for successfully completing the updateExperience function for multi-guide assignment!
+
+Now, to complete Phase 2: Backend Logic Adaptation - Core CRUD, your primary task is to enhance the getExperience and listExperiences functions in server/storage.ts to fetch and return all assigned guides for each experience from the experience_guides table, including their isPrimary status and associated user details.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Locations: The async getExperience(...) and async listExperiences(...) function definitions.
+Proposed Code Changes:
+
+1. Update Experience Type (in @shared/schema.ts or server/storage.ts if locally defined):
+Modify Experience type definition: It needs to include an array for assigned guides.
+TypeScript
+
+// Assuming Experience type looks similar to this:
+export type Experience = typeof experiences.$inferSelect & {
+    // ... existing fields ...
+    assignedGuides?: Array<{ // Add this new field
+        id: number; // experience_guide junction ID
+        guideId: string; // User ID of the guide
+        isPrimary: boolean;
+        // Optionally, include guide user details if needed:
+        guideUser?: { // Assuming you want guide user details too
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            profileImageUrl?: string;
+            role: string;
+        };
+    }>;
+};
+2. Modify getExperience Function:
+Find this block (the getExperience function definition):
+
+TypeScript
+
+async getExperience(id: number): Promise<Experience | undefined> {
+  const result = await db.query.experiences.findFirst({
+    where: eq(experiences.id, id),
+  });
+  return result;
+}
+Replace it with (joining experienceGuides and users to fetch all assigned guides):
+
+TypeScript
+
+async getExperience(id: number): Promise<Experience | undefined> {
+  // Use a transaction if multiple queries are needed, but Drizzle's 'with' can handle this.
+  const experienceWithGuides = await db.query.experiences.findFirst({
+    where: eq(experiences.id, id),
+    with: { // <--- ADDED: Fetch related guide assignments
+      experienceGuides: {
+        with: { // Further join to get user details for the guide
+          user: true, // Assuming a relation named 'user' exists in experienceGuides schema
+        },
+      },
+    },
+  });
+
+  if (!experienceWithGuides) {
+    return undefined;
+  }
+
+  // Transform the result to the desired format (if needed, otherwise directly return)
+  // Ensure the returned object matches the Experience type with assignedGuides array
+  const assignedGuidesFormatted = experienceWithGuides.experienceGuides.map(
+    (ag) => ({
+      id: ag.id, // Junction table ID
+      guideId: ag.guideId,
+      isPrimary: ag.isPrimary,
+      guideUser: ag.user
+        ? {
+            id: ag.user.id,
+            email: ag.user.email,
+            firstName: ag.user.firstName,
+            lastName: ag.user.lastName,
+            profileImageUrl: ag.user.profileImageUrl,
+            role: ag.user.role,
+          }
+        : undefined,
+    })
+  );
+
+  // Return the experience with the new assignedGuides array
+  const { experienceGuides: _, ...experienceWithoutJunction } = experienceWithGuides;
+  return {
+    ...experienceWithoutJunction,
+    assignedGuides: assignedGuidesFormatted,
+  };
+}
+3. Modify listExperiences Function:
+Find this block (the listExperiences function definition):
+
+TypeScript
+
+async listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]> {
+  const conditions = [];
+  
+  if (locationId) {
+    conditions.push(eq(experiences.locationId, locationId));
+  }
+  
+  if (outfitterId) {
+    conditions.push(eq(experiences.outfitterId, outfitterId));
+  }
+  
+  if (conditions.length > 0) {
+    return await db.select().from(experiences)
+      .where(and(...conditions))
+      .orderBy(experiences.name);
+  }
+  
+  return await db.select().from(experiences).orderBy(experiences.name);
+}
+Replace it with (joining experienceGuides and users for all experiences):
+
+TypeScript
+
+async listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]> {
+  const conditions = [];
+  
+  if (locationId) {
+    conditions.push(eq(experiences.locationId, locationId));
+  }
+  
+  if (outfitterId) {
+    conditions.push(eq(experiences.outfitterId, outfitterId));
+  }
+  
+  // Use a transaction if multiple queries are needed, or adjust Drizzle to fetch all relations
+  const allExperiences = await db.query.experiences.findMany({ // <--- Changed to findMany
+    where: conditions.length > 0 ? and(...conditions) : undefined, // Apply conditions if any
+    orderBy: experiences.name,
+    with: { // <--- ADDED: Fetch related guide assignments
+      experienceGuides: {
+        with: { // Further join to get user details for the guide
+          user: true, // Assuming a relation named 'user' exists in experienceGuides schema
+        },
+      },
+    },
+  });
+
+  // Transform the result to include assignedGuides array
+  return allExperiences.map(experienceWithGuides => {
+    const assignedGuidesFormatted = experienceWithGuides.experienceGuides.map(
+      (ag) => ({
+        id: ag.id, // Junction table ID
+        guideId: ag.guideId,
+        isPrimary: ag.isPrimary,
+        guideUser: ag.user
+          ? {
+              id: ag.user.id,
+              email: ag.user.email,
+              firstName: ag.user.firstName,
+              lastName: ag.user.lastName,
+              profileImageUrl: ag.user.profileImageUrl,
+              role: ag.user.role,
+            }
+          : undefined,
+      })
+    );
+    const { experienceGuides: _, ...experienceWithoutJunction } = experienceWithGuides;
+    return {
+      ...experienceWithoutJunction,
+      assignedGuides: assignedGuidesFormatted,
+    };
+  });
+}
+Also, ensure the following Drizzle imports are present at the top of server/storage.ts if not already:
+import { eq, and } from 'drizzle-orm';
+And ensure your Drizzle schemas have defined relations:
+Your experienceGuides schema in @shared/schema.ts (or equivalent) needs a user relation:
+relations(experienceGuides, ({ one }) => ({ user: one(users, { fields: [experienceGuides.guideId], references: [users.id] }), experience: one(experiences, { fields: [experienceGuides.experienceId], references: [experiences.id] }), }));
+And your experiences schema needs experienceGuides relation:
+relations(experiences, ({ many }) => ({ experienceGuides: many(experienceGuides), }));
+
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for server/storage.ts (and @shared/schema.ts if the Experience type or Drizzle relations are defined there).
+
+Success Criteria for My Approval:
+
+The Experience type is updated to include assignedGuides?: Array<{ ... }>.
+Both getExperience and listExperiences use Drizzle's with clause to fetch experienceGuides and user details.
+Both functions correctly transform the query results to include the assignedGuides array in the Experience object.
+Necessary Drizzle relations are confirmed (or added) in schema definitions.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This will complete the backend's ability to retrieve multi-guide data!
