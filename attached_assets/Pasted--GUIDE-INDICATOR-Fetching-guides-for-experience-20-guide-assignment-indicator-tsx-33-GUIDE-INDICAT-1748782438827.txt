@@ -1,0 +1,117 @@
+[GUIDE_INDICATOR] Fetching guides for experience 20
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 18
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 24
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 22
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 19
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 25
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 20 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 18 Array(0)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 22 Array(0)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 25 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 24 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 19 Array(0)
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 20
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 18
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 24
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 22
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 19
+guide-assignment-indicator.tsx:62 [GUIDE_INDICATOR] Auto-refetching guides attempt 1
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 25
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 18 Array(0)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 22 Array(0)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 20 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 24 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 25 Array(1)
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 19 Array(0)
+Experiences.tsx:580 🔍 [EDIT_DIALOG_DEBUG] Opening edit dialog for existing experience: 24
+Experiences.tsx:581 🔍 [EDIT_DIALOG_DEBUG] Setting isCreating to true (to open dialog)
+Experiences.tsx:584 Opening edit dialog for experience: {id: 24, name: 'Test Guide Hunt', description: 'Testing Guide Assignment', duration: 2, price: '500.00', …}
+Experiences.tsx:589 Loading guides for experience ID 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:594 Loaded 1 guides for experience: [{…}]
+Experiences.tsx:604 Set draft guides for editing: [{…}]
+Experiences.tsx:649 Fetching fresh add-ons data for experience 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:653 Fetched 0 add-ons for experience 24 []
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+experience-guides.tsx:467 --- DIAGNOSTIC: X Button onClick Handler Called ---
+experience-guides.tsx:468 🔍 [ONCLICK_DEBUG] Assignment object passed: {
+  "id": 19,
+  "experienceId": 24,
+  "guideId": "test_guide_001",
+  "isPrimary": false,
+  "createdAt": "2025-06-01T12:50:15.474Z",
+  "updatedAt": "2025-06-01T12:50:15.474Z"
+}
+experience-guides.tsx:469 🔍 [ONCLICK_DEBUG] current draftMode: false
+experience-guides.tsx:470 🔍 [ONCLICK_DEBUG] current experienceId: 24
+experience-guides.tsx:213 🔍 [FRONTEND_UNASSIGN_DEBUG] Attempting guide unassignment API call.
+experience-guides.tsx:214 🔍 [FRONTEND_UNASSIGN_DEBUG] Unassigning Guide ID: test_guide_001 from Experience ID: 24
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/24/guides/test_guide_001
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: {}
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:44 🔍 [API_REQUEST_DEBUG] Attempting to parse response as JSON.
+queryClient.ts:47 ⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning raw response.
+overrideMethod @ hook.js:608
+apiRequest @ queryClient.ts:47
+await in apiRequest
+mutationFn @ experience-guides.tsx:217
+fn @ @tanstack_react-query.js?v=f1fe48f6:1189
+run @ @tanstack_react-query.js?v=f1fe48f6:494
+start @ @tanstack_react-query.js?v=f1fe48f6:536
+execute @ @tanstack_react-query.js?v=f1fe48f6:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=f1fe48f6:2630
+(anonymous) @ @tanstack_react-query.js?v=f1fe48f6:3295
+onClick @ experience-guides.tsx:490
+callCallback2 @ chunk-XQLYTHWV.js?v=f1fe48f6:3674
+invokeGuardedCallbackDev @ chunk-XQLYTHWV.js?v=f1fe48f6:3699
+invokeGuardedCallback @ chunk-XQLYTHWV.js?v=f1fe48f6:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-XQLYTHWV.js?v=f1fe48f6:3736
+executeDispatch @ chunk-XQLYTHWV.js?v=f1fe48f6:7014
+processDispatchQueueItemsInOrder @ chunk-XQLYTHWV.js?v=f1fe48f6:7034
+processDispatchQueue @ chunk-XQLYTHWV.js?v=f1fe48f6:7043
+dispatchEventsForPlugins @ chunk-XQLYTHWV.js?v=f1fe48f6:7051
+(anonymous) @ chunk-XQLYTHWV.js?v=f1fe48f6:7174
+batchedUpdates$1 @ chunk-XQLYTHWV.js?v=f1fe48f6:18913
+batchedUpdates @ chunk-XQLYTHWV.js?v=f1fe48f6:3579
+dispatchEventForPluginEventSystem @ chunk-XQLYTHWV.js?v=f1fe48f6:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-XQLYTHWV.js?v=f1fe48f6:5478
+dispatchEvent @ chunk-XQLYTHWV.js?v=f1fe48f6:5472
+dispatchDiscreteEvent @ chunk-XQLYTHWV.js?v=f1fe48f6:5449Understand this warning
+experience-guides.tsx:219 🔍 [FRONTEND_UNASSIGN_DEBUG] API response for unassignment: Response {type: 'basic', url: 'https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3t…plit.dev/api/experiences/24/guides/test_guide_001', redirected: false, status: 204, ok: true, …}
+experience-guides.tsx:223 🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 20
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 18
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 22
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 19
+guide-assignment-indicator.tsx:33 [GUIDE_INDICATOR] Fetching guides for experience 25
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 19 []
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 20 [{…}]
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 18 []
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 0 guides for experience 22 []
+guide-assignment-indicator.tsx:41 [GUIDE_INDICATOR] Fetched 1 guides for experience 25 [{…}]
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24
+useAuth.ts:74 Auth State Debug: {user: {…}, fallbackUser: undefined, currentUser: {…}, isAuthenticated: true, isLoading: false, …}
+Experiences.tsx:2129 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: false for experience ID: 24

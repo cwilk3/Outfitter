@@ -1,0 +1,70 @@
+Thank you for this precise diagnosis. The SyntaxError for "Make Primary" is caused by apiRequest attempting to parse an empty 204 No Content response as JSON.
+
+Your primary task is to modify the apiRequest function in client/src/lib/queryClient.ts to correctly handle 204 No Content HTTP responses by returning null or undefined immediately, without attempting to parse them as JSON.
+
+Specific Focus Areas for Modification:
+
+File: client/src/lib/queryClient.ts
+Location: Inside the export const apiRequest = async (...) function, specifically within the success path after response.ok is confirmed.
+Proposed Code Changes (applying to queryClient.ts):
+
+Find this block (within apiRequest, where successful responses are handled):
+
+TypeScript
+
+export const apiRequest = async (method: string, url: string, data?: any) => {
+  // ... existing code for headers, fetch call, and !response.ok handling ...
+
+  // Attempt to parse JSON response for success cases
+  let responseJson = null;
+  try {
+    responseJson = await response.json();
+    console.log('🔍 [API_REQUEST_DEBUG] Response JSON parsed successfully.');
+  } catch (e) {
+    console.warn('⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning raw response.');
+  }
+  
+  return responseJson; // Return parsed JSON or null/undefined if not JSON
+};
+Replace it with (adding explicit 204 handling):
+
+TypeScript
+
+export const apiRequest = async (method: string, url: string, data?: any) => {
+  // ... existing code for headers, fetch call, and !response.ok handling ...
+
+  console.log('🔍 [API_REQUEST_DEBUG] Response received. Status:', response.status); // Keep this log
+  console.log('🔍 [API_REQUEST_DEBUG] Response OK:', response.ok); // Keep this log
+
+  // Handle 204 No Content status explicitly
+  if (response.status === 204) { // <--- ADD THIS BLOCK
+    console.log('🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.');
+    return null as T; // Explicitly return null or undefined for 204 responses
+  }
+  
+  // Attempt to parse JSON response for other success cases (e.g., 200, 201)
+  let responseJson = null;
+  try {
+    responseJson = await response.json();
+    console.log('🔍 [API_REQUEST_DEBUG] Response JSON parsed successfully.');
+  } catch (e) {
+    // If response is not JSON for an OK status (but not 204), warn and return raw response.
+    console.warn('⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning raw response or null for non-JSON OK status.', e);
+    // You might return responseJson (which would be null here) or the raw response object.
+    // For T being the type, returning null/undefined is safer if response is not JSON.
+    return null as T; // Return null if it's not JSON but was OK status (e.g. empty body 200)
+  }
+  
+  return responseJson; // Return parsed JSON
+};
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/lib/queryClient.ts.
+
+Success Criteria for My Approval (for this functional fix):
+
+The apiRequest function explicitly checks response.status === 204.
+If response.status is 204, it immediately returns null (or undefined or a Promise.resolve()) without calling response.json().
+The existing response.json() try-catch block remains for other successful statuses (like 200, 201).
+Diagnostic logs are correctly preserved or updated.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This fix is crucial for the "Make Primary" functionality to work without errors. 

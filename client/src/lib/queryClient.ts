@@ -33,6 +33,12 @@ export async function apiRequest<T = Response>(
     console.log('🔍 [API_REQUEST_DEBUG] Response OK:', res.ok);
 
     await throwIfResNotOk(res);
+
+    // Handle 204 No Content status explicitly
+    if (res.status === 204) {
+      console.log('🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.');
+      return null as T;
+    }
     
     // Parse JSON response if we're expecting something other than Response
     if (typeof Response !== 'undefined' && Response === Object(Response) && !(res instanceof Response)) {
@@ -44,9 +50,8 @@ export async function apiRequest<T = Response>(
       console.log('🔍 [API_REQUEST_DEBUG] Attempting to parse response as JSON.');
       return await res.json() as T;
     } catch (error) {
-      console.warn('⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning raw response.');
-      // If parsing as JSON fails, return the raw response
-      return res as unknown as T;
+      console.warn('⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning null for non-JSON OK status.');
+      return null as T;
     }
   } catch (error) {
     console.error('❌ [API_REQUEST_DEBUG] Network or fetch error in apiRequest:', error);
