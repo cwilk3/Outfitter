@@ -175,35 +175,67 @@ export function ExperienceGuides({
 
   // Update a guide assignment (set primary)
   const updateGuideMutation = useMutation({
-    mutationFn: async (data: { id: number; isPrimary: boolean }) => {
-      const response = await fetch(`/api/experience-guides/${data.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isPrimary: data.isPrimary }),
-      });
+    mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => {
+      // --- START DIAGNOSTIC LOGGING FOR updateGuideMutation ---
+      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] MutationFn called for guide primary status update.');
+      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] Payload received:', { id, isPrimary, experienceId });
+      // --- END DIAGNOSTIC LOGGING ---
+
+      // Use apiRequest for proper authentication and 204 handling
+      // The endpoint is PUT /api/experience-guides/:id (where :id is the experience_guide junction ID)
+      const response = await apiRequest('PUT', `/api/experience-guides/${id}`, { isPrimary });
       
-      if (!response.ok) {
-        throw new Error('Failed to update guide assignment');
+      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response); // Will be null for 204
+      return response; // This will be null for 204 success, or JSON for 200/201
+    },
+    onSuccess: (data, variables) => { // 'data' can be null here for 204
+      console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded. Data:', data, 'Variables:', variables);
+      
+      // Invalidate queries to re-fetch latest assigned guides
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences if primary status impacts list
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides too if needed
+
+      // Update the local assignedGuides state to reflect the primary change
+      const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({
+          ...g,
+          isPrimary: g.id === variables.id // Set the selected guide (by its assignment ID) as primary
+      }));
+
+      // If there can only be one primary, ensure others are set to false
+      if (variables.isPrimary) { // If this mutation sets primary to true
+          updatedAssignedGuides.forEach(g => {
+              if (g.id !== variables.id) { // Compare by assignment ID
+                  g.isPrimary = false; // Set others to false
+              }
+          });
+      }
+
+      // Notify parent component about the change (if onChange is used for submission payload)
+      if (onChange) {
+          onChange(updatedAssignedGuides);
       }
       
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       toast({
-        title: 'Guide updated',
-        description: 'The guide assignment has been updated.',
+        title: 'Guide updated!',
+        description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
       });
     },
-    onError: (error) => {
+    onError: (error) => { // <--- ENHANCED ERROR HANDLING
+      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error during guide primary status update:', error);
+      if (error instanceof Error) {
+        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error message:', error.message);
+        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error stack:', error.stack);
+      } else if (typeof error === 'object' && error !== null) {
+        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Full error object:', JSON.stringify(error, null, 2));
+      } else {
+        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Unknown error type:', error);
+      }
       toast({
-        title: 'Error',
-        description: 'Failed to update guide assignment. Please try again.',
+        title: 'Update failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred.',
         variant: 'destructive',
       });
-      console.error('Error updating guide assignment:', error);
     },
   });
 

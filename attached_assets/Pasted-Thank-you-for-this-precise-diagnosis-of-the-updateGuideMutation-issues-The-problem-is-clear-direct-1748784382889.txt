@@ -1,0 +1,124 @@
+Thank you for this precise diagnosis of the updateGuideMutation issues. The problem is clear: direct fetch calls, JSON parsing errors for 204s, and missing state updates.
+
+Your primary task is to completely rewrite the updateGuideMutation definition in client/src/components/ui/experience-guides.tsx to:
+
+Use apiRequest for network calls (ensuring proper authentication and 204 handling).
+Add comprehensive diagnostic logging within its mutationFn.
+Update its onSuccess handler to correctly handle null responses as success and update the local assignedGuides state.
+Enhance its onError handler for detailed error capture.
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The updateGuideMutation definition (likely defined using useMutation).
+Proposed Code Changes (applying to experience-guides.tsx):
+
+Find this block (the updateGuideMutation definition, likely Lines 92-180 approximate from previous context, but locate the updateGuideMutation block):
+
+TypeScript
+
+const updateGuideMutation = useMutation({
+  mutationFn: async (data: { id: number; isPrimary: boolean }) => {
+    // Current implementation: direct fetch() calls
+    const response = await fetch(`/api/experience-guides/${data.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPrimary: data.isPrimary }),
+    });
+    // ... rest of current mutationFn
+    return response.json(); // <-- Problematic line
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+    toast({ title: 'Guide updated', description: 'The guide assignment has been updated.' });
+  },
+  onError: (error) => {
+    toast({ title: 'Error', description: 'Failed to update guide assignment. Please try again.', variant: 'destructive' });
+    console.error('Error updating guide assignment:', error);
+  },
+});
+Replace it with (rewritten mutation using apiRequest, new logging, and updated onSuccess/onError):
+
+TypeScript
+
+import { apiRequest } from '@/lib/queryClient'; // Ensure this is imported at the top
+
+const updateGuideMutation = useMutation({
+  mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => { // 'id' here is the experienceGuide ID
+    // --- START DIAGNOSTIC LOGGING FOR updateGuideMutation ---
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] MutationFn called for guide primary status update.');
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] Payload received:', { id, isPrimary, experienceId });
+    // --- END DIAGNOSTIC LOGGING ---
+
+    // Use apiRequest for proper authentication and 204 handling
+    // The endpoint is PUT /api/experience-guides/:id (where :id is the experience_guide junction ID)
+    const response = await apiRequest('PUT', `/api/experience-guides/${id}`, { isPrimary });
+    
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response); // Will be null for 204
+    return response; // This will be null for 204 success, or JSON for 200/201
+  },
+  onSuccess: (data, variables) => { // 'data' can be null here for 204
+    console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded. Data:', data, 'Variables:', variables);
+    
+    // Invalidate queries to re-fetch latest assigned guides
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences if primary status impacts list
+    queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides too if needed
+
+    // Update the local assignedGuides state to reflect the primary change
+    const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({
+        ...g,
+        isPrimary: g.id === variables.id // Set the selected guide (by its assignment ID) as primary
+    }));
+
+    // If there can only be one primary, ensure others are set to false
+    if (variables.isPrimary) { // If this mutation sets primary to true
+        updatedAssignedGuides.forEach(g => {
+            if (g.id !== variables.id) { // Compare by assignment ID
+                g.isPrimary = false; // Set others to false
+            }
+        });
+    }
+
+    // Notify parent component about the change (if onChange is used for submission payload)
+    if (onChange) {
+        onChange(updatedAssignedGuides);
+    }
+    
+    toast({
+      title: 'Guide updated!',
+      description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
+    });
+  },
+  onError: (error) => { // <--- ENHANCED ERROR HANDLING
+    console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error during guide primary status update:', error);
+    if (error instanceof Error) {
+      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error message:', error.message);
+      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error stack:', error.stack);
+    } else if (typeof error === 'object' && error !== null) {
+      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Full error object:', JSON.stringify(error, null, 2));
+    } else {
+      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Unknown error type:', error);
+    }
+    toast({
+      title: 'Update failed',
+      description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      variant: 'destructive',
+    });
+  },
+});
+Output Required for My Review:
+Once you have implemented this rewrite, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The mutationFn of updateGuideMutation is rewritten to use apiRequest for its network call (PUT /api/experience-guides/:id).
+apiRequest is correctly imported.
+Comprehensive [UPDATE_GUIDE_MUT_DEBUG] diagnostic logging is included within mutationFn.
+The onSuccess handler is correctly updated to:
+Handle null data as a success (from 204).
+Update the isPrimary status in the local assignedGuides array, ensuring only one guide is primary if applicable.
+Call onChange(updatedAssignedGuides) to notify the parent component.
+Includes comprehensive [UPDATE_GUIDE_MUT_SUCCESS] diagnostic logs.
+The onError handler is enhanced for detailed error capture.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This will fix the "Make Primary" UI update problem! 
