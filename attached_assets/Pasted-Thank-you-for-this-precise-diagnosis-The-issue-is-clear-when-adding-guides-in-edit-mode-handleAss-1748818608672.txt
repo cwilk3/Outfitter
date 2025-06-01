@@ -1,0 +1,98 @@
+Thank you for this precise diagnosis. The issue is clear: when adding guides in edit mode, handleAssignGuide is prematurely hitting the API instead of accumulating guides in the draft state.
+
+Your primary task is to modify the handleAssignGuide function in client/src/components/ui/experience-guides.tsx so that in 'normal' (edit) mode, it adds the selected guide to the draftGuides state, just like it does in 'draft' (creation) mode.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The const handleAssignGuide = () => { ... } function definition.
+Proposed Code Changes (applying to handleAssignGuide):
+
+Find this block (the handleAssignGuide function, focusing on the else block for normal mode):
+
+TypeScript
+
+const handleAssignGuide = () => {
+  if (!selectedGuideId) return; // Keep this validation
+
+  if (draftMode) {
+    // ... existing draft mode logic (already adds to local draftGuides) ...
+  } else { // This is the 'normal mode' / edit mode branch
+    // Check if guide is already assigned
+    if (assignedGuides.some((g: ExperienceGuide) => g.guideId === selectedGuideId)) {
+      toast({
+        title: 'Guide already assigned',
+        description: 'This guide is already assigned to this experience.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Determine if this should be primary (make first guide primary by default)
+    const isPrimary = assignedGuides.length === 0;
+
+    // This block currently calls assignGuideMutation.mutate() directly.
+    // It needs to change to update draftGuides instead.
+    assignGuideMutation.mutate({ 
+      guideId: selectedGuideId, 
+      isPrimary 
+    });
+  }
+};
+Replace it with (modifying the else block to add to draftGuides):
+
+TypeScript
+
+const handleAssignGuide = () => {
+  if (!selectedGuideId) return; // Keep this validation
+
+  // Determine if this should be primary (make first guide primary by default)
+  // This logic is now unified for both modes
+  const currentGuides = draftMode ? draftGuides : assignedGuides; // Get the current list (draft or already assigned)
+  const isPrimary = currentGuides.length === 0; // First guide added is primary
+
+  // Check if guide is already assigned in current state
+  if (currentGuides.some(g => g.guideId === selectedGuideId)) {
+    toast({
+      title: 'Guide already assigned',
+      description: 'This guide is already assigned to this experience.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  // Create a new guide assignment object (DraftGuideAssignment for consistency)
+  const newGuideAssignment: DraftGuideAssignment = {
+    tempId: nextTempId, // Use tempId for new guides in draft state
+    guideId: selectedGuideId,
+    isPrimary: isPrimary
+  };
+
+  const updatedDraftGuides = [...draftGuides, newGuideAssignment]; // Always update draftGuides
+
+  // Update local state and notify parent
+  setDraftGuides(updatedDraftGuides);
+  setNextTempId(nextTempId + 1); // Increment temp ID counter
+  setSelectedGuideId(''); // Clear selection
+
+  // Notify parent component, which will store the guides for final submission
+  if (onChange) {
+    onChange(updatedDraftGuides);
+  }
+
+  // Remove the old 'else' block which called assignGuideMutation directly.
+  // The API call will now happen when the main experience form is submitted.
+};
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The handleAssignGuide function's logic is consolidated or modified so that both draftMode (creation) and normalMode (editing) paths:
+Add the selected guide to the draftGuides array.
+Correctly determine isPrimary for the newly added guide.
+Update setDraftGuides and nextTempId.
+Call onChange(updatedDraftGuides) to inform the parent component.
+The direct call to assignGuideMutation.mutate() within handleAssignGuide's else block is removed.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This fix is crucial for correctly accumulating guides in edit mode!

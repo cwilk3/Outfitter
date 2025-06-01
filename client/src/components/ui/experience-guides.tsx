@@ -273,63 +273,42 @@ export function ExperienceGuides({
   // Handle guide selection and assignment
   const handleAssignGuide = () => {
     if (!selectedGuideId) return;
-    
-    if (draftMode) {
-      // In draft mode, add to local state instead of making API call
-      
-      // Check if guide is already assigned in draft state
-      if (draftGuides.some(g => g.guideId === selectedGuideId)) {
-        toast({
-          title: 'Guide already assigned',
-          description: 'This guide is already assigned to this experience.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      // Determine if this should be primary (make first guide primary by default)
-      const isPrimary = draftGuides.length === 0;
-      
-      // Create a new draft assignment with a temporary ID
-      const newDraftGuide: DraftGuideAssignment = {
-        tempId: nextTempId,
-        guideId: selectedGuideId,
-        isPrimary
-      };
-      
-      // Update local state
-      const updatedDraftGuides = [...draftGuides, newDraftGuide];
-      setDraftGuides(updatedDraftGuides);
-      setNextTempId(nextTempId + 1);
-      setSelectedGuideId('');
-      
-      // Notify parent component
-      if (onChange) {
-        onChange(updatedDraftGuides);
-      }
-    } else {
-      // In normal mode, make API call
-      
-      // Check if guide is already assigned
-      if (assignedGuides.some((g: ExperienceGuide) => g.guideId === selectedGuideId)) {
-        toast({
-          title: 'Guide already assigned',
-          description: 'This guide is already assigned to this experience.',
-          variant: 'destructive',
-        });
-        return;
-      }
 
-      // Determine if this should be primary (make first guide primary by default)
-      const isPrimary = assignedGuides.length === 0;
-      
+    // Determine if this should be primary (make first guide primary by default)
+    // This logic is now unified for both modes
+    const currentGuides = draftMode ? draftGuides : assignedGuides;
+    const isPrimary = currentGuides.length === 0; // First guide added is primary
 
-      
-      assignGuideMutation.mutate({ 
-        guideId: selectedGuideId, 
-        isPrimary 
+    // Check if guide is already assigned in current state
+    if (currentGuides.some(g => g.guideId === selectedGuideId)) {
+      toast({
+        title: 'Guide already assigned',
+        description: 'This guide is already assigned to this experience.',
+        variant: 'destructive',
       });
+      return;
     }
+
+    // Create a new guide assignment object (DraftGuideAssignment for consistency)
+    const newGuideAssignment: DraftGuideAssignment = {
+      tempId: nextTempId, // Use tempId for new guides in draft state
+      guideId: selectedGuideId,
+      isPrimary: isPrimary
+    };
+
+    const updatedDraftGuides = [...draftGuides, newGuideAssignment]; // Always update draftGuides
+
+    // Update local state and notify parent
+    setDraftGuides(updatedDraftGuides);
+    setNextTempId(nextTempId + 1); // Increment temp ID counter
+    setSelectedGuideId(''); // Clear selection
+
+    // Notify parent component, which will store the guides for final submission
+    if (onChange) {
+      onChange(updatedDraftGuides);
+    }
+
+    // Note: The API call will now happen when the main experience form is submitted
   };
 
   // Handle setting a guide as primary
