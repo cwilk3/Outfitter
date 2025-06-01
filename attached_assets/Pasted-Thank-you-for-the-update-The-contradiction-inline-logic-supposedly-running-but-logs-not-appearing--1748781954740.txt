@@ -1,0 +1,83 @@
+Thank you for the update. The contradiction (inline logic supposedly running but logs not appearing) indicates a persistent issue. We need to verify if the onClick handler itself is firing and what data it receives.
+
+Your primary task is to add highly targeted diagnostic logging at the very beginning of the inline onClick handler for the "X" (remove guide) button in client/src/components/ui/experience-guides.tsx.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The very first lines inside the onClick={() => { ... }} arrow function, before any conditional logic.
+Proposed Code Changes:
+
+Find this block (the onClick handler in the Button component):
+
+TypeScript
+
+<Button
+  variant="destructive"
+  size="sm"
+  onClick={() => { // <--- ADD LOGS INSIDE THIS ARROW FUNCTION
+    if (draftMode) {
+      // In draft mode, remove from local state
+      const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
+      // ... rest of draftMode logic ...
+    } else {
+      // In normal mode, call API and update state
+      removeGuideMutation.mutate({
+        experienceId: experienceId!,
+        guideId: assignment.guideId
+      }, {
+        onSuccess: () => {
+          // ... onSuccess logic ...
+        }
+      });
+    }
+  }}
+  disabled={!draftMode && removeGuideMutation.isPending}
+>
+  <X className="h-4 w-4" />
+</Button>
+Replace it with (adding diagnostic logs at the very start of the onClick function):
+
+TypeScript
+
+<Button
+  variant="destructive"
+  size="sm"
+  onClick={() => { // <--- ADD LOGS HERE
+    // --- START NEW ONCLICK DIAGNOSTIC LOGGING ---
+    console.log('--- DIAGNOSTIC: X Button onClick Handler Called ---');
+    console.log('🔍 [ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
+    console.log('🔍 [ONCLICK_DEBUG] current draftMode:', draftMode);
+    console.log('🔍 [ONCLICK_DEBUG] current experienceId:', experienceId);
+    // --- END NEW ONCLICK DIAGNOSTIC LOGGING ---
+
+    if (draftMode) {
+      // In draft mode, remove from local state
+      const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
+      // ... rest of draftMode logic ...
+    } else {
+      // In normal mode, call API and update state
+      removeGuideMutation.mutate({
+        experienceId: experienceId!,
+        guideId: assignment.guideId
+      }, {
+        onSuccess: () => {
+          // ... onSuccess logic ...
+        }
+      });
+    }
+  }}
+  disabled={!draftMode && removeGuideMutation.isPending}
+>
+  <X className="h-4 w-4" />
+</Button>
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx. After approval, you will perform a new test (attempting to remove a guide) and provide the complete console output from these new logs.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [ONCLICK_DEBUG] prefix are correctly added at the very beginning of the inline onClick handler.
+The logs correctly capture the assignment object, draftMode, and experienceId.
+No other unrelated functional code lines are affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to understand if the button click is even reaching our code.
