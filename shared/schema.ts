@@ -430,7 +430,8 @@ export const insertExperienceSchema = baseExperienceSchema.extend({
     (val) => (typeof val === 'string' ? parseInt(val, 10) : val),
     z.number().min(1)
   ),
-  guideId: z.string().optional(), // Add this line
+  guideId: z.string().optional(), // Keep for compatibility
+  assignedGuideIds: z.array(z.string()).optional(), // New field for multi-guide assignment
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({ 

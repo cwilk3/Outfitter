@@ -1,0 +1,24 @@
+Hello Replit, we're embarking on a major new feature: Multi-Guide Assignment for Experiences!
+
+Currently, an experience can only have one guide assigned directly. The goal is to enhance the system so that an experience can have multiple guides assigned simultaneously, with one designated as 'primary' if needed. This is a significant enhancement to your experience management capabilities.
+
+We will tackle this systematically in phases to ensure a smooth, non-breaking implementation:
+
+Phase 1: Backend Data Structure Adaptation (Initial Storage Changes)
+Goal: Begin adapting the backend to store multiple guides per experience.
+Action: We will modify the createExperience function in server/storage.ts. It will now accept an array of guide IDs and store these multiple assignments in the experience_guides junction table, while temporarily maintaining compatibility with the existing single-guideId column on the experiences table.
+Phase 2: Backend Core Logic Expansion (Comprehensive Guide Management)
+Goal: Update the backend to fully support managing a list of guides for an experience.
+Action: We'll modify updateExperience to handle adding, removing, and updating multiple guides (including their primary status) via the experience_guides table. We will also update retrieval functions (getExperience, listExperiences) to fetch and return all assigned guides.
+Phase 3: Frontend User Experience & API Integration (UI for Multi-Selection)
+Goal: Update the user interface to allow admins to select and manage multiple guides for an experience.
+Action: This involves modifying the experience creation/edit forms for multi-selection, adapting the frontend's API submission payloads to send arrays of guide IDs, and updating the UI to display multiple assigned guides.
+Phase 4: Backend API Endpoint Re-adaptation (Handling Multi-Guide Requests)
+Goal: Ensure our API endpoints correctly handle the new multi-guide assignment and unassignment payloads.
+Action: We will review and adapt existing API endpoints (like guide assignment POST/DELETE routes) or create new ones if a different pattern is more suitable for managing multiple guides.
+Phase 5: Comprehensive Testing (Ensuring Robustness)
+Goal: Rigorously test the entire multi-guide assignment feature to ensure it's robust, secure, and bug-free.
+Action: We will implement a full suite of unit and integration tests covering various multi-guide scenarios.
+This is our overall plan. Now that you have the context, we'll proceed with Phase 1: Backend Data Structure Adaptation, starting with the detailed prompt for modifying the createExperience function.
+
+Are you ready to receive the detailed prompt for Phase 1: Modifying createExperience in server/storage.ts?

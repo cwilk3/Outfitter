@@ -58,7 +58,7 @@ export interface IStorage {
 
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
-  createExperience(experience: InsertExperience): Promise<Experience>;
+  createExperience(experience: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience>;
   updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null>;
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]>;
@@ -402,19 +402,43 @@ export class DatabaseStorage implements IStorage {
     return experience;
   }
 
-  async createExperience(experienceData: InsertExperience): Promise<Experience> {
-    const [newExperience] = await db
-      .insert(experiences)
-      .values(experienceData)
-      .returning();
-    
-    if (newExperience && experienceData.guideId) {
-      await db.insert(experienceGuides).values({
-        experienceId: newExperience.id,
-        guideId: experienceData.guideId,
-        // isPrimary: true, // Optional: set to true if this directly assigned guide is considered primary
-      });
-    }
+  async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> {
+    // Use a database transaction for atomicity (highly recommended for multiple inserts)
+    const newExperience = await db.transaction(async (tx) => {
+      // Step 1: Create the main experience record
+      const [createdExperience] = await tx.insert(experiences).values({
+        ...experienceData,
+        // IMPORTANT: Still set experiences.guideId for now for compatibility, use first primary guide if available
+        guideId: (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) 
+                   ? experienceData.assignedGuideIds[0] : experienceData.guideId || null, // Default to first assigned guide if any, fallback to existing guideId
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+
+      if (!createdExperience) {
+        throw new Error('Failed to create experience.');
+      }
+
+      // Step 2: Create entries in experienceGuides for all assigned guides
+      if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
+        const guideAssignments = experienceData.assignedGuideIds.map((guideId, index) => ({
+          experienceId: createdExperience.id,
+          guideId: guideId,
+          isPrimary: index === 0 // Set first assigned guide as primary
+        }));
+        await tx.insert(experienceGuides).values(guideAssignments);
+      } else if (experienceData.guideId) {
+        // Fallback: Handle legacy single guideId assignment
+        await tx.insert(experienceGuides).values({
+          experienceId: createdExperience.id,
+          guideId: experienceData.guideId,
+          isPrimary: true // Single guide is primary by default
+        });
+      }
+      
+      return createdExperience;
+    });
+
     return newExperience;
   }
 

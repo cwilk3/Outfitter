@@ -1,0 +1,99 @@
+Thank you for confirming the phased approach. We will now begin implementing multi-guide assignment by updating the createExperience function in server/storage.ts.
+
+Your primary task is to modify the createExperience function to accept an array of guide IDs and, after creating the main experience record, create corresponding entries in the experienceGuides junction table for each assigned guide.
+
+Important: For this phase, do NOT remove guideId from the experiences table or the InsertExperience type/schema yet. We are maintaining compatibility during this transition.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: The async createExperience(...) function definition.
+Proposed Code Changes:
+
+1. Update createExperience Function Signature and InsertExperience Type:
+Modify InsertExperience (in server/storage.ts or @shared/schema.ts if it's there):
+Find: guideId?: string; (or wherever guideId is currently defined in InsertExperience).
+Replace with: guideIds?: string[]; (changing to an array of strings).
+Modify createExperience function signature:
+Find: async createExperience(experienceData: InsertExperience): Promise<Experience>
+Replace with: async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> (explicitly adding assignedGuideIds to the expected experienceData).
+2. Modify createExperience Logic:
+Find this block (within createExperience, after db.insert(experiences) returns newExperience):
+
+TypeScript
+
+async createExperience(experienceData: InsertExperience): Promise<Experience> {
+  // ... existing code for database insert into 'experiences' ...
+  const [newExperience] = await db.insert(experiences).values({
+    // ... existing fields ...
+    guideId: experienceData.guideId || null, // Existing guideId assignment
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }).returning();
+
+  if (!newExperience) {
+    throw new Error('Failed to create experience.');
+  }
+
+  // --- EXISTING SINGLE GUIDE ASSIGNMENT LOGIC ---
+  if (newExperience && experienceData.guideId) {
+    await db.insert(experienceGuides).values({
+      experienceId: newExperience.id,
+      guideId: experienceData.guideId,
+      // isPrimary: true, // Optional: set to true if this directly assigned guide is considered primary
+    });
+  }
+  // --- END EXISTING SINGLE GUIDE ASSIGNMENT LOGIC ---
+
+  return newExperience;
+}
+Replace it with (handling assignedGuideIds array for experienceGuides table):
+
+TypeScript
+
+async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> { // <--- MODIFIED SIGNATURE
+  // Use a database transaction for atomicity (highly recommended for multiple inserts)
+  const newExperience = await db.transaction(async (tx) => { // <--- ADD TRANSACTION
+    // Step 1: Create the main experience record
+    const [createdExperience] = await tx.insert(experiences).values({
+      // ... existing fields ...
+      // IMPORTANT: Still set experiences.guideId for now for compatibility, use first primary guide if available
+      guideId: (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) 
+                 ? experienceData.assignedGuideIds[0] : null, // Default to first assigned guide if any
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
+    if (!createdExperience) {
+      throw new Error('Failed to create experience.');
+    }
+
+    // Step 2: Create entries in experienceGuides for all assigned guides
+    if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
+      const guideAssignments = experienceData.assignedGuideIds.map(guideId => ({
+        experienceId: createdExperience.id,
+        guideId: guideId,
+        isPrimary: (experienceData.assignedGuideIds![0] === guideId) // Set first assigned guide as primary
+      }));
+      await tx.insert(experienceGuides).values(guideAssignments);
+    }
+    
+    return createdExperience;
+  }); // <--- END TRANSACTION
+
+  return newExperience;
+}
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts.
+
+Success Criteria for My Approval:
+
+The createExperience function signature is updated to accept assignedGuideIds?: string[].
+The createExperience logic includes a database transaction for atomicity.
+The logic correctly inserts entries into the experienceGuides table for each guide in the assignedGuideIds array.
+experiences.guideId continues to be populated (e.g., with the first assigned guide) for compatibility.
+The isPrimary flag is handled for experienceGuides (e.g., setting the first assigned guide as primary).
+The original single guideId handling for experienceGuides (the if (newExperience && experienceData.guideId) block) is removed.
+The InsertExperience type in shared/schema.ts (or relevant location) is updated to include assignedGuideIds?: string[].
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This will enable storing multiple guides for new experiences!
