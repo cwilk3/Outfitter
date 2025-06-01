@@ -1,0 +1,134 @@
+Thank you for diagnosing this critical race condition. The backend is reporting success, but the persistence of isPrimary is the core problem.
+
+Your primary task is to implement diagnostic logging in the backend PUT /api/experience-guides/:id route handler and its storage function (storage.updateGuideAssignment) to trace the isPrimary update's path to the database.
+
+Specific Focus Areas for Modification:
+
+1. Modify Route Handler: PUT /api/experience-guides/:id
+File: server/routes/guides.ts (as identified in your previous analysis).
+Location: Inside the router.put('/experience-guides/:id', ...) handler.
+Proposed Code Changes (applying to server/routes/guides.ts):
+
+Find this block (within PUT /api/experience-guides/:id handler):
+
+TypeScript
+
+// ... existing authentication and validation ...
+const id = parseInt(req.params.id); // This is the experience_guide ID
+const user = (req as any).user;
+const outfitterId = user?.outfitterId;
+
+// Prepare data for validation
+const updateData = {
+  isPrimary: req.body.isPrimary === true
+};
+
+// ... existing error handling for invalid id ...
+
+// Update guide assignment
+const updatedGuide = await storage.updateGuideAssignment(id, updateData);
+
+// ... rest of handler (success/error response) ...
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+router.put('/experience-guides/:id', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: PUT /api/experience-guides/:id ---'); // Keep existing log
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Route Hit. Assignment ID param:', req.params.id);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Request Body (isPrimary):', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] User Outfitter ID:', user?.outfitterId);
+
+  const id = parseInt(req.params.id); // This is the experience_guide ID
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Prepare data for validation
+  const updateData = {
+    isPrimary: req.body.isPrimary === true // Ensure boolean conversion
+  };
+
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Prepared updateData:', updateData); // Log prepared data
+
+  // ... existing validation and tenant isolation (if applicable for this route) ...
+
+  // Update guide assignment
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Calling storage.updateGuideAssignment with:', { id, updateData, outfitterId }); // Log storage call
+  const updatedGuide = await storage.updateGuideAssignment(id, updateData, outfitterId); // Assuming storage function takes outfitterId for tenant check
+
+  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Storage update result:', updatedGuide); // Log storage result
+
+  if (!updatedGuide) {
+    console.error('❌ [PRIMARY_PERSIST_ERROR] Storage update returned false/null.');
+    throwError('Guide assignment not found or update failed', 404);
+  }
+
+  console.log('✅ [PRIMARY_PERSIST_DEBUG] Update successful. Returning 204.');
+  res.status(204).end();
+}));
+2. Modify Storage Function: storage.updateGuideAssignment
+File: server/storage.ts
+Location: Inside the async updateGuideAssignment(...) function.
+Proposed Code Changes (applying to server/storage.ts):
+
+Find this block (the updateGuideAssignment function definition):
+
+TypeScript
+
+async updateGuideAssignment(id: number, updateData: { isPrimary: boolean }): Promise<ExperienceGuide | undefined> {
+  // ... existing logic to find/verify assignment ...
+
+  const result = await db.update(experienceGuides)
+    .set(updateData) // <-- This is where update happens
+    .where(eq(experienceGuides.id, id))
+    .returning();
+  
+  return result[0];
+}
+Replace it with (adding diagnostic logs and verifying target):
+
+TypeScript
+
+async updateGuideAssignment(id: number, updateData: { isPrimary: boolean }, outfitterId: number): Promise<ExperienceGuide | undefined> { // <--- ENSURE outfitterId PARAMETER
+  console.log('--- DIAGNOSTIC: updateGuideAssignment Storage Function ---'); // <--- ADD THIS LINE
+  console.log('🔍 [STORAGE_PERSIST_DEBUG] Parameters: ID:', id, 'updateData:', updateData, 'OutfitterId:', outfitterId); // <--- ADD THIS LINE
+
+  // First, verify the guide assignment exists and belongs to the outfitter
+  const existingAssignment = await db.query.experienceGuides.findFirst({
+    where: (ag, { eq, and }) => and(eq(ag.id, id), eq(ag.outfitterId, outfitterId)), // Assuming experienceGuides has outfitterId
+    columns: { id: true, experienceId: true, guideId: true, isPrimary: true, outfitterId: true } // Select relevant fields
+  });
+
+  if (!existingAssignment) {
+    console.error(`❌ [STORAGE_PERSIST_ERROR] Assignment ID ${id} not found or not owned by outfitter ID ${outfitterId}.`);
+    return undefined; // Not found or not authorized
+  }
+
+  console.log('🔍 [STORAGE_PERSIST_DEBUG] Existing assignment found:', existingAssignment); // Log existing
+  console.log('🔍 [STORAGE_PERSIST_DEBUG] Attempting to set isPrimary to:', updateData.isPrimary); // Log intended value
+
+  const result = await db.update(experienceGuides)
+    .set({ isPrimary: updateData.isPrimary, updatedAt: new Date() }) // Explicitly set isPrimary and updatedAt
+    .where(and(eq(experienceGuides.id, id), eq(experienceGuides.outfitterId, outfitterId))) // Ensure tenant check in where clause
+    .returning();
+  
+  console.log('🔍 [STORAGE_PERSIST_DEBUG] DB Update result count:', result.length); // Log update count
+  console.log('🔍 [STORAGE_PERSIST_DEBUG] DB Updated Record:', result[0]); // Log updated record
+
+  return result[0];
+}
+Also, ensure the IStorage interface in server/storage.ts is updated to reflect the outfitterId parameter:
+Find: updateGuideAssignment(id: number, updateData: { isPrimary: boolean }): Promise<ExperienceGuide | undefined>;
+Replace: updateGuideAssignment(id: number, updateData: { isPrimary: boolean }, outfitterId: number): Promise<ExperienceGuide | undefined>;
+
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview that includes both modified files (server/routes/guides.ts and server/storage.ts). After approval, you will perform a "Make Primary" attempt and provide the complete server console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+All specified diagnostic logs are added to both the route handler and the storage function.
+The logs correctly capture input parameters, update payloads, and database operation results.
+The updateGuideAssignment function's signature and WHERE clause are confirmed/adjusted to correctly use outfitterId for tenant isolation.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff (though some improvements are baked in for robustness).
+I will not approve this step until these criteria are met. This logging is crucial to understand where persistence is failing. 
