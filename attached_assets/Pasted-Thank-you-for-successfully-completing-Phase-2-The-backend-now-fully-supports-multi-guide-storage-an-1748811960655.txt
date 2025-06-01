@@ -1,0 +1,44 @@
+Thank you for successfully completing Phase 2! The backend now fully supports multi-guide storage and retrieval.
+
+Now, we proceed with Phase 3: Frontend UI/UX & API Integration. Your primary task is to adapt the frontend experience creation/edit forms to allow the selection and management of multiple guides for an experience.
+
+This will primarily involve modifications to client/src/pages/Experiences.tsx and client/src/components/ui/experience-guides.tsx.
+
+Specific Focus Areas for Modification:
+
+1. File: client/src/components/ui/experience-guides.tsx (Make it Multi-Select & Display)
+Goal: Convert the single guide assignment UI into a multi-select interface, allowing multiple guides to be added/removed, and displaying all of them.
+Input/Output Adaptation: The component currently receives assignedGuides as ExperienceGuide[] (an array, which is good), and onChange to return a new assignedGuides array.
+Changes:
+Selection Component: Replace the current single-select guide dropdown (e.g., Radix UI Select or similar) with a multi-select component (e.g., a multi-select dropdown, a list with add/remove buttons, or tags). You may need to import a new component or adapt an existing one (like a Combobox or Multi-Select from your UI library).
+Display Multiple Guides: Modify the rendering logic to display all guides currently in the assignedGuides array, each with its name, and an "X" button for removal.
+"Make Primary" Button Logic: Adapt the "Make Primary" button to work within a multi-select context. When a guide is made primary, ensure it's visually indicated, and all other guides are marked as non-primary. The updateGuideMutation (which handles isPrimary) is already configured for this.
+handleAssignGuide function: Modify this function to:
+Accept the selected guide (from the new multi-select UI).
+Add it to the draftGuides array (if in draftMode).
+If it's the first guide, set isPrimary: true. If not, isPrimary: false.
+Call assignGuideMutation.mutate() when in normalMode (edit flow) to add a single new guide.
+2. File: client/src/pages/Experiences.tsx (Manage Multi-Guide State)
+Goal: Update the main Experience form to manage an array of selected guides and pass this array to ExperienceGuides.
+Changes:
+Form State for Guides: Update the form's state (e.g., in react-hook-form's useForm or a useState) to hold an array of guide objects (assignedGuideIds: Array<{ guideId: string, isPrimary?: boolean }>).
+Pass Data to ExperienceGuides: Ensure this array state is passed correctly to the ExperienceGuides component via its initialAssignedGuides or assignedGuides prop, and that onChange callback correctly updates this parent state.
+Submission Payload: In the form's onSubmit handler, ensure the assignedGuideIds array is correctly structured and included in the payload sent to storage.createExperience (for new) or storage.updateExperience (for edit). The payload needs assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }>.
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview that includes both modified files (client/src/components/ui/experience-guides.tsx and client/src/pages/Experiences.tsx). This will be a large diff.
+
+Success Criteria for My Approval:
+
+experience-guides.tsx:
+UI allows multi-selection/addition of guides.
+Multiple assigned guides are displayed.
+"Make Primary" button functions correctly for each selected guide.
+"X" (remove) button correctly removes guides from the local UI state.
+handleAssignGuide function correctly adds new guides to the draftGuides array and triggers assignGuideMutation in normal mode.
+Experiences.tsx:
+Form state manages an array of guide objects.
+This array is correctly passed to ExperienceGuides.
+The form submission payload includes assignedGuideIds in the correct format.
+All existing single-guide functionality and compatibility features are preserved where applicable.
+No other unrelated functional code is affected.
+This phase is crucial for the user experience of multi-guide assignment. I await your detailed diff preview! 

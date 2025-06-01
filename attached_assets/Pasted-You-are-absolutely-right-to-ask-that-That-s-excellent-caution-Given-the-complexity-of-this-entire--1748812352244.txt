@@ -1,0 +1,29 @@
+You are absolutely right to ask that! That's excellent caution. Given the complexity of this entire multi-guide implementation and the crucial role handleAssignGuide plays in adding guides, it's always better to verify now than to find a subtle bug later.
+
+Let's make sure that handleAssignGuide's internal logic was correctly adapted for multi-guide assignment, specifically how it adds a new guide to the draftGuides array and how it prepares the payload for assignGuideMutation.
+
+Here is the exact prompt for Replit to confirm the handleAssignGuide function's implementation:
+
+EXACT PROMPT FOR REPLIT: Verify handleAssignGuide Function Logic for Multi-Guide Assignment
+
+"Thank you for your caution. You are absolutely correct; we need to verify the internal logic of the handleAssignGuide function to ensure it's correctly adapted for multi-guide assignment.
+
+Your primary task is to retrieve and provide the complete, current source code of the handleAssignGuide function in client/src/components/ui/experience-guides.tsx.
+
+Specific Focus Areas for Investigation:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The entire handleAssignGuide function definition.
+Key Logic to Verify:
+How it adds the selectedGuideId to the draftGuides array when draftMode is true.
+How it prepares the payload for assignGuideMutation.mutate() when draftMode is false.
+How it handles the isPrimary status for a newly added guide (e.g., setting isPrimary: true if it's the first guide, otherwise false).
+Output Required for My Review:
+Please provide the complete and exact source code of the const handleAssignGuide = (...) => { ... }; block (including its definition and entire body) as it currently exists in your working environment.
+
+Success Criteria for My Approval (for this verification phase):
+
+The complete, untruncated source code of the handleAssignGuide function is provided.
+The code clearly shows how a new guide is added to the draftGuides array (in draft mode) or how the assignGuideMutation payload is constructed (in normal mode), correctly handling the assignedGuideIds array format (including isPrimary status for the new guide).
+This is purely an investigative report; no code changes are to be proposed or implemented at this time.
+This verification is crucial for ensuring the 'add guide' functionality works correctly in the multi-guide context. I await your report.

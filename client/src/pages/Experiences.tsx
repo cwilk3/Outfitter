@@ -132,6 +132,14 @@ const experienceSchema = z.object({
       isOptional: z.boolean().default(true),
     })
   ).optional(),
+  
+  // Multi-guide assignment support
+  assignedGuideIds: z.array(
+    z.object({
+      guideId: z.string(),
+      isPrimary: z.boolean().default(false),
+    })
+  ).optional(),
 });
 
 type ExperienceFormValues = z.infer<typeof experienceSchema>;

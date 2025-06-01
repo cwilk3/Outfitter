@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, UserCheck, UserX, Star, PlusCircle, X } from 'lucide-react';
+import { Check, UserCheck, UserX, Star, PlusCircle, X, Info as InfoIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,6 +44,7 @@ interface ExperienceGuidesProps {
   readOnly?: boolean;
   draftMode?: boolean; // New prop to indicate we're in creation flow
   initialDraftGuides?: DraftGuideAssignment[]; // For restoring draft state
+  assignedGuides?: ExperienceGuide[]; // External assigned guides for better integration
 }
 
 export function ExperienceGuides({ 
@@ -51,7 +52,8 @@ export function ExperienceGuides({
   onChange, 
   readOnly = false, 
   draftMode = false,
-  initialDraftGuides = []
+  initialDraftGuides = [],
+  assignedGuides: externalAssignedGuides = []
 }: ExperienceGuidesProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -383,6 +385,49 @@ export function ExperienceGuides({
       <div className="flex flex-col gap-2">
         <Label htmlFor="guides-select">Assign Guides</Label>
         
+        {/* Display currently assigned guides as tags */}
+        {guidesToDisplay.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/20">
+            {guidesToDisplay.map((assignment: any) => (
+              <Badge 
+                key={draftMode ? assignment.tempId : assignment.id} 
+                variant={assignment.isPrimary ? "default" : "secondary"}
+                className="flex items-center gap-1 px-2 py-1"
+              >
+                {assignment.isPrimary && <Star className="h-3 w-3" />}
+                <span className="text-sm">{getGuideName(assignment.guideId)}</span>
+                {!readOnly && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      if (draftMode) {
+                        const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
+                        if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
+                          updatedDraftGuides[0].isPrimary = true;
+                        }
+                        setDraftGuides(updatedDraftGuides);
+                        if (onChange) onChange(updatedDraftGuides);
+                      } else {
+                        removeGuideMutation.mutate({ 
+                          experienceId: experienceId!, 
+                          guideId: assignment.guideId 
+                        });
+                      }
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </Badge>
+            ))}
+          </div>
+        )}
+        
         {!readOnly && (
           <div className="flex gap-2">
             <Select 
@@ -391,11 +436,15 @@ export function ExperienceGuides({
               disabled={availableForSelection.length === 0}
             >
               <SelectTrigger id="guides-select" className="flex-1">
-                <SelectValue placeholder="Select a guide to assign" />
+                <SelectValue placeholder={
+                  availableForSelection.length === 0 
+                    ? "All available guides assigned" 
+                    : "Select a guide to assign"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {availableForSelection.length === 0 ? (
-                  <SelectItem value="none" disabled>No guides available</SelectItem>
+                  <SelectItem value="none" disabled>No more guides available</SelectItem>
                 ) : (
                   availableForSelection.map((guide: Guide) => (
                     <SelectItem key={guide.id} value={guide.id}>
@@ -413,109 +462,110 @@ export function ExperienceGuides({
               disabled={!selectedGuideId || (!draftMode && assignGuideMutation.isPending)}
             >
               <PlusCircle className="mr-1 h-4 w-4" />
-              {(!draftMode && assignGuideMutation.isPending) ? 'Assigning...' : 'Assign'}
+              {(!draftMode && assignGuideMutation.isPending) ? 'Assigning...' : 'Add Guide'}
             </Button>
           </div>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label>Assigned Guides</Label>
+        <Label>Guide Details & Management</Label>
         
         {(!draftMode && isLoading) ? (
           <div className="py-4 text-center text-muted-foreground">Loading guides...</div>
         ) : guidesToDisplay.length === 0 ? (
-          <div className="py-4 text-center text-muted-foreground">No guides assigned to this experience</div>
+          <div className="py-4 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+            <UserX className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p>No guides assigned to this experience</p>
+            <p className="text-xs">Use the dropdown above to assign guides</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {guidesToDisplay.map((assignment: any) => (
-              <Card key={draftMode ? assignment.tempId : assignment.id} className="overflow-hidden">
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-5 w-5 text-green-600" />
-                    <span>{getGuideName(assignment.guideId)}</span>
-                    {assignment.isPrimary && (
-                      <Badge variant="default" className="ml-2 bg-amber-500">
-                        <Star className="h-3 w-3 mr-1" />
-                        Primary
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {!readOnly && (
-                    <div className="flex gap-2">
-                      {!assignment.isPrimary && (
+              <Card key={draftMode ? assignment.tempId : assignment.id} className="overflow-hidden border-l-4" 
+                    style={{ borderLeftColor: assignment.isPrimary ? '#f59e0b' : '#e5e7eb' }}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="h-5 w-5 text-green-600" />
+                          <span className="font-medium">{getGuideName(assignment.guideId)}</span>
+                          {assignment.isPrimary && (
+                            <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
+                              <Star className="h-3 w-3 mr-1" />
+                              Primary Guide
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-7">
+                          {assignment.isPrimary ? 'Lead guide for this experience' : 'Supporting guide'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {!readOnly && (
+                      <div className="flex gap-2">
+                        {!assignment.isPrimary && guidesToDisplay.length > 1 && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.preventDefault();   
+                              e.stopPropagation();  
+                              handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
+                            }}
+                            disabled={!draftMode && updateGuideMutation.isPending}
+                            className="hover:bg-amber-50 hover:border-amber-300"
+                          >
+                            <Star className="h-4 w-4 mr-1" />
+                            Make Primary
+                          </Button>
+                        )}
+                        
                         <Button 
-                          variant="outline" 
+                          variant="destructive" 
                           size="sm" 
                           onClick={(e) => {
-                            e.preventDefault();   
-                            e.stopPropagation();  
+                            e.preventDefault();
+                            e.stopPropagation();
                             
-
-                            
-                            handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
-                          }}
-                          disabled={!draftMode && updateGuideMutation.isPending}
-                        >
-                          <Star className="h-4 w-4 mr-1" />
-                          Make Primary
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={(e) => {
-                          // Prevent event bubbling and default behavior
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-
-
-                          if (draftMode) {
-                            // In draft mode, remove from local state
-                            const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
-                            
-                            // If we removed the primary guide, make the first guide primary (if any)
-                            if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
-                              updatedDraftGuides[0].isPrimary = true;
-                            }
-                            
-                            setDraftGuides(updatedDraftGuides);
-                            
-                            // Notify parent component
-                            if (onChange) {
-                              onChange(updatedDraftGuides);
-                            }
-                          } else {
-                            // In normal mode, call API and update state
-                            removeGuideMutation.mutate({ 
-                              experienceId: experienceId!, 
-                              guideId: assignment.guideId 
-                            }, {
-                              onSuccess: () => {
-                                // Update local draftGuides state immediately
-                                const updatedDraftGuides = draftGuides.filter(
-                                  (g: any) => g.guideId !== assignment.guideId
-                                );
-                                // Call onChange to notify parent component
-                                if (onChange) {
-                                  onChange(updatedDraftGuides);
-                                }
+                            if (draftMode) {
+                              const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
+                              if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
+                                updatedDraftGuides[0].isPrimary = true;
                               }
-                            });
-                          }
-                        }}
-                        disabled={!draftMode && removeGuideMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                              setDraftGuides(updatedDraftGuides);
+                              if (onChange) onChange(updatedDraftGuides);
+                            } else {
+                              removeGuideMutation.mutate({ 
+                                experienceId: experienceId!, 
+                                guideId: assignment.guideId 
+                              });
+                            }
+                          }}
+                          disabled={!draftMode && removeGuideMutation.isPending}
+                          className="hover:bg-destructive/90"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
+            
+            {/* Guide assignment summary */}
+            <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <InfoIcon className="h-4 w-4" />
+                <span>
+                  {guidesToDisplay.length} guide{guidesToDisplay.length !== 1 ? 's' : ''} assigned
+                  {guidesToDisplay.some(g => g.isPrimary) && ' • Primary guide highlighted'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>
