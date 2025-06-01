@@ -30,18 +30,14 @@ export function GuideAssignmentIndicator({
   } = useQuery<ExperienceGuide[]>({
     queryKey: ['/api/experiences', experienceId, 'guides'],
     queryFn: async () => {
-      console.log(`[GUIDE_INDICATOR] Fetching guides for experience ${experienceId}${experienceName ? ` (${experienceName})` : ''}`);
       try {
         const response = await fetch(`/api/experiences/${experienceId}/guides`);
         if (!response.ok) {
-          console.warn(`[GUIDE_INDICATOR] Guide fetch failed with status: ${response.status}`);
           return [];
         }
         const guides = await response.json();
-        console.log(`[GUIDE_INDICATOR] Fetched ${guides.length} guides for experience ${experienceId}`, guides);
         return guides;
       } catch (error) {
-        console.error(`[GUIDE_INDICATOR] Error fetching guide assignments for experience ${experienceId}:`, error);
         return [];
       }
     },
@@ -59,7 +55,6 @@ export function GuideAssignmentIndicator({
     const performRefetch = () => {
       if (retryCount < 3) {
         timeoutId = setTimeout(() => {
-          console.log(`[GUIDE_INDICATOR] Auto-refetching guides attempt ${retryCount + 1}`);
           refetch();
           setRetryCount(prev => prev + 1);
         }, 500 * (retryCount + 1)); // Increasing backoff
@@ -78,7 +73,6 @@ export function GuideAssignmentIndicator({
 
   // Manual refresh handler
   const handleManualRefresh = () => {
-    console.log(`[GUIDE_INDICATOR] Manual refresh triggered for experience ${experienceId}`);
     setRetryCount(0);
     setManualRefresh(true);
     

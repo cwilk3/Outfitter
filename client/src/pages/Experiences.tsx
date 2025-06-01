@@ -576,22 +576,13 @@ export default function Experiences() {
   const openEditDialog = async (experience: Experience) => {
     setSelectedExperience(experience);
     
-    // Add diagnostic logging
-    console.log("🔍 [EDIT_DIALOG_DEBUG] Opening edit dialog for existing experience:", experience.id);
-    console.log("🔍 [EDIT_DIALOG_DEBUG] Setting isCreating to true (to open dialog)");
-    
-    // Load all necessary data before showing the dialog to ensure a smooth editing experience
-    console.log("Opening edit dialog for experience:", experience);
-    
     // Load existing guides for this experience into draftGuides state
     if (experience.id) {
       try {
-        console.log(`Loading guides for experience ID ${experience.id}`);
         const response = await fetch(`/api/experiences/${experience.id}/guides`);
         
         if (response.ok) {
           const guides = await response.json();
-          console.log(`Loaded ${guides.length} guides for experience:`, guides);
           
           // Convert API guides to draft guide format
           const draftGuideData = guides.map(guide => ({
@@ -601,13 +592,10 @@ export default function Experiences() {
           }));
           
           setDraftGuides(draftGuideData);
-          console.log("Set draft guides for editing:", draftGuideData);
         } else {
-          console.error("Failed to load guides for experience:", response.statusText);
           setDraftGuides([]);
         }
       } catch (error) {
-        console.error("Error loading guides:", error);
         setDraftGuides([]);
       }
     }
@@ -646,11 +634,9 @@ export default function Experiences() {
     
     // Fetch the latest add-ons data directly from the API
     try {
-      console.log(`Fetching fresh add-ons data for experience ${experience.id}`);
       const addonResponse = await fetch(`/api/experiences/${experience.id}/addons`);
       if (addonResponse.ok) {
         const freshAddons = await addonResponse.json();
-        console.log(`Fetched ${freshAddons.length} add-ons for experience ${experience.id}`, freshAddons);
         
         // Update the addons state with the fresh data
         setAddons(freshAddons.map((addon: any) => ({
@@ -664,7 +650,6 @@ export default function Experiences() {
           maxPerBooking: addon.maxPerBooking
         })));
       } else {
-        console.error(`Failed to fetch add-ons: ${addonResponse.status}`);
         // Fallback to using the add-ons data from the experience object
         if (experience.addons) {
           setAddons(experience.addons.map(addon => ({
@@ -679,7 +664,6 @@ export default function Experiences() {
         }
       }
     } catch (addonError) {
-      console.error("Error fetching add-ons:", addonError);
       // Fallback to the add-ons in the experience object
       if (experience.addons) {
         setAddons(experience.addons.map(addon => ({
