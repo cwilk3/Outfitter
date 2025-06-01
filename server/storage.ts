@@ -59,7 +59,7 @@ export interface IStorage {
   // Experience operations
   getExperience(id: number): Promise<Experience | undefined>;
   createExperience(experience: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience>;
-  updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null>;
+  updateExperience(experienceId: number, updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, outfitterId: number): Promise<Experience | null>;
   deleteExperience(id: number): Promise<void>;
   listExperiences(locationId?: number, outfitterId?: number): Promise<Experience[]>;
   
@@ -442,71 +442,143 @@ export class DatabaseStorage implements IStorage {
     return newExperience;
   }
 
-  async updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null> {
-    // First, verify the experience exists and belongs to the outfitter.
-    // This also fetches the current guideId if we need to compare.
-    const existingExperienceCheck = await db.query.experiences.findFirst({
-      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
-      columns: { id: true, outfitterId: true, guideId: true } // Ensure guideId is in your experiences table schema
-    });
+  async updateExperience(
+    experienceId: number, 
+    updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, 
+    outfitterId: number
+  ): Promise<Experience | null> {
+    // Use a database transaction for atomicity
+    const finalUpdatedExperience = await db.transaction(async (tx) => {
+      // Step 1: Verify the experience exists and belongs to the outfitter.
+      const existingExperience = await tx.query.experiences.findFirst({
+        where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+        columns: { id: true, outfitterId: true, guideId: true }
+      });
 
-    if (!existingExperienceCheck) {
-      console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
-      return null;
-    }
-
-    const { guideId: newGuideId, ...otherExperienceData } = updateData;
-    let currentExperienceDetails: Experience | undefined = undefined;
-
-    // Update main experience details if other data is provided
-    if (Object.keys(otherExperienceData).length > 0) {
-      const results = await db.update(experiences)
-        .set({ ...otherExperienceData, updatedAt: new Date() }) // Assuming an 'updatedAt' field
-        .where(and(eq(experiences.id, experienceId), eq(experiences.outfitterId, outfitterId)))
-        .returning();
-      currentExperienceDetails = results[0];
-      if (!currentExperienceDetails) {
-          console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
-          return null; // Update failed
+      if (!existingExperience) {
+        console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
+        throw new Error('Experience not found or not authorized.');
       }
-    }
 
-    // Handle guideId update if 'guideId' property was explicitly part of the updateData
-    if (updateData.hasOwnProperty('guideId')) {
-      // Step 1: Remove existing guide assignments for this experience from the junction table.
-      await db.delete(experienceGuides)
-        .where(eq(experienceGuides.experienceId, experienceId));
+      const { assignedGuideIds, guideId: legacyGuideId, ...otherExperienceData } = updateData;
+      let currentExperienceDetails: Experience | undefined = undefined;
 
-      if (newGuideId && typeof newGuideId === 'string' && newGuideId.trim() !== '') {
-        // Step 2a: If a new, valid guideId is provided, add it to the junction table.
-        await db.insert(experienceGuides).values({
-          experienceId: experienceId,
-          guideId: newGuideId,
-          // isPrimary: true, // Optional
+      // Step 2: Update main experience details if other data is provided
+      if (Object.keys(otherExperienceData).length > 0) {
+        const results = await tx.update(experiences)
+          .set({ ...otherExperienceData, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId))
+          .returning();
+        currentExperienceDetails = results[0];
+        if (!currentExperienceDetails) {
+            console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
+            throw new Error('Failed to update experience core details.');
+        }
+      }
+
+      // Step 3: Handle assignedGuideIds (multi-guide management)
+      if (assignedGuideIds !== undefined) {
+        // Get current assignments from experienceGuides table
+        const currentAssignedGuides = await tx.query.experienceGuides.findMany({
+          where: eq(experienceGuides.experienceId, experienceId),
+          columns: { guideId: true, isPrimary: true, id: true }
         });
-        // Step 2b: Update the guideId directly on the experiences table.
-        const guideUpdateResult = await db.update(experiences)
-          .set({ guideId: newGuideId, updatedAt: new Date() })
-          .where(eq(experiences.id, experienceId))
-          .returning();
-        currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
-      } else {
-        // Step 2c: If newGuideId is null or empty, effectively unassigning the guide.
-        // Ensure guideId on the experiences table is also set to null.
-        const guideUpdateResult = await db.update(experiences)
-          .set({ guideId: null, updatedAt: new Date() })
-          .where(eq(experiences.id, experienceId))
-          .returning();
-        currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+
+        // Guides to add: in new list, not in current list
+        const guidesToAdd = assignedGuideIds.filter(
+          newGuide => !currentAssignedGuides.some(existingGuide => existingGuide.guideId === newGuide.guideId)
+        );
+
+        // Guides to remove: in current list, not in new list
+        const guidesToRemove = currentAssignedGuides.filter(
+          existingGuide => !assignedGuideIds.some(newGuide => newGuide.guideId === existingGuide.guideId)
+        );
+        
+        // Guides to update (for isPrimary status change): in both lists but different isPrimary
+        const guidesToUpdatePrimary = assignedGuideIds.filter(newGuide =>
+          currentAssignedGuides.some(existingGuide => 
+            existingGuide.guideId === newGuide.guideId && 
+            existingGuide.isPrimary !== (newGuide.isPrimary || false)
+          )
+        );
+        
+        // Perform deletions
+        if (guidesToRemove.length > 0) {
+          const guideIdsToRemove = guidesToRemove.map(g => g.guideId);
+          await tx.delete(experienceGuides)
+            .where(and(
+              eq(experienceGuides.experienceId, experienceId),
+              inArray(experienceGuides.guideId, guideIdsToRemove)
+            ));
+        }
+
+        // Perform additions
+        if (guidesToAdd.length > 0) {
+          const guideAssignments = guidesToAdd.map(guide => ({
+            experienceId: experienceId,
+            guideId: guide.guideId,
+            isPrimary: guide.isPrimary || false
+          }));
+          await tx.insert(experienceGuides).values(guideAssignments);
+        }
+
+        // Perform isPrimary updates
+        if (guidesToUpdatePrimary.length > 0) {
+          for (const guide of guidesToUpdatePrimary) {
+            await tx.update(experienceGuides)
+              .set({ isPrimary: guide.isPrimary || false })
+              .where(and(
+                eq(experienceGuides.experienceId, experienceId),
+                eq(experienceGuides.guideId, guide.guideId)
+              ));
+          }
+        }
+
+        // Step 4: Update experiences.guideId for compatibility (set to primary guide or null)
+        const primaryGuide = assignedGuideIds.find(guide => guide.isPrimary === true);
+        const newPrimaryGuideId = primaryGuide ? primaryGuide.guideId : 
+          (assignedGuideIds.length > 0 ? assignedGuideIds[0].guideId : null);
+
+        await tx.update(experiences)
+          .set({ guideId: newPrimaryGuideId, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId));
       }
-    }
-    
-    // Fetch and return the final state of the experience
-    const finalUpdatedExperience = await db.query.experiences.findFirst({
-      where: eq(experiences.id, experienceId),
+
+      // Step 4: Handle legacy guideId updates (for backward compatibility)
+      else if (updateData.hasOwnProperty('guideId')) {
+        // Remove all existing guide assignments
+        await tx.delete(experienceGuides)
+          .where(eq(experienceGuides.experienceId, experienceId));
+
+        if (legacyGuideId && typeof legacyGuideId === 'string' && legacyGuideId.trim() !== '') {
+          // Add new single guide assignment
+          await tx.insert(experienceGuides).values({
+            experienceId: experienceId,
+            guideId: legacyGuideId,
+            isPrimary: true
+          });
+          
+          // Update experiences.guideId
+          await tx.update(experiences)
+            .set({ guideId: legacyGuideId, updatedAt: new Date() })
+            .where(eq(experiences.id, experienceId));
+        } else {
+          // Set guideId to null
+          await tx.update(experiences)
+            .set({ guideId: null, updatedAt: new Date() })
+            .where(eq(experiences.id, experienceId));
+        }
+      }
+      
+      // Step 5: Fetch and return the final state of the experience
+      const finalUpdatedExperience = await tx.query.experiences.findFirst({
+        where: eq(experiences.id, experienceId),
+      });
+
+      return finalUpdatedExperience || null;
     });
 
-    return finalUpdatedExperience || null;
+    return finalUpdatedExperience;
   }
   
   // Helper method to get experience locations by experience ID

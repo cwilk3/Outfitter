@@ -1,0 +1,275 @@
+Excellent! This is fantastic news!
+
+To hear that Phase 1 of Multi-Guide Assignment is Complete and that the createExperience function now successfully supports multi-guide assignment with full backward compatibility is a major victory!
+
+This is a very strong foundation for the feature.
+
+Let's update our checklist to reflect this significant progress:
+
+| Phase | Priority | Feature/Bug | Description | Status | Notes |
+|---|---|---|---|---|---|
+| **Phase 1: Critical Booking Flow & Foundational UI** | | | | | |
+| 1 | CRITICAL BUG | Booking Flow - Prices not calculating properly again | Investigate the price calculation logic (frontend/backend) to fix the "$0" total. | **DONE** | Resolved by fixing backend routing. |
+| 2 | CRITICAL BUG | Bookings not showing on calendar/dashboard | Investigate API endpoints for calendar/dashboard booking listings, check filters (outfitterId, date, status) to understand why bookings aren't appearing. | **DONE** | Resolved as a side effect of fixing the pricing bug's routing issue. |
+| 3 | HIGH (UI Bug) | `DialogContent` accessibility error | Address the Radix UI accessibility warning in the booking confirmation dialog (PublicBooking.tsx). | **DONE** | Accessibility fix implemented and approved. |
+| **Phase 2: Core Staff Management & Initial Guide Assignment** | | | | | |
+| 4 | CRITICAL BUG | Staff member not showing after creation | Investigate backend logic for adding staff; ensure user is created AND correctly linked to outfitter. | To Do | |
+| 5 | HIGH (Enhancement) | Redo "add a staff member" workflow | Refine the staff creation process (Admin creates > auto email > guide sets password > assigned to dashboard). | To Do | |
+| 6 | HIGH (Untested Feature) | Auto-guide assignment feature | Test this crucial feature after staff management (Items 4 & 5) is fully functional. | To Do | |
+| **Phase 3: Experience Add-ons & Core Inventory Logic** | | | | | |
+| 7 | HIGH (Business Logic) | Add-on inventory by day, not experience | Implement add-on inventory to work like max capacity, tied to the day. | To Do | |
+| 8 | MEDIUM (Bug) | Edits to add-ons not saving | Investigate why edits to existing experience add-ons are not saving. | To Do | |
+| 9 | MEDIUM (Bug) | Creating new add-ons does not work | Investigate why new add-ons cannot be created for existing experiences. | To Do | |
+| **Phase 4: Fine-Tuning Experience & Staff Management** | | | | | |
+| 10 | MEDIUM (Bug) | Guide assignments are not saving to an experience (new creation and edit) | Debug the save mechanism for guide assignments on experiences (new/edit). **(Includes Unassignment & Make Primary)** | **DONE** | Resolved completely, including frontend state sync, event handling fix, backend persistence, and UI updates. Code cleaned. |
+| 11 | MEDIUM (Missing CRUD) | No ability to delete a staff member | Implement delete functionality for staff members. | To Do | |
+| 12 | LOW (UI Polish) | Guide dashboard needs UI updates | Implement specified UI updates for the guide dashboard. | To Do | |
+| **Multi-Guide Assignment Phases** | | | | | |
+| **MG1** | HIGH (Feature) | Backend: `createExperience` Multi-Guide Support | Modify `createExperience` to accept `assignedGuideIds` and create multiple `experienceGuides` entries. | **DONE** | Implemented with transaction and compatibility. |
+| **Phase 5: Dashboard, Calendar, Customers (General Improvements & UI)** | | | | | |
+| 13 | MEDIUM (UI Bug) | Customers Tab - Not all buttons work | Debug general UI issues on the Customers tab. | To Do | |
+| 14 | MEDIUM (Enhancement) | Customers Tab - Filter and export | Implement filtering and export features for customer data. | To Do | |
+| 15 | MEDIUM (Enhancement) | Calendar Tab - Filtering features | Implement filtering for the calendar view. | To Do | |
+| 16 | LOW (Potential Bug/Enhancement) | Dashboard Reports/Analytics not real-time | Investigate if hardcoded; connect to real data for real-time updates. | To Do | |
+Now, let's move on to Phase 2: Backend Logic Adaptation - Core CRUD, which involves updating the updateExperience function to handle multiple guides. This will be a complex but crucial step.
+
+Your next task is to modify the updateExperience function in server/storage.ts to manage adding, removing, and updating multiple guide assignments via the experience_guides table.
+
+Here is the exact prompt for Replit:
+
+EXACT PROMPT FOR REPLIT: Implement Multi-Guide Assignment - Phase 2: updateExperience Update
+
+"Thank you for successfully completing Phase 1! The createExperience function now supports multi-guide assignment.
+
+Now, let's proceed with Phase 2: Backend Logic Adaptation - Core CRUD. Your primary task is to enhance the updateExperience function to manage multiple guide assignments for existing experiences.
+
+Your primary task is to modify the updateExperience function in server/storage.ts to:
+
+Accept an array of assignedGuideIds (and their isPrimary status) as part of the updateData payload.
+Perform INSERT, DELETE, and UPDATE operations on the experience_guides table to accurately reflect the new list of assigned guides.
+Maintain experiences.guideId compatibility (setting it to the primary guide or null).
+Ensure atomicity using a database transaction for all guide-related operations.
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: The async updateExperience(...) function definition.
+Proposed Code Changes:
+
+1. Update InsertExperience Type (if assignedGuideIds isn't already added from createExperience prompt, ensure it's here):
+Modify InsertExperience (in server/storage.ts or @shared/schema.ts):
+Find: guideId?: string;
+Replace with: guideId?: string; assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }>; (Adding assignedGuideIds as an array of objects to explicitly handle isPrimary).
+2. Update updateExperience Function Signature:
+Find: async updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null>
+Replace with: async updateExperience(experienceId: number, updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, outfitterId: number): Promise<Experience | null>
+3. Modify updateExperience Function Logic:
+Find this block (the updateExperience function definition):
+
+TypeScript
+
+async updateExperience(experienceId: number, updateData: Partial<InsertExperience>, outfitterId: number): Promise<Experience | null> {
+  // First, verify the experience exists and belongs to the outfitter.
+  const existingExperienceCheck = await db.query.experiences.findFirst({
+    where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+    columns: { id: true, outfitterId: true, guideId: true }
+  });
+
+  if (!existingExperienceCheck) {
+    console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
+    return null;
+  }
+
+  const { guideId: newGuideId, ...otherExperienceData } = updateData; // This needs to change
+  let currentExperienceDetails: Experience | undefined = undefined;
+
+  // Update main experience details if other data is provided
+  if (Object.keys(otherExperienceData).length > 0) {
+    const results = await db.update(experiences)
+      .set({ ...otherExperienceData, updatedAt: new Date() })
+      .where(and(eq(experiences.id, experienceId), eq(experiences.outfitterId, outfitterId)))
+      .returning();
+    currentExperienceDetails = results[0];
+    if (!currentExperienceDetails) {
+        console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
+        return null;
+    }
+  }
+
+  // Handle guideId update if 'guideId' property was explicitly part of the updateData (this needs to change)
+  if (updateData.hasOwnProperty('guideId')) {
+    // Step 1: Remove existing guide assignments for this experience from the junction table.
+    await db.delete(experienceGuides)
+      .where(eq(experienceGuides.experienceId, experienceId));
+
+    if (newGuideId && typeof newGuideId === 'string' && newGuideId.trim() !== '') {
+      // Step 2a: If a new, valid guideId is provided, add it to the junction table.
+      await db.insert(experienceGuides).values({
+        experienceId: experienceId,
+        guideId: newGuideId,
+        // isPrimary: true, // Optional
+      });
+      // Step 2b: Update the guideId directly on the experiences table.
+      const guideUpdateResult = await db.update(experiences)
+        .set({ guideId: newGuideId, updatedAt: new Date() })
+        .where(eq(experiences.id, experienceId))
+        .returning();
+      currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+    } else {
+      // Step 2c: If newGuideId is null or empty, effectively unassigning the guide.
+      // Ensure guideId on the experiences table is also set to null.
+      const guideUpdateResult = await db.update(experiences)
+        .set({ guideId: null, updatedAt: new Date() })
+        .where(eq(experiences.id, experienceId))
+        .returning();
+      currentExperienceDetails = guideUpdateResult[0] || currentExperienceDetails;
+    }
+  }
+  
+  // Fetch and return the final state of the experience
+  const finalUpdatedExperience = await db.query.experiences.findFirst({
+    where: eq(experiences.id, experienceId),
+  });
+
+  return finalUpdatedExperience || null;
+}
+Replace it with (implementing multi-guide management using assignedGuideIds):
+
+TypeScript
+
+async updateExperience(
+  experienceId: number, 
+  updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, // <--- MODIFIED SIGNATURE
+  outfitterId: number
+): Promise<Experience | null> {
+  // Use a database transaction for atomicity
+  const finalUpdatedExperience = await db.transaction(async (tx) => { // <--- ADD TRANSACTION
+    // Step 1: Verify the experience exists and belongs to the outfitter.
+    // Also fetch its current state including guideId for comparison
+    const existingExperience = await tx.query.experiences.findFirst({
+      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+      columns: { id: true, outfitterId: true, guideId: true } // Keep guideId for now for compatibility
+    });
+
+    if (!existingExperience) {
+      console.error(`[STORAGE_UPDATE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId}.`);
+      throw new Error('Experience not found or not authorized.'); // Throw to rollback transaction
+    }
+
+    const { assignedGuideIds, guideId: legacyGuideId, ...otherExperienceData } = updateData; // <--- NEW DESTRUCTURING
+
+    let currentExperienceDetails: Experience | undefined = undefined;
+
+    // Step 2: Update main experience details if other data is provided
+    if (Object.keys(otherExperienceData).length > 0) {
+      const results = await tx.update(experiences)
+        .set({ ...otherExperienceData, updatedAt: new Date() })
+        .where(eq(experiences.id, experienceId))
+        .returning();
+      currentExperienceDetails = results[0];
+      if (!currentExperienceDetails) {
+          console.error(`[STORAGE_UPDATE_FAIL] Failed to update core details for experience ID ${experienceId}.`);
+          throw new Error('Failed to update experience core details.'); // Throw to rollback
+      }
+    }
+
+    // Step 3: Handle assignedGuideIds (multi-guide management)
+    if (assignedGuideIds !== undefined) { // Check if the assignedGuideIds array was explicitly provided in updateData
+      // Get current assignments from experienceGuides table
+      const currentAssignedGuides = await tx.query.experienceGuides.findMany({
+        where: eq(experienceGuides.experienceId, experienceId),
+        columns: { guideId: true, isPrimary: true, id: true } // Select necessary columns
+      });
+
+      // Guides to add: in new list, not in current list
+      const guidesToAdd = assignedGuideIds.filter(
+        newGuide => !currentAssignedGuides.some(existingGuide => existingGuide.guideId === newGuide.guideId)
+      );
+
+      // Guides to remove: in current list, not in new list
+      const guidesToRemove = currentAssignedGuides.filter(
+        existingGuide => !assignedGuideIds.some(newGuide => newGuide.guideId === existingGuide.guideId)
+      );
+      
+      // Guides to update (for isPrimary status change): in both lists
+      const guidesToUpdatePrimary = assignedGuideIds.filter(newGuide =>
+        currentAssignedGuides.some(existingGuide => existingGuide.guideId === newGuide.guideId && existingGuide.isPrimary !== (newGuide.isPrimary || false))
+      );
+      
+      // Perform deletions
+      if (guidesToRemove.length > 0) {
+        await tx.delete(experienceGuides)
+          .where(inArray(experienceGuides.id, guidesToRemove.map(g => g.id))); // Delete by junction table ID
+      }
+
+      // Perform additions
+      if (guidesToAdd.length > 0) {
+        const newGuideAssignments = guidesToAdd.map(newGuide => ({
+          experienceId: experienceId,
+          guideId: newGuide.guideId,
+          isPrimary: newGuide.isPrimary || false // Default to false if not specified
+        }));
+        await tx.insert(experienceGuides).values(newGuideAssignments);
+      }
+
+      // Perform primary status updates
+      for (const guideToUpdate of guidesToUpdatePrimary) {
+          await tx.update(experienceGuides)
+              .set({ isPrimary: guideToUpdate.isPrimary || false, updatedAt: new Date() })
+              .where(and(
+                  eq(experienceGuides.experienceId, experienceId),
+                  eq(experienceGuides.guideId, guideToUpdate.guideId)
+              ));
+      }
+
+      // Step 4: Maintain experiences.guideId compatibility (set to first primary guide or null)
+      const currentPrimaryGuide = assignedGuideIds.find(g => g.isPrimary);
+      await tx.update(experiences)
+        .set({ guideId: currentPrimaryGuide ? currentPrimaryGuide.guideId : null, updatedAt: new Date() })
+        .where(eq(experiences.id, experienceId));
+
+    } else if (updateData.hasOwnProperty('guideId')) { // <--- KEEP: Handle legacy single guideId update (unassign)
+        // This handles cases where only 'guideId' is explicitly set (e.g., to null for unassign)
+        // Ensure this logic correctly updates experiences.guideId and removes from experienceGuides
+        if (legacyGuideId === null) {
+            // Remove existing assignments from experienceGuides
+            await tx.delete(experienceGuides).where(eq(experienceGuides.experienceId, experienceId));
+            // Set guideId on experiences to null
+            await tx.update(experiences).set({ guideId: null, updatedAt: new Date() }).where(eq(experiences.id, experienceId));
+        } else {
+            // If legacyGuideId is provided and not null, this implies a single assignment update.
+            // This might need further logic if you want to explicitly handle single legacy assignments
+            // or if the frontend only sends assignedGuideIds from now on.
+            // For now, let's assume assignedGuideIds takes precedence or the frontend will adapt.
+        }
+    }
+    
+    // Step 5: Fetch and return the final state of the experience
+    const finalExperience = await tx.query.experiences.findFirst({
+      where: eq(experiences.id, experienceId),
+    });
+
+    if (!finalExperience) {
+        throw new Error('Experience not found after update.'); // Should not happen
+    }
+    return finalExperience;
+  }); // <--- END TRANSACTION
+
+  return finalUpdatedExperience || null;
+}
+Output Required for My Review:
+Once you have implemented this rewrite, please provide a comprehensive diff preview for server/storage.ts.
+
+Success Criteria for My Approval:
+
+The updateExperience function signature is updated to accept assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }>.
+The updateExperience logic includes a database transaction for atomicity.
+It correctly compares the new assignedGuideIds with currentAssignedGuides (from experienceGuides).
+It performs DELETE operations for removed guides on experienceGuides.
+It performs INSERT operations for new guides on experienceGuides.
+It performs UPDATE operations for isPrimary status changes on experienceGuides.
+experiences.guideId is correctly updated for compatibility (e.g., to the primary guide or null).
+The legacy guideId update (e.g., setting guideId: null on experiences) is handled correctly if assignedGuideIds is undefined.
+getExperience is used safely, or tx.query for the transaction.
+All necessary Drizzle imports (and, eq, inArray, db.transaction) are confirmed present.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This will enable updating multiple guides for existing experiences! 
