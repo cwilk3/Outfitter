@@ -1,0 +1,53 @@
+Thank you for confirming the complete success of the 'Make Primary' functionality! This is a huge victory.
+
+Now, let's clean up all the temporary diagnostic logging we added related to the guide assignment, unassignment, and 'Make Primary' features.
+
+Your primary task is to remove all console.log statements from both frontend and backend files that were added specifically for debugging these guide management features.
+
+Specific Instructions:
+
+1. File: client/src/components/ui/experience-guides.tsx
+Remove all console.log statements that start with:
+🔍 [FRONTEND_ASSIGN_DEBUG]
+🔍 [FRONTEND_UNASSIGN_DEBUG]
+🔍 [MUTATION_FN_DEBUG]
+🔍 [FETCH_DEBUG] (if any remain)
+🔍 [API_REQUEST_DEBUG] (if any remain here, otherwise from queryClient.ts)
+❌ [MUTATION_FN_DEBUG]
+❌ [MUTATION_ERROR]
+🔄 [FRONTEND_UNASSIGN_SUCCESS]
+⚡ [OPTIMISTIC_UPDATE]
+⚡ [OPTIMISTIC_ROLLBACK]
+🔍 [ON_SUCCESS_UI_DEBUG]
+🔍 [PRIMARY_ONCLICK_DEBUG]
+--- DIAGNOSTIC: X Button onClick Handler Called ---
+--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---
+🔄 [UPDATE_GUIDE_MUT_SUCCESS]
+❌ [UPDATE_GUIDE_MUT_ERROR]
+2. File: server/routes.ts
+Remove all console.log statements that start with:
+--- DIAGNOSTIC: GET /api/users Role Filtering ---
+🔍 [API_USERS_DEBUG]
+3. File: server/routes/guides.ts
+Remove all console.log statements that start with:
+--- DIAGNOSTIC: PUT /api/experience-guides/:id ---
+🔍 [PRIMARY_PERSIST_DEBUG]
+❌ [PRIMARY_PERSIST_ERROR]
+✅ [PRIMARY_PERSIST_DEBUG]
+4. File: server/storage.ts
+Remove all console.log statements that start with:
+--- DIAGNOSTIC: getUsersByOutfitterId Query ---
+🔍 [GET_USERS_DB_DEBUG]
+--- DIAGNOSTIC: updateGuideAssignment Storage Function ---
+🔍 [STORAGE_PERSIST_DEBUG]
+❌ [STORAGE_PERSIST_ERROR]
+Output Required for My Review:
+Please provide a comprehensive diff preview showing the removal of all these diagnostic logs from the specified files.
+
+Success Criteria for My Approval:
+
+All diagnostic logs related to guide management features are removed.
+The functional logic remains completely intact and verified.
+No other unrelated code is affected.
+The codebase is cleaner and ready for the next phase.
+I will not approve further steps until these criteria are met. This will ensure your codebase is pristine!

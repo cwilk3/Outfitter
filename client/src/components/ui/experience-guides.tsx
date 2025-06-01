@@ -92,38 +92,15 @@ export function ExperienceGuides({
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
     mutationFn: async (data: { guideId: string; isPrimary: boolean }) => {
-      // --- START NEW MUTATIONFN DIAGNOSTIC LOGGING ---
-      console.log('🔍 [MUTATION_FN_DEBUG] MutationFn called.');
-      console.log('🔍 [MUTATION_FN_DEBUG] Payload received by mutationFn:', { guideId: data.guideId, isPrimary: data.isPrimary, experienceId });
-      // --- END NEW MUTATIONFN DIAGNOSTIC LOGGING ---
-
       console.log(`[CLIENT] Assigning guide ${data.guideId} to experience ID ${experienceId}`);
       console.log(`[CLIENT] Experience ID type: ${typeof experienceId}, value: ${experienceId}`);
       
       try {
-        // --- START API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
-        console.log('🔍 [API_REQUEST_DEBUG] About to perform guide assignment via apiRequest.');
-        console.log('🔍 [API_REQUEST_DEBUG] Assignment URL:', `/api/experiences/${experienceId}/guides`);
-        console.log('🔍 [API_REQUEST_DEBUG] Assignment Method: POST');
-        console.log('🔍 [API_REQUEST_DEBUG] Assignment Body:', JSON.stringify(data));
-        // --- END API_REQUEST DIAGNOSTIC LOGGING FOR GUIDE ASSIGNMENT ---
-
-        // Now perform the guide assignment
         const result = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, data);
-        
         console.log(`[CLIENT] Guide assignment successful:`, result);
-        
         return result;
       } catch (error) {
         console.error('[CLIENT] Error in guide assignment process:', error);
-        // --- START ENHANCED ERROR LOGGING ---
-        if (error instanceof Error) {
-          console.error('❌ [MUTATION_FN_DEBUG] Error message:', error.message);
-          console.error('❌ [MUTATION_FN_DEBUG] Error stack:', error.stack);
-        } else {
-          console.error('❌ [MUTATION_FN_DEBUG] Non-Error object thrown:', error);
-        }
-        // --- END ENHANCED ERROR LOGGING ---
         throw error;
       }
     },
@@ -152,18 +129,6 @@ export function ExperienceGuides({
       setSelectedGuideId('');
     },
     onError: (error) => {
-      // --- START ENHANCED MUTATION ERROR LOGGING ---
-      console.error('❌ [MUTATION_ERROR] Error during guide assignment mutation:', error);
-      if (error instanceof Error) {
-        console.error('❌ [MUTATION_ERROR] Error message:', error.message);
-        console.error('❌ [MUTATION_ERROR] Error stack:', error.stack);
-      } else if (typeof error === 'object' && error !== null) {
-        console.error('❌ [MUTATION_ERROR] Full error object:', JSON.stringify(error, null, 2));
-      } else {
-        console.error('❌ [MUTATION_ERROR] Unknown error type:', error);
-      }
-      // --- END ENHANCED MUTATION ERROR LOGGING ---
-
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to assign guide. Please try again.',
@@ -176,18 +141,11 @@ export function ExperienceGuides({
   // Update a guide assignment (set primary)
   const updateGuideMutation = useMutation({
     mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => {
-      // --- START MUTATION_FN_DEBUG for updateGuideMutation ---
-      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] MutationFn called for guide primary status update.');
-      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] Payload received:', { id, isPrimary, experienceId });
-      // --- END MUTATION_FN_DEBUG ---
       const response = await apiRequest('PUT', `/api/experience-guides/${id}`, { isPrimary });
-      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response);
       return response;
     },
     
-    // --- ADD ONMUTATE FOR OPTIMISTIC UPDATE ---
     onMutate: async (newGuideData: { id: number; isPrimary: boolean }) => {
-      console.log('⚡ [OPTIMISTIC_UPDATE] Starting optimistic update for guide:', newGuideData.id);
       // Cancel any outgoing refetches for the guides query to avoid race conditions
       await queryClient.cancelQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
 
@@ -211,7 +169,6 @@ export function ExperienceGuides({
               }
             });
           }
-          console.log('⚡ [OPTIMISTIC_UPDATE] Cache optimistically updated:', updated);
           return updated;
         }
       );
@@ -223,22 +180,20 @@ export function ExperienceGuides({
           isPrimary: g.id === newGuideData.id // Set the selected guide as primary
       }));
       if (newGuideData.isPrimary) {
-          updatedAssignedGuidesOptimistic.forEach(g => {
+          updatedAssignedGuidesOptimistic.forEach((g: ExperienceGuide) => {
               if (g.id !== newGuideData.id) {
                   g.isPrimary = false;
               }
           });
       }
       if (onChange) {
-          console.log('⚡ [OPTIMISTIC_UPDATE] Calling onChange for immediate UI update.');
           onChange(updatedAssignedGuidesOptimistic);
       }
 
       return { previousAssignedGuides }; // Return a context object with the old data
     },
     
-    onSuccess: (data, variables, context) => { // 'context' from onMutate
-      console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded (API). Data:', data, 'Variables:', variables);
+    onSuccess: (data, variables, context) => {
       // Invalidate queries to re-fetch latest assigned guides (this will confirm optimistic update or correct state)
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences too
@@ -250,8 +205,7 @@ export function ExperienceGuides({
       });
     },
     
-    onError: (error, newGuideData, context) => { // 'context' from onMutate
-      console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error during guide primary status update:', error);
+    onError: (error, newGuideData, context) => {
       // If the mutation fails, use the context to roll back the optimistic update
       if (context?.previousAssignedGuides) {
         queryClient.setQueryData(
@@ -260,10 +214,8 @@ export function ExperienceGuides({
         );
         // Also roll back local state if onChange was called
         if (onChange) {
-            console.log('⚡ [OPTIMISTIC_ROLLBACK] Rolling back onChange call.');
             onChange(context.previousAssignedGuides);
         }
-        console.log('⚡ [OPTIMISTIC_ROLLBACK] Optimistic update rolled back.');
       }
       
       toast({
@@ -277,18 +229,10 @@ export function ExperienceGuides({
   // Remove a guide assignment
   const removeGuideMutation = useMutation({
     mutationFn: async ({ experienceId, guideId }: { experienceId: number; guideId: string }) => {
-      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Attempting guide unassignment API call.');
-      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Unassigning Guide ID:', guideId, 'from Experience ID:', experienceId);
-      
-      // Make the DELETE API call using apiRequest for proper authentication
       const response = await apiRequest('DELETE', `/api/experiences/${experienceId}/guides/${guideId}`);
-      
-      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] API response for unassignment:', response);
       return response;
     },
     onSuccess: (data, variables) => {
-      console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
-      
       // Invalidate related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
@@ -377,17 +321,7 @@ export function ExperienceGuides({
       // Determine if this should be primary (make first guide primary by default)
       const isPrimary = assignedGuides.length === 0;
       
-      // --- START NEW FRONTEND DIAGNOSTIC LOGGING ---
-      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Attempting guide assignment API call.');
-      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Guide ID being sent:', selectedGuideId);
-      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Experience ID:', experienceId);
-      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] isPrimary flag:', isPrimary);
-      console.log('🔍 [FRONTEND_ASSIGN_DEBUG] Request Payload for Mutation:', {
-        guideId: selectedGuideId,
-        isPrimary: isPrimary,
-        experienceId: experienceId
-      });
-      // --- END NEW FRONTEND DIAGNOSTIC LOGGING ---
+
       
       assignGuideMutation.mutate({ 
         guideId: selectedGuideId, 
@@ -518,12 +452,7 @@ export function ExperienceGuides({
                             e.preventDefault();   
                             e.stopPropagation();  
                             
-                            // --- START NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
-                            console.log('--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---');
-                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
-                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current draftMode:', draftMode);
-                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current experienceId:', experienceId);
-                            // --- END NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+
                             
                             handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
                           }}
