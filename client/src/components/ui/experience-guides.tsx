@@ -479,7 +479,16 @@ export function ExperienceGuides({
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => handleSetPrimary(draftMode ? assignment.tempId : assignment.id)}
+                          onClick={() => {
+                            // --- START NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+                            console.log('--- DIAGNOSTIC: Make Primary Button onClick Handler Called ---');
+                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
+                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current draftMode:', draftMode);
+                            console.log('🔍 [PRIMARY_ONCLICK_DEBUG] current experienceId:', experienceId);
+                            // --- END NEW ONCLICK DIAGNOSTIC LOGGING FOR MAKE PRIMARY ---
+                            
+                            handleSetPrimary(draftMode ? assignment.tempId : assignment.id);
+                          }}
                           disabled={!draftMode && updateGuideMutation.isPending}
                         >
                           <Star className="h-4 w-4 mr-1" />
