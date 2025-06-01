@@ -27,40 +27,26 @@ const adminOnly = hasRole('admin');
 
 // PUT /api/experience-guides/:id route (moved from guides router for direct API access)
 router.put('/experience-guides/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: any, res: any) => {
-  console.log('--- DIAGNOSTIC: PUT /api/experience-guides/:id ---');
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Route Hit. Assignment ID param:', req.params.id);
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Request Body (isPrimary):', req.body.isPrimary, 'Type:', typeof req.body.isPrimary);
-  
   const id = parseInt(req.params.id);
   const user = req.user;
   const outfitterId = user?.outfitterId;
-  
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] User Outfitter ID:', outfitterId);
 
   // Prepare data for validation
   const updateData = {
     isPrimary: req.body.isPrimary === true // Ensure boolean conversion
   };
 
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Prepared updateData:', updateData);
-
   if (isNaN(id)) {
-    console.error('❌ [PRIMARY_PERSIST_ERROR] Invalid assignment ID');
     throwError('Invalid assignment ID', 400);
   }
 
   // Update guide assignment with tenant isolation
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Calling storage.updateGuideAssignment with:', { id, updateData, outfitterId });
   const updatedGuide = await storage.updateGuideAssignment(id, updateData, outfitterId);
 
-  console.log('🔍 [PRIMARY_PERSIST_DEBUG] Storage update result:', updatedGuide);
-
   if (!updatedGuide) {
-    console.error('❌ [PRIMARY_PERSIST_ERROR] Storage update returned false/null.');
     throwError('Guide assignment not found or update failed', 404);
   }
 
-  console.log('✅ [PRIMARY_PERSIST_DEBUG] Update successful. Returning 204.');
   res.status(204).end();
 }));
 

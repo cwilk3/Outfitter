@@ -471,12 +471,7 @@ export function ExperienceGuides({
                           e.preventDefault();
                           e.stopPropagation();
                           
-                          // --- START NEW ONCLICK DIAGNOSTIC LOGGING ---
-                          console.log('--- DIAGNOSTIC: X Button onClick Handler Called ---');
-                          console.log('🔍 [ONCLICK_DEBUG] Assignment object passed:', JSON.stringify(assignment, null, 2));
-                          console.log('🔍 [ONCLICK_DEBUG] current draftMode:', draftMode);
-                          console.log('🔍 [ONCLICK_DEBUG] current experienceId:', experienceId);
-                          // --- END NEW ONCLICK DIAGNOSTIC LOGGING ---
+
 
                           if (draftMode) {
                             // In draft mode, remove from local state

@@ -219,9 +219,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]> {
-    console.log('--- DIAGNOSTIC: getUsersByOutfitterId Query ---');
-    console.log('🔍 [GET_USERS_DB_DEBUG] Parameters: outfitterId:', outfitterId, 'roles:', roles);
-
     let query = db
       .select({
         id: users.id,
@@ -243,7 +240,6 @@ export class DatabaseStorage implements IStorage {
     if (roles && roles.length > 0) {
       const validRoles = roles.filter(role => role === 'admin' || role === 'guide') as ('admin' | 'guide')[];
       if (validRoles.length > 0) {
-        console.log('🔍 [GET_USERS_DB_DEBUG] Adding role filter with validRoles:', validRoles);
         query = query.where(and(
           eq(userOutfitters.outfitterId, outfitterId),
           inArray(users.role, validRoles)
@@ -252,12 +248,6 @@ export class DatabaseStorage implements IStorage {
     }
     
     const result = await query;
-
-    console.log('🔍 [GET_USERS_DB_DEBUG] Raw DB query result (count):', result.length);
-    console.log('🔍 [GET_USERS_DB_DEBUG] Raw DB query result (sample IDs, roles, outfitterIds):', 
-      result.map(u => ({ id: u.id, role: u.role, outfitterId: (u as any).outfitterId }))
-    );
-    
     return result;
   }
 
@@ -821,9 +811,6 @@ export class DatabaseStorage implements IStorage {
 
   // Update a guide assignment
   async updateGuideAssignment(id: number, data: Partial<InsertExperienceGuide>, outfitterId: number): Promise<ExperienceGuide | undefined> {
-    console.log('--- DIAGNOSTIC: updateGuideAssignment Storage Function ---');
-    console.log('🔍 [STORAGE_PERSIST_DEBUG] Parameters: ID:', id, 'updateData:', data, 'OutfitterId:', outfitterId);
-
     // First, verify the guide assignment exists and belongs to the outfitter
     const existingAssignment = await db.query.experienceGuides.findFirst({
       where: (ag, { eq }) => eq(ag.id, id),
@@ -835,16 +822,11 @@ export class DatabaseStorage implements IStorage {
     });
 
     if (!existingAssignment || existingAssignment.experience.outfitterId !== outfitterId) {
-      console.error(`❌ [STORAGE_PERSIST_ERROR] Assignment ID ${id} not found or not owned by outfitter ID ${outfitterId}.`);
       return undefined;
     }
 
-    console.log('🔍 [STORAGE_PERSIST_DEBUG] Existing assignment found:', existingAssignment);
-    console.log('🔍 [STORAGE_PERSIST_DEBUG] Attempting to set isPrimary to:', data.isPrimary);
-
     // If updating to primary, ensure no other guide for this experience is primary
     if (data.isPrimary) {
-      console.log('🔍 [STORAGE_PERSIST_DEBUG] Setting other guides to non-primary for experience:', existingAssignment.experienceId);
       await db
         .update(experienceGuides)
         .set({ isPrimary: false })
@@ -866,9 +848,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(experienceGuides.id, id))
       .returning();
     
-    console.log('🔍 [STORAGE_PERSIST_DEBUG] DB Update result count:', updatedGuide ? 1 : 0);
-    console.log('🔍 [STORAGE_PERSIST_DEBUG] DB Updated Record:', updatedGuide);
-
     return updatedGuide;
   }
 
