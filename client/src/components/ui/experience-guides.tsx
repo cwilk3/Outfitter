@@ -176,69 +176,96 @@ export function ExperienceGuides({
   // Update a guide assignment (set primary)
   const updateGuideMutation = useMutation({
     mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => {
-      // --- START DIAGNOSTIC LOGGING FOR updateGuideMutation ---
+      // --- START MUTATION_FN_DEBUG for updateGuideMutation ---
       console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] MutationFn called for guide primary status update.');
       console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] Payload received:', { id, isPrimary, experienceId });
-      // --- END DIAGNOSTIC LOGGING ---
-
-      // Use apiRequest for proper authentication and 204 handling
-      // The endpoint is PUT /api/experience-guides/:id (where :id is the experience_guide junction ID)
+      // --- END MUTATION_FN_DEBUG ---
       const response = await apiRequest('PUT', `/api/experience-guides/${id}`, { isPrimary });
-      
-      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response); // Will be null for 204
-      return response; // This will be null for 204 success, or JSON for 200/201
+      console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response);
+      return response;
     },
-    onSuccess: (data, variables) => { // 'data' can be null here for 204
-      console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded. Data:', data, 'Variables:', variables);
+    
+    // --- ADD ONMUTATE FOR OPTIMISTIC UPDATE ---
+    onMutate: async (newGuideData: { id: number; isPrimary: boolean }) => {
+      console.log('⚡ [OPTIMISTIC_UPDATE] Starting optimistic update for guide:', newGuideData.id);
+      // Cancel any outgoing refetches for the guides query to avoid race conditions
+      await queryClient.cancelQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+
+      // Snapshot the previous value
+      const previousAssignedGuides = queryClient.getQueryData<ExperienceGuide[]>(['/api/experiences', experienceId, 'guides']);
       
-      // Invalidate queries to re-fetch latest assigned guides
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences if primary status impacts list
-      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides too if needed
-
-      // Update the local assignedGuides state to reflect the primary change
-      const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({
+      // Optimistically update the cache
+      queryClient.setQueryData<ExperienceGuide[]>(
+        ['/api/experiences', experienceId, 'guides'],
+        (oldGuides) => {
+          if (!oldGuides) return [];
+          const updated = oldGuides.map(guide => ({
+            ...guide,
+            isPrimary: guide.id === newGuideData.id // Set the current guide as primary
+          }));
+          // If setting primary to true, ensure others are false
+          if (newGuideData.isPrimary) {
+            updated.forEach(guide => {
+              if (guide.id !== newGuideData.id) {
+                guide.isPrimary = false;
+              }
+            });
+          }
+          console.log('⚡ [OPTIMISTIC_UPDATE] Cache optimistically updated:', updated);
+          return updated;
+        }
+      );
+      
+      // Also update the local assignedGuides state and notify parent immediately
+      // This is the part that updates the UI directly, before the API call returns
+      const updatedAssignedGuidesOptimistic = (assignedGuides || []).map((g: ExperienceGuide) => ({
           ...g,
-          isPrimary: g.id === variables.id // Set the selected guide (by its assignment ID) as primary
+          isPrimary: g.id === newGuideData.id // Set the selected guide as primary
       }));
-
-      // If there can only be one primary, ensure others are set to false
-      if (variables.isPrimary) { // If this mutation sets primary to true
-          updatedAssignedGuides.forEach(g => {
-              if (g.id !== variables.id) { // Compare by assignment ID
-                  g.isPrimary = false; // Set others to false
+      if (newGuideData.isPrimary) {
+          updatedAssignedGuidesOptimistic.forEach(g => {
+              if (g.id !== newGuideData.id) {
+                  g.isPrimary = false;
               }
           });
       }
-
-      // --- START NEW ON_SUCCESS_UI_DEBUG LOGGING ---
-      console.log('🔍 [ON_SUCCESS_UI_DEBUG] assignedGuides before update:', JSON.stringify(assignedGuides, null, 2));
-      console.log('🔍 [ON_SUCCESS_UI_DEBUG] updatedAssignedGuides generated:', JSON.stringify(updatedAssignedGuides, null, 2));
-      // --- END NEW ON_SUCCESS_UI_DEBUG LOGGING ---
-
-      // Notify parent component about the change (if onChange is used for submission payload)
       if (onChange) {
-          console.log('🔍 [ON_SUCCESS_UI_DEBUG] Calling onChange with updatedAssignedGuides.');
-          onChange(updatedAssignedGuides);
-      } else {
-          console.warn('⚠️ [ON_SUCCESS_UI_DEBUG] onChange prop is not provided. UI might not refresh.');
+          console.log('⚡ [OPTIMISTIC_UPDATE] Calling onChange for immediate UI update.');
+          onChange(updatedAssignedGuidesOptimistic);
       }
+
+      return { previousAssignedGuides }; // Return a context object with the old data
+    },
+    
+    onSuccess: (data, variables, context) => { // 'context' from onMutate
+      console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded (API). Data:', data, 'Variables:', variables);
+      // Invalidate queries to re-fetch latest assigned guides (this will confirm optimistic update or correct state)
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences too
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
       
       toast({
         title: 'Guide updated!',
         description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
       });
     },
-    onError: (error) => { // <--- ENHANCED ERROR HANDLING
+    
+    onError: (error, newGuideData, context) => { // 'context' from onMutate
       console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error during guide primary status update:', error);
-      if (error instanceof Error) {
-        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error message:', error.message);
-        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error stack:', error.stack);
-      } else if (typeof error === 'object' && error !== null) {
-        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Full error object:', JSON.stringify(error, null, 2));
-      } else {
-        console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Unknown error type:', error);
+      // If the mutation fails, use the context to roll back the optimistic update
+      if (context?.previousAssignedGuides) {
+        queryClient.setQueryData(
+          ['/api/experiences', experienceId, 'guides'],
+          context.previousAssignedGuides
+        );
+        // Also roll back local state if onChange was called
+        if (onChange) {
+            console.log('⚡ [OPTIMISTIC_ROLLBACK] Rolling back onChange call.');
+            onChange(context.previousAssignedGuides);
+        }
+        console.log('⚡ [OPTIMISTIC_ROLLBACK] Optimistic update rolled back.');
       }
+      
       toast({
         title: 'Update failed',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',

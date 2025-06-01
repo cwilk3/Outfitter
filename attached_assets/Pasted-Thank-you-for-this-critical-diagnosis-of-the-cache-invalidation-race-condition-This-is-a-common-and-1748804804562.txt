@@ -1,0 +1,141 @@
+Thank you for this critical diagnosis of the cache invalidation race condition. This is a common and challenging problem, and optimistic updates are the perfect solution.
+
+Your primary task is to modify the updateGuideMutation in client/src/components/ui/experience-guides.tsx to implement an optimistic update strategy for the 'Make Primary' functionality.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The updateGuideMutation definition (useMutation hook).
+Proposed Code Changes (applying to updateGuideMutation):
+
+Find this block (the updateGuideMutation definition):
+
+TypeScript
+
+const updateGuideMutation = useMutation({
+  mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => {
+    // ... existing mutationFn logic with apiRequest call and logging ...
+    return response;
+  },
+  onSuccess: (data, variables) => { // <--- This onSuccess will be modified/enhanced
+    // ... current onSuccess logic for query invalidation and local state update ...
+  },
+  onError: (error) => { // <--- This onError will be modified/enhanced
+    // ... current onError logic ...
+  },
+});
+Replace it with (adding onMutate for optimistic update, and adjusting onSuccess/onError):
+
+TypeScript
+
+const updateGuideMutation = useMutation({
+  mutationFn: async ({ id, isPrimary }: { id: number; isPrimary: boolean }) => {
+    // --- START MUTATION_FN_DEBUG for updateGuideMutation ---
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] MutationFn called for guide primary status update.');
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] Payload received:', { id, isPrimary, experienceId });
+    // --- END MUTATION_FN_DEBUG ---
+    const response = await apiRequest('PUT', `/api/experience-guides/${id}`, { isPrimary });
+    console.log('🔍 [UPDATE_GUIDE_MUT_DEBUG] apiRequest call completed. Response:', response);
+    return response;
+  },
+  
+  // --- ADD ONMUTATE FOR OPTIMISTIC UPDATE ---
+  onMutate: async (newGuideData: { id: number; isPrimary: boolean }) => {
+    console.log('⚡ [OPTIMISTIC_UPDATE] Starting optimistic update for guide:', newGuideData.id);
+    // Cancel any outgoing refetches for the guides query to avoid race conditions
+    await queryClient.cancelQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+
+    // Snapshot the previous value
+    const previousAssignedGuides = queryClient.getQueryData<ExperienceGuide[]>(['/api/experiences', experienceId, 'guides']);
+    
+    // Optimistically update the cache
+    queryClient.setQueryData<ExperienceGuide[]>(
+      ['/api/experiences', experienceId, 'guides'],
+      (oldGuides) => {
+        if (!oldGuides) return [];
+        const updated = oldGuides.map(guide => ({
+          ...guide,
+          isPrimary: guide.id === newGuideData.id // Set the current guide as primary
+        }));
+        // If setting primary to true, ensure others are false
+        if (newGuideData.isPrimary) {
+          updated.forEach(guide => {
+            if (guide.id !== newGuideData.id) {
+              guide.isPrimary = false;
+            }
+          });
+        }
+        console.log('⚡ [OPTIMISTIC_UPDATE] Cache optimistically updated:', updated);
+        return updated;
+      }
+    );
+    
+    // Also update the local assignedGuides state and notify parent immediately
+    // This is the part that updates the UI directly, before the API call returns
+    const updatedAssignedGuidesOptimistic = (assignedGuides || []).map((g: ExperienceGuide) => ({
+        ...g,
+        isPrimary: g.id === newGuideData.id // Set the selected guide as primary
+    }));
+    if (newGuideData.isPrimary) {
+        updatedAssignedGuidesOptimistic.forEach(g => {
+            if (g.id !== newGuideData.id) {
+                g.isPrimary = false;
+            }
+        });
+    }
+    if (onChange) {
+        console.log('⚡ [OPTIMISTIC_UPDATE] Calling onChange for immediate UI update.');
+        onChange(updatedAssignedGuidesOptimistic);
+    }
+
+    return { previousAssignedGuides }; // Return a context object with the old data
+  },
+  
+  onSuccess: (data, variables, context) => { // 'context' from onMutate
+    console.log('🔄 [UPDATE_GUIDE_MUT_SUCCESS] Guide primary status update succeeded (API). Data:', data, 'Variables:', variables);
+    // Invalidate queries to re-fetch latest assigned guides (this will confirm optimistic update or correct state)
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences too
+    queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
+    
+    toast({
+      title: 'Guide updated!',
+      description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
+    });
+  },
+  
+  onError: (error, newGuideData, context) => { // 'context' from onMutate
+    console.error('❌ [UPDATE_GUIDE_MUT_ERROR] Error during guide primary status update:', error);
+    // If the mutation fails, use the context to roll back the optimistic update
+    if (context?.previousAssignedGuides) {
+      queryClient.setQueryData(
+        ['/api/experiences', experienceId, 'guides'],
+        context.previousAssignedGuides
+      );
+      // Also roll back local state if onChange was called
+      if (onChange) {
+          console.log('⚡ [OPTIMISTIC_ROLLBACK] Rolling back onChange call.');
+          onChange(context.previousAssignedGuides);
+      }
+      console.log('⚡ [OPTIMISTIC_ROLLBACK] Optimistic update rolled back.');
+    }
+    
+    toast({
+      title: 'Update failed',
+      description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      variant: 'destructive',
+    });
+  },
+});
+Output Required for My Review:
+Once you have implemented this rewrite, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The updateGuideMutation includes an onMutate callback.
+onMutate correctly cancels queries, snapshots previous data, and optimistically updates the cache (queryClient.setQueryData).
+onMutate also immediately updates the local assignedGuides state (via onChange) for instant UI feedback.
+onSuccess invalidates queries and shows toast.
+onError correctly handles rollback using context from onMutate.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This will fix the "Make Primary" UI update problem!
