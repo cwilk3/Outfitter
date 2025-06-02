@@ -209,6 +209,11 @@ export default function Experiences() {
   const [experienceToDuplicate, setExperienceToDuplicate] = useState<Experience | null>(null);
   const [selectedDuplicateLocationId, setSelectedDuplicateLocationId] = useState<number | null>(null);
   
+  // Missing state variables that may be causing compilation errors
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [nextTempId, setNextTempId] = useState(1);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+  
   type AddonType = {
     id?: number;
     name: string;

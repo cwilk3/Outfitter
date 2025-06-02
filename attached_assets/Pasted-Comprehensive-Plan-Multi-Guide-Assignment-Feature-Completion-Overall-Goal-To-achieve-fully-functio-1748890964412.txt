@@ -1,0 +1,86 @@
+Comprehensive Plan: Multi-Guide Assignment Feature Completion
+Overall Goal: To achieve fully functional and robust multi-guide assignment for Experiences, including creation, editing, adding, removing, and setting primary guides, with proper persistence and UI synchronization.
+
+Phase 1: Restore client/src/pages/Experiences.tsx to a Compiling & Basic Functional State
+
+Goal: Get the Experiences.tsx component (which was affected by the rollback of the mass deletion) to compile without errors and render its basic structure. This is a prerequisite for all subsequent testing.
+
+Item 1.1: Add Missing State Variable Declarations.
+
+Description: Re-declare useState variables like isDialogOpen, nextTempId, currentStep, showAssignedOnly that might have been lost or are causing is not defined errors.
+Action: Provide specific useState declarations and initial values.
+Emergency Protocols:
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+Item 1.2: Correct experienceLocationData Variable Reference.
+
+Description: Fix the reference to experienceLocationData in the location display logic, as the experienceLocations?.map issue was a result of an incorrect variable name or scope after the initial corruption.
+Action: Provide the correct variable name and usage.
+Emergency Protocols: (Same as Item 1.1)
+Item 1.3: Verify onSubmit Handler Refactor.
+
+Description: Confirm that the major onSubmit refactor (where it uses createMutation.mutate() and updateMutation.mutate() and correctly includes assignedGuideIds from draftGuides in the payload) is still correctly applied after the rollback. If not, we will re-apply it.
+Action: Provide instructions to verify the onSubmit function's code.
+Emergency Protocols: (Same as Item 1.1)
+Phase 2: Debug Multi-Guide Creation Persistence (The Core Bug)
+
+Goal: Pinpoint and fix why only the supporting guide (not the primary) is being saved during new experience creation, despite frontend reporting success.
+
+Item 2.1: Implement Diagnostic Logging in createExperience (server/storage.ts).
+
+Description: Add precise console.log statements within the createExperience function's transaction to trace experienceGuides insertion.
+Action: Provide specific console.log statements.
+Emergency Protocols: (Same as Item 1.1)
+Item 2.2: Manual Test & Analyze Logs.
+
+Description: Perform a manual test by creating a new experience with multiple guides (primary and supporting) and capture the server console output from the new diagnostic logs.
+Action: Provide instructions for manual test execution.
+Emergency Protocols: (Same as Item 1.1)
+Item 2.3: Fix createExperience Persistence.
+
+Description: Based on the diagnostic logs, identify and fix the exact reason why the primary guide (first in the assignedGuideIds array) is not persisting. This might involve a Drizzle query issue or a subtle data constraint.
+Action: Provide the specific code modification.
+Emergency Protocols: (Same as Item 1.1)
+Phase 3: Comprehensive Multi-Guide Feature Verification
+
+Goal: Fully test all aspects of the multi-guide assignment feature end-to-end after the core creation bug is fixed.
+
+Item 3.1: Manual Verification - Creation.
+
+Description: Create new experiences with multiple guides and verify persistence and UI display.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Item 3.2: Manual Verification - Edit (Add Guides).
+
+Description: Verify adding guides to existing experiences works.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Item 3.3: Manual Verification - Edit (Remove Guides).
+
+Description: Verify removing guides from existing experiences works.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Item 3.4: Manual Verification - Edit (Change Primary Guide).
+
+Description: Verify changing the primary guide for existing experiences works.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Item 3.5: Manual Verification - Edit (Remove All Guides).
+
+Description: Verify removing all guides from an experience works.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Item 3.6: Manual Verification - Multi-Tenant Isolation.
+
+Description: Confirm that guide assignments adhere to multi-tenant rules.
+Action: Provide step-by-step manual test instructions.
+Emergency Protocols: (Same as Item 1.1)
+Phase 4: Cleanup
+
+Goal: Remove all temporary diagnostic logs from the codebase.
+Let's begin with Phase 1, Item 1.1: Add Missing State Variable Declarations. This is the first step to get Experiences.tsx compiling.
+
+Your next task is to add the missing state variable declarations in client/src/pages/Experiences.tsx.
+
