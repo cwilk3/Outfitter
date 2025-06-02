@@ -942,7 +942,7 @@ export default function Experiences() {
                   <CardTitle className="text-lg">{experience.name}</CardTitle>
                   <p className="text-sm text-gray-600">
                     {locations?.find((location: Location) => (
-                      experience.locationId === location.id
+                      experienceLocationData.find(el => el.experienceId === experience.id && el.locationId === location.id)
                     ))?.name}
                   </p>
                 </div>
