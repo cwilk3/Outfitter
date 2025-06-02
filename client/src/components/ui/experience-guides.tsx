@@ -254,20 +254,28 @@ export function ExperienceGuides({
       const response = await apiRequest('DELETE', `/api/experiences/${experienceId}/guides/${guideId}`);
       return response;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate related queries to refresh UI
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] });
+    onSuccess: (data, variables) => { 
+      console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
       
-      // Update local state by filtering the removed guide
-      const updatedAssignedGuides = (assignedGuides || []).filter(
-        (g: ExperienceGuide) => g.guideId !== variables.guideId
+      // Invalidate related queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
+      
+      // Update local state by filtering the removed guide from draftGuides
+      const updatedDraftGuidesAfterRemoval = draftGuides.filter( 
+          (g: ExperienceGuide) => g.guideId !== variables.guideId
       );
+
+      // --- ADDED: Explicitly update draftGuides state ---
+      setDraftGuides(updatedDraftGuidesAfterRemoval); 
+      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] draftGuides updated locally after unassignment:', updatedDraftGuidesAfterRemoval);
+      // --- END ADDED ---
       
       // Notify parent component about the change in assigned guides
-      if (onChange) {
-        onChange(updatedAssignedGuides); 
+      if (onChange) { 
+          console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Calling onChange with updatedDraftGuidesAfterRemoval.');
+          onChange(updatedDraftGuidesAfterRemoval); 
       }
       
       // Force refetch to ensure UI consistency

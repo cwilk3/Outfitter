@@ -1,0 +1,91 @@
+Thank you for this precise diagnosis. The UI state is not immediately updating after guide removal, despite backend success. The problem is syncing draftGuides with the mutation's onSuccess.
+
+Your primary task is to modify the removeGuideMutation's onSuccess handler in client/src/components/ui/experience-guides.tsx to explicitly update the draftGuides state immediately after a successful guide unassignment.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside the onSuccess handler of removeGuideMutation.
+Proposed Code Changes (applying to removeGuideMutation's onSuccess):
+
+Find this block (within removeGuideMutation definition, onSuccess handler):
+
+TypeScript
+
+onSuccess: (data, variables) => { // Access 'variables' to get the guideId that was removed
+  console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
+  
+  // Invalidate related queries to refresh UI
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
+  
+  // Update local state by filtering the removed guide
+  const updatedAssignedGuides = (assignedGuides || []).filter( // This is `assignedGuides` from prop
+      (g: ExperienceGuide) => g.guideId !== variables.guideId
+  );
+  
+  // Notify parent component about the change in assigned guides
+  if (onChange) { 
+      onChange(updatedAssignedGuides); 
+  }
+  
+  // Force refetch to ensure UI consistency
+  setTimeout(() => {
+    refetchAssignedGuides();
+  }, 100);
+  
+  toast({
+    title: 'Guide unassigned!',
+    description: 'The guide has been successfully removed from this experience.',
+  });
+},
+Replace it with (adding setDraftGuides call):
+
+TypeScript
+
+onSuccess: (data, variables) => { 
+  console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
+  
+  // Invalidate related queries to refresh UI
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
+  
+  // Update local state by filtering the removed guide
+  const updatedDraftGuidesAfterRemoval = draftGuides.filter( // <--- CRITICAL: Filter draftGuides
+      (g: ExperienceGuide) => g.guideId !== variables.guideId
+  );
+
+  // --- ADDED: Explicitly update draftGuides state ---
+  setDraftGuides(updatedDraftGuidesAfterRemoval); // <--- THIS IS THE KEY FIX
+  console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] draftGuides updated locally after unassignment:', updatedDraftGuidesAfterRemoval);
+  // --- END ADDED ---
+  
+  // Notify parent component about the change in assigned guides
+  if (onChange) { 
+      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Calling onChange with updatedDraftGuidesAfterRemoval.');
+      onChange(updatedAssignedGuidesAfterRemoval); // Parent will also update its state
+  }
+  
+  // Force refetch to ensure UI consistency (optional, query invalidation usually sufficient after optimistic updates)
+  setTimeout(() => {
+    refetchAssignedGuides();
+  }, 100);
+  
+  toast({
+    title: 'Guide unassigned!',
+    description: 'The guide has been successfully removed from this experience.',
+  });
+},
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The removeGuideMutation's onSuccess handler correctly calls setDraftGuides() with the filtered updatedDraftGuidesAfterRemoval array.
+The filtering operation correctly uses draftGuides.filter(...) as its source.
+Diagnostic logs are added to confirm the draftGuides update and onChange call.
+No other unrelated functional code is affected.
+The change directly resolves the guide name remaining visible in the UI after unassignment.
+I will not approve this step until these criteria are met. This will complete the guide unassignment functionality! 
