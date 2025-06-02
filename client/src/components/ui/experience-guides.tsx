@@ -63,6 +63,25 @@ export function ExperienceGuides({
   const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides);
   const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1);
 
+  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
+  // This useEffect ensures draftGuides is the mutable source of truth for the UI
+  useEffect(() => {
+    // Only set initial draft guides if we are in draft mode (creation)
+    // OR if we are in normal mode (editing) and there are external guides to load
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter
+    } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
+      // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        ...guide, // Copy existing properties
+        tempId: guide.id, // Use existing ID as tempId for edits
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+    }
+  }, [draftMode, initialDraftGuides, externalAssignedGuides]);
+
   // Fetch available guides with 'admin' and 'guide' roles
   const { data: availableGuides = [] } = useQuery({
     queryKey: ['/api/users', { roles: ['admin', 'guide'] }],
@@ -368,7 +387,8 @@ export function ExperienceGuides({
   }, [assignedGuides, onChange, draftMode]);
 
   // Determine which guides to display based on mode
-  const guidesToDisplay = draftMode ? draftGuides : assignedGuides;
+  // THIS IS THE CRITICAL LINE: guidesToDisplay should always reflect the current mutable draft state
+  const guidesToDisplay = draftGuides; // <--- FIX: Always display from draftGuides
   
   // Filter out already assigned guides from the selection dropdown
   const availableForSelection = availableGuides.filter(

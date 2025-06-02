@@ -1,0 +1,91 @@
+Thank you for this crystal-clear diagnosis. The root cause is confirmed: the ExperienceGuides component's UI display logic is not properly showing guides from the draftGuides state.
+
+Your primary task is to modify the ExperienceGuides component in client/src/components/ui/experience-guides.tsx to ensure that guidesToDisplay (the array used for rendering assigned guides) correctly reflects all guides, including those in draftGuides, based on the component's mode.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The ExperienceGuides function component, specifically where guidesToDisplay is derived or used.
+Proposed Code Changes:
+
+Find this block (within ExperienceGuides function component, look for guidesToDisplay definition or usage):
+
+TypeScript
+
+export function ExperienceGuides({ 
+  experienceId, 
+  onChange, 
+  readOnly = false, 
+  draftMode = false,
+  initialDraftGuides = [],
+  assignedGuides: externalAssignedGuides = [] // These are from API fetch
+}: ExperienceGuidesProps) {
+  // ... other state and queries ...
+
+  // This might be where guidesToDisplay is defined, or it might be used directly in JSX
+  const guidesToDisplay = draftMode ? draftGuides : assignedGuides; // Example of current logic
+  // ...
+  return (
+    // ... JSX where guidesToDisplay is mapped ...
+  );
+}
+Replace it with (modifying guidesToDisplay derivation to consistently use draftGuides as source of truth for display, especially when in a "draft-like" state):
+
+TypeScript
+
+export function ExperienceGuides({ 
+  experienceId, 
+  onChange, 
+  readOnly = false, 
+  draftMode = false,
+  initialDraftGuides = [],
+  assignedGuides: externalAssignedGuides = []
+}: ExperienceGuidesProps) {
+  // ... existing state definitions (e.g., useState for draftGuides, nextTempId, selectedGuideId) ...
+  // ... existing queries (e.g., useQuery for fetching available guides, assigned guides) ...
+
+  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
+  // This useEffect ensures draftGuides is the mutable source of truth for the UI
+  useEffect(() => {
+    // Only set initial draft guides if we are in draft mode (creation)
+    // OR if we are in normal mode (editing) and there are external guides to load
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter
+    } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
+      // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        ...guide, // Copy existing properties
+        tempId: guide.id, // Use existing ID as tempId for edits
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+    }
+  }, [draftMode, initialDraftGuides, externalAssignedGuides, setDraftGuides, setNextTempId]);
+
+
+  // THIS IS THE CRITICAL LINE: guidesToDisplay should always reflect the current mutable draft state
+  const guidesToDisplay = draftGuides; // <--- FIX: Always display from draftGuides
+  
+  // ... rest of component logic and JSX ...
+  return (
+    // ... JSX where guidesToDisplay is mapped for rendering ...
+  );
+}
+Important Considerations for ExperienceGuides:
+
+Ensure that the initial state of draftGuides is correctly populated from either initialDraftGuides (for new experiences) or externalAssignedGuides (for existing experiences) using a useEffect hook that runs only once on component mount or when these props change. This useEffect is crucial for draftGuides to become the single source of truth for UI display and manipulation.
+The guidesToDisplay variable should then simply point to draftGuides.
+Verify that handleAssignGuide (which we just fixed) is correctly adding to draftGuides.
+Verify that handleRemoveGuide (which we just fixed) is correctly filtering draftGuides.
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The guidesToDisplay variable is correctly derived to always reflect the current mutable state of guides (primarily from draftGuides).
+A useEffect hook correctly initializes draftGuides from either initialDraftGuides (for new) or externalAssignedGuides (for edit) on component mount/prop change.
+The tempId for externalAssignedGuides when mapping them to draftGuides is correctly set (e.g., using their real ID).
+No other unrelated functional code is affected.
+The change directly resolves the UI not displaying guides from draftGuides.
+This fix is crucial for correctly displaying all guides in the UI. I await your detailed diff preview!
