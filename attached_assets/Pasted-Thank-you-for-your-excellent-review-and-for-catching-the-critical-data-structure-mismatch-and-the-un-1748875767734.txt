@@ -1,0 +1,37 @@
+Thank you for your excellent review and for catching the critical data structure mismatch and the unverified backend route. You are absolutely correct to raise these concerns.
+
+Your primary task is to definitively verify if the POST /api/experiences/:id/guides endpoint is correctly persisting guide assignments to the database, as this endpoint is currently being called by the frontend's loop.
+
+Specific Actions to Perform:
+
+Reproduce the Frontend Call:
+
+Go to client/src/pages/Experiences.tsx and temporarily re-enable the for (const guide of draftGuides) loop (Lines 1244-1285 approximate) that processes guides after experience creation. This loop currently uses fetch to POST /api/experiences/{id}/guides for each guide.
+This is only for debugging; we will remove it later.
+Perform a manual test: Create a new experience and assign multiple guides (e.g., 2 guides) through the frontend UI.
+Verify Backend Persistence (Database Check):
+
+After the frontend completes its processing (and you get the success toast, dialog closes etc.), query your database to confirm the assigned guides.
+SQL Query: Find the experience_id of the newly created experience.
+SELECT * FROM experience_guides WHERE experience_id = <new_experience_id>;
+SELECT guide_id FROM experiences WHERE id = <new_experience_id>; (for compatibility check)
+Capture Console Output:
+
+Capture the complete frontend console logs.
+Capture the complete backend server logs.
+Output Required for My Review:
+Please provide:
+
+Confirmation that the for...of loop in client/src/pages/Experiences.tsx was temporarily re-enabled.
+The exact experience_id of the newly created experience.
+The exact raw database results from the SELECT * FROM experience_guides query for that experience_id.
+The exact raw database results from the SELECT guide_id FROM experiences query for that experience_id.
+The complete frontend console output during the creation attempt.
+The complete backend server console output during the creation attempt.
+A clear statement on whether the POST /api/experiences/:id/guides endpoint successfully persisted multiple guides to the database.
+Success Criteria for My Approval (for this verification phase):
+
+All requested logs and database results are provided.
+A clear conclusion is drawn on the persistence of the individual POST calls.
+No permanent code changes are proposed in this step; this is purely a verification report.
+This verification is crucial to decide the final approach for multi-guide creation. I await your detailed report.

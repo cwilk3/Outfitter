@@ -1,0 +1,34 @@
+🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/29
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/25
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/24
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+Experiences.tsx:1812 Location selected: 28
+experience-guides.tsx:296 🔍 [GUIDE_ASSIGNMENT_DEBUG] Starting assignment process: {selectedGuideId: 'zddwhpv725', draftMode: true, draftGuidesLength: 0, assignedGuidesLength: 0, experienceId: 0}
+experience-guides.tsx:331 ✅ [GUIDE_ASSIGNMENT_DEBUG] Adding guide to draft state: {newGuideAssignment: {…}, updatedDraftGuidesLength: 1}
+Experiences.tsx:2121 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: true for experience ID: undefined
+experience-guides.tsx:296 🔍 [GUIDE_ASSIGNMENT_DEBUG] Starting assignment process: {selectedGuideId: 'testguide123', draftMode: true, draftGuidesLength: 1, assignedGuidesLength: 0, experienceId: 0}
+experience-guides.tsx:331 ✅ [GUIDE_ASSIGNMENT_DEBUG] Adding guide to draft state: {newGuideAssignment: {…}, updatedDraftGuidesLength: 2}
+Experiences.tsx:2121 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: true for experience ID: undefined

@@ -1,0 +1,88 @@
+[API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/29
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/25
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: DELETE
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experiences/24
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): undefined
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: Object
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 204
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:39 🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.
+Experiences.tsx:1812 Location selected: 28
+experience-guides.tsx:296 🔍 [GUIDE_ASSIGNMENT_DEBUG] Starting assignment process: {selectedGuideId: 'zddwhpv725', draftMode: true, draftGuidesLength: 0, assignedGuidesLength: 0, experienceId: 0}
+experience-guides.tsx:331 ✅ [GUIDE_ASSIGNMENT_DEBUG] Adding guide to draft state: {newGuideAssignment: {…}, updatedDraftGuidesLength: 1}
+Experiences.tsx:2121 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: true for experience ID: undefined
+experience-guides.tsx:296 🔍 [GUIDE_ASSIGNMENT_DEBUG] Starting assignment process: {selectedGuideId: 'testguide123', draftMode: true, draftGuidesLength: 1, assignedGuidesLength: 0, experienceId: 0}
+experience-guides.tsx:331 ✅ [GUIDE_ASSIGNMENT_DEBUG] Adding guide to draft state: {newGuideAssignment: {…}, updatedDraftGuidesLength: 2}
+Experiences.tsx:2121 🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode: true for experience ID: undefined
+Experiences.tsx:2259 Manual submit button clicked
+Experiences.tsx:2275 Form values: {name: 'Testing Supporting Guide 2', description: '', duration: '5', price: '500', capacity: '5', …}
+Experiences.tsx:864 Form submission started... {isEditing: false}
+Experiences.tsx:865 Current addons state: [{…}]
+Experiences.tsx:874 Optimizing images... {imageCount: 0}
+Experiences.tsx:883 Found 0 valid images out of 0
+Experiences.tsx:906 Data prepared successfully: {name: 'Testing Supporting Guide 2', description: 'No description provided', locationId: 1, duration: 120, price: 500, …}
+Experiences.tsx:1180 Creating new experience with simplified data
+Experiences.tsx:1183 Making direct fetch call for better error visibility
+Experiences.tsx:1211 API Response status: 201
+Experiences.tsx:1220 Creation successful: {id: 30, name: 'Testing Supporting Guide 2', description: 'Experience description', duration: 5, price: '500.00', …}
+queryClient.ts:16 🔍 [API_REQUEST_DEBUG] apiRequest called.
+queryClient.ts:17 🔍 [API_REQUEST_DEBUG] Method: POST
+queryClient.ts:18 🔍 [API_REQUEST_DEBUG] URL: /api/experience-locations
+queryClient.ts:19 🔍 [API_REQUEST_DEBUG] Request Body (data): {
+  "experienceId": 30,
+  "locationId": 28
+}
+queryClient.ts:20 🔍 [API_REQUEST_DEBUG] Headers being set: {Content-Type: 'application/json'}
+queryClient.ts:21 🔍 [API_REQUEST_DEBUG] Credentials: include
+queryClient.ts:32 🔍 [API_REQUEST_DEBUG] Response received. Status: 200
+queryClient.ts:33 🔍 [API_REQUEST_DEBUG] Response OK: true
+queryClient.ts:50 🔍 [API_REQUEST_DEBUG] Attempting to parse response as JSON.
+queryClient.ts:53 ⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning null for non-JSON OK status.
+overrideMethod @ hook.js:608
+apiRequest @ queryClient.ts:53
+await in apiRequest
+onSubmit @ Experiences.tsx:1234
+await in onSubmit
+onClick @ Experiences.tsx:2276
+callCallback2 @ chunk-XQLYTHWV.js?v=f1fe48f6:3674
+invokeGuardedCallbackDev @ chunk-XQLYTHWV.js?v=f1fe48f6:3699
+invokeGuardedCallback @ chunk-XQLYTHWV.js?v=f1fe48f6:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-XQLYTHWV.js?v=f1fe48f6:3736
+executeDispatch @ chunk-XQLYTHWV.js?v=f1fe48f6:7014
+processDispatchQueueItemsInOrder @ chunk-XQLYTHWV.js?v=f1fe48f6:7034
+processDispatchQueue @ chunk-XQLYTHWV.js?v=f1fe48f6:7043
+dispatchEventsForPlugins @ chunk-XQLYTHWV.js?v=f1fe48f6:7051
+(anonymous) @ chunk-XQLYTHWV.js?v=f1fe48f6:7174
+batchedUpdates$1 @ chunk-XQLYTHWV.js?v=f1fe48f6:18913
+batchedUpdates @ chunk-XQLYTHWV.js?v=f1fe48f6:3579
+dispatchEventForPluginEventSystem @ chunk-XQLYTHWV.js?v=f1fe48f6:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-XQLYTHWV.js?v=f1fe48f6:5478
+dispatchEvent @ chunk-XQLYTHWV.js?v=f1fe48f6:5472
+dispatchDiscreteEvent @ chunk-XQLYTHWV.js?v=f1fe48f6:5449Understand this warning
+Experiences.tsx:1247 Processing 2 draft guides for new experience ID 30
+Experiences.tsx:1252 Assigning guide zddwhpv725 to experience 30, isPrimary: true
+Experiences.tsx:1272 Guide zddwhpv725 assigned successfully
+Experiences.tsx:1252 Assigning guide testguide123 to experience 30, isPrimary: false
+Experiences.tsx:1272 Guide testguide123 assigned successfully
+Experiences.tsx:1290 Checking existing add-ons for the new experience ID 30
+Experiences.tsx:1299 No existing add-ons found, creating 1 add-ons for the new experience: [{…}]
+Experiences.tsx:1304 Creating addon: {name: 'Lunch Package', description: '', price: 50, isOptional: true, inventory: 5, …}
+Experiences.tsx:1333 Add-on created successfully: {id: 15, experienceId: 30, name: 'Lunch Package', description: '', price: '50.00', …}
