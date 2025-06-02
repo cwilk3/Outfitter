@@ -1,0 +1,43 @@
+Thank you for activating the emergency protocol and for precisely identifying these critical compilation errors. We must fix these immediately to get the application running.
+
+Your primary task is to investigate and implement the necessary type fixes for all four identified issues:
+
+Price Type Mismatch: Ensure price is passed as a number where expected.
+Missing Interface Methods: Align IStorage interface and DatabaseStorage implementation.
+Guide Assignment Type Error: Align assignedGuideIds type handling in backend storage.
+Component Type Issues: Resolve null safety issues in frontend guide mapping.
+Specific Focus Areas for Modification:
+
+1. Fix Price Type Conversion:
+Location: client/src/pages/Experiences.tsx, within the onSubmit handler's mutationData payload preparation (around Line 897 from your previous context).
+Action: Ensure price is converted to a number before being included in the mutationData payload.
+TypeScript
+
+// Inside mutationData payload:
+price: parseFloat(String(data.price || 0)), // Ensure this handles string to number conversion
+2. Fix Missing Interface Methods:
+Location: server/storage.ts (IStorage interface and DatabaseStorage class implementation).
+Action:
+Add the missing method signatures to the IStorage interface (e.g., getExperienceGuideByIdWithTenant, removeGuideFromExperienceWithTenant, removeGuideFromBookingWithTenant).
+Ensure the DatabaseStorage class correctly implements these methods (even if just with a throw new Error('Not implemented'); for now, if the actual implementation is not yet needed). This often means ensuring correct method signatures for existing methods.
+3. Fix Guide Assignment Type Handling (Backend Storage):
+Location: server/storage.ts (e.g., createExperience, updateExperience functions).
+Action: Review the assignedGuideIds type usage within these functions. Ensure that when assignedGuideIds is mapped or processed, it's explicitly typed as Array<{ guideId: string, isPrimary?: boolean }> or accessed with correct null/undefined checks, to match the frontend payload. This might involve type assertions if the Drizzle query result typing isn't perfect.
+4. Fix Component Type Issues (Null Safety in Guide Mapping):
+Location: client/src/components/ui/experience-guides.tsx (or other relevant frontend component).
+Action: Add null/undefined checks (?.) or explicit type assertions where the compiler complains about potentially null/undefined values (e.g., when accessing guide.id or guide.profileImageUrl if they can be null).
+Output Required for My Review:
+Once you have implemented these fixes, please provide a comprehensive diff preview that includes all modified files (client/src/pages/Experiences.tsx, client/src/components/ui/experience-guides.tsx, server/storage.ts, and shared/schema.ts if affected).
+
+Success Criteria for My Approval (for this compilation fix phase):
+
+All TypeScript compilation errors related to the four identified issues are resolved.
+The application compiles successfully.
+The assignedGuideIds type is consistently handled across frontend and backend.
+No other unrelated functional code is affected.
+Emergency Protocols:
+
+If you encounter new, unexpected errors or are unsure about a fix, report the exact error and ask for specific fix approval.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+I will not approve further steps until these criteria are met. This is crucial to get the application running!

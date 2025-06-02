@@ -894,7 +894,7 @@ export default function Experiences() {
         description: data.description || "No description provided",
         locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
         duration: parseInt(String(data.duration || 1)),
-        price: parseFloat(typeof data.price === 'number' ? data.price.toString() : (data.price || "0")),
+        price: parseFloat(String(data.price || 0)),
         capacity: parseInt(String(data.capacity || 1)),
         category: data.category || "other_hunting",
         images: optimizedImages,

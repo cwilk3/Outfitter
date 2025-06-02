@@ -126,7 +126,9 @@ export interface IStorage {
   
   // Add missing interface methods
   getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<any>;
+  removeGuideFromExperienceWithTenant(id: number, outfitterId: number): Promise<void>;
   removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number): Promise<void>;
+  removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<void>;
   removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number): Promise<void>;
 
 }
@@ -1671,44 +1673,98 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number): Promise<void> {
-    // First verify the experience belongs to the outfitter
-    const experience = await db.query.experiences.findFirst({
-      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
-      columns: { id: true }
-    });
+  async removeGuideFromExperienceWithTenant(param1: string | number, param2: number, param3?: number): Promise<void> {
+    if (typeof param1 === 'number' && param3 === undefined) {
+      // Overload 1: removeGuideFromExperienceWithTenant(id: number, outfitterId: number)
+      const id = param1;
+      const outfitterId = param2;
+      
+      const result = await this.getExperienceGuideByIdWithTenant(id, outfitterId);
+      if (!result) {
+        throw new Error('Experience guide not found or unauthorized');
+      }
+      
+      await db.delete(experienceGuides).where(eq(experienceGuides.id, id));
+    } else if (typeof param1 === 'string' && param3 !== undefined) {
+      // Overload 2: removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number)
+      const guideId = param1;
+      const experienceId = param2;
+      const outfitterId = param3;
+      
+      // First verify the experience belongs to the outfitter
+      const experience = await db.query.experiences.findFirst({
+        where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+        columns: { id: true }
+      });
 
-    if (!experience) {
-      throw new Error('Experience not found or unauthorized');
+      if (!experience) {
+        throw new Error('Experience not found or unauthorized');
+      }
+
+      await db.delete(experienceGuides)
+        .where(and(
+          eq(experienceGuides.guideId, guideId),
+          eq(experienceGuides.experienceId, experienceId)
+        ));
+    } else {
+      throw new Error('Invalid parameters for removeGuideFromExperienceWithTenant');
     }
-
-    await db.delete(experienceGuides)
-      .where(and(
-        eq(experienceGuides.guideId, guideId),
-        eq(experienceGuides.experienceId, experienceId)
-      ));
   }
 
-  async removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number): Promise<void> {
-    // First verify the booking belongs to the outfitter through the experience
-    const booking = await db.query.bookings.findFirst({
-      where: (b, { eq }) => eq(b.id, bookingId),
-      with: {
-        experience: {
-          columns: { outfitterId: true }
+  async removeGuideFromBookingWithTenant(param1: string | number, param2: string | number, param3?: number): Promise<void> {
+    if (typeof param1 === 'number' && typeof param2 === 'string' && param3 !== undefined) {
+      // Overload 1: removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number)
+      const bookingId = param1;
+      const guideId = param2;
+      const outfitterId = param3;
+      
+      // First verify the booking belongs to the outfitter through the experience
+      const booking = await db.query.bookings.findFirst({
+        where: (b, { eq }) => eq(b.id, bookingId),
+        with: {
+          experience: {
+            columns: { outfitterId: true }
+          }
         }
+      });
+
+      if (!booking || booking.experience.outfitterId !== outfitterId) {
+        throw new Error('Booking not found or unauthorized');
       }
-    });
 
-    if (!booking || booking.experience.outfitterId !== outfitterId) {
-      throw new Error('Booking not found or unauthorized');
+      await db.delete(bookingGuides)
+        .where(and(
+          eq(bookingGuides.guideId, guideId),
+          eq(bookingGuides.bookingId, bookingId)
+        ));
+    } else if (typeof param1 === 'string' && typeof param2 === 'number' && param3 !== undefined) {
+      // Overload 2: removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number)
+      const guideId = param1;
+      const bookingId = param2;
+      const outfitterId = param3;
+      
+      // First verify the booking belongs to the outfitter through the experience
+      const booking = await db.query.bookings.findFirst({
+        where: (b, { eq }) => eq(b.id, bookingId),
+        with: {
+          experience: {
+            columns: { outfitterId: true }
+          }
+        }
+      });
+
+      if (!booking || booking.experience.outfitterId !== outfitterId) {
+        throw new Error('Booking not found or unauthorized');
+      }
+
+      await db.delete(bookingGuides)
+        .where(and(
+          eq(bookingGuides.guideId, guideId),
+          eq(bookingGuides.bookingId, bookingId)
+        ));
+    } else {
+      throw new Error('Invalid parameters for removeGuideFromBookingWithTenant');
     }
-
-    await db.delete(bookingGuides)
-      .where(and(
-        eq(bookingGuides.guideId, guideId),
-        eq(bookingGuides.bookingId, bookingId)
-      ));
   }
 
 }

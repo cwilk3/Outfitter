@@ -74,8 +74,9 @@ export function ExperienceGuides({
     } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
       // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
       const mappedGuides = externalAssignedGuides.map((guide, index) => ({
-        ...guide, // Copy existing properties
         tempId: guide.id, // Use existing ID as tempId for edits
+        guideId: guide.guideId,
+        isPrimary: guide.isPrimary ?? false // Handle null values for isPrimary
       }));
       setDraftGuides(mappedGuides);
       setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
