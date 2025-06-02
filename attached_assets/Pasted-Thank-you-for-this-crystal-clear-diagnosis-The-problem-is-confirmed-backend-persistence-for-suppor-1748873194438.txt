@@ -1,0 +1,112 @@
+Thank you for this crystal-clear diagnosis. The problem is confirmed: backend persistence for supporting guides is failing, despite success reports.
+
+Your primary task is to add highly targeted diagnostic logging within the createExperience function in server/storage.ts to trace the insertion of multiple guide assignments into the experienceGuides table.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: Inside the async createExperience(...) function, specifically within the db.transaction block where experienceGuides are inserted.
+Proposed Code Changes (applying to createExperience):
+
+Find this block (within createExperience, the part that handles experienceGuides insertion):
+
+TypeScript
+
+async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> {
+  const newExperience = await db.transaction(async (tx) => {
+    // Step 1: Create the main experience record
+    const [createdExperience] = await tx.insert(experiences).values({
+      // ... existing fields ...
+      guideId: (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) 
+                 ? experienceData.assignedGuideIds[0] : experienceData.guideId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
+    if (!createdExperience) {
+      throw new Error('Failed to create experience.');
+    }
+
+    // Step 2: Create entries in experienceGuides for all assigned guides
+    if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
+      const guideAssignments = experienceData.assignedGuideIds.map(guideId => ({
+        experienceId: createdExperience.id,
+        guideId: guideId,
+        isPrimary: (experienceData.assignedGuideIds![0] === guideId) // Set first assigned guide as primary
+      }));
+      await tx.insert(experienceGuides).values(guideAssignments); // <--- LOG THIS INSERT
+    } else if (experienceData.guideId) {
+      // Fallback: Handle legacy single guideId assignment
+      await tx.insert(experienceGuides).values({ // <--- LOG THIS INSERT
+        experienceId: createdExperience.id,
+        guideId: experienceData.guideId,
+        isPrimary: true
+      });
+    }
+    
+    return createdExperience;
+  });
+
+  return newExperience;
+}
+Replace it with (adding diagnostic logs for experienceGuides insertion):
+
+TypeScript
+
+async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> {
+  const newExperience = await db.transaction(async (tx) => {
+    // Step 1: Create the main experience record
+    const [createdExperience] = await tx.insert(experiences).values({
+      // ... existing fields ...
+      guideId: (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) 
+                 ? experienceData.assignedGuideIds[0] : experienceData.guideId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
+    if (!createdExperience) {
+      console.error('❌ [CREATE_EXP_GUIDES_PERSIST] Failed to create experience record during transaction.'); // Added log
+      throw new Error('Failed to create experience.');
+    }
+    console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Main experience record created:', createdExperience.id); // Added log
+
+    // Step 2: Create entries in experienceGuides for all assigned guides
+    if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
+      const guideAssignments = experienceData.assignedGuideIds.map(guideId => ({
+        experienceId: createdExperience.id,
+        guideId: guideId,
+        isPrimary: (experienceData.assignedGuideIds![0] === guideId) // Set first assigned guide as primary
+      }));
+      console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert multiple guide assignments:', JSON.stringify(guideAssignments, null, 2)); // <--- ADD THIS LOG
+      await tx.insert(experienceGuides).values(guideAssignments);
+      console.log('✅ [CREATE_EXP_GUIDES_PERSIST] Multiple guide assignments inserted successfully.'); // <--- ADD THIS LOG
+    } else if (experienceData.guideId) {
+      // Fallback: Handle legacy single guideId assignment
+      const singleGuideAssignment = { // Named for clarity
+        experienceId: createdExperience.id,
+        guideId: experienceData.guideId,
+        isPrimary: true
+      };
+      console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert single legacy guide assignment:', JSON.stringify(singleGuideAssignment, null, 2)); // <--- ADD THIS LOG
+      await tx.insert(experienceGuides).values(singleGuideAssignment);
+      console.log('✅ [CREATE_EXP_GUIDES_PERSIST] Single legacy guide assignment inserted successfully.'); // <--- ADD THIS LOG
+    } else {
+        console.log('ℹ️ [CREATE_EXP_GUIDES_PERSIST] No guide assignments to insert for this experience.'); // Added log
+    }
+    
+    return createdExperience;
+  });
+
+  return newExperience;
+}
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts. After approval, you will perform a manual test (creating a new experience with multiple guides) and provide the complete server console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+The console.log statements with 🔍 [CREATE_EXP_GUIDES_PERSIST] and ✅ [CREATE_EXP_GUIDES_PERSIST] prefixes are correctly added within the createExperience function's transaction.
+The logs correctly capture the guideAssignments payload and confirm successful insertion for both multi-guide and single-guide cases.
+Error logs are added for critical failures.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff (though some robustness improvements are baked in).
+I will not approve this step until these criteria are met. This logging is crucial to understand why supporting guides are not persisting during creation. 

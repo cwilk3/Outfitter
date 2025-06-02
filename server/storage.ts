@@ -454,8 +454,10 @@ export class DatabaseStorage implements IStorage {
       }).returning();
 
       if (!createdExperience) {
+        console.error('❌ [CREATE_EXP_GUIDES_PERSIST] Failed to create experience record during transaction.');
         throw new Error('Failed to create experience.');
       }
+      console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Main experience record created:', createdExperience.id);
 
       // Step 2: Create entries in experienceGuides for all assigned guides
       if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
@@ -464,14 +466,21 @@ export class DatabaseStorage implements IStorage {
           guideId: guideId,
           isPrimary: index === 0 // Set first assigned guide as primary
         }));
+        console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert multiple guide assignments:', JSON.stringify(guideAssignments, null, 2));
         await tx.insert(experienceGuides).values(guideAssignments);
+        console.log('✅ [CREATE_EXP_GUIDES_PERSIST] Multiple guide assignments inserted successfully.');
       } else if (experienceData.guideId) {
         // Fallback: Handle legacy single guideId assignment
-        await tx.insert(experienceGuides).values({
+        const singleGuideAssignment = {
           experienceId: createdExperience.id,
           guideId: experienceData.guideId,
           isPrimary: true // Single guide is primary by default
-        });
+        };
+        console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert single legacy guide assignment:', JSON.stringify(singleGuideAssignment, null, 2));
+        await tx.insert(experienceGuides).values(singleGuideAssignment);
+        console.log('✅ [CREATE_EXP_GUIDES_PERSIST] Single legacy guide assignment inserted successfully.');
+      } else {
+        console.log('ℹ️ [CREATE_EXP_GUIDES_PERSIST] No guide assignments to insert for this experience.');
       }
       
       return createdExperience;
