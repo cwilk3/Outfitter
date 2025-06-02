@@ -604,7 +604,7 @@ export default function Experiences() {
           const guides = await response.json();
           
           // Convert API guides to draft guide format
-          const draftGuideData = guides.map(guide => ({
+          const draftGuideData = guides.map((guide: any) => ({
             tempId: guide.id, // Use the actual ID as tempId for existing guides
             guideId: guide.guideId,
             isPrimary: guide.isPrimary
@@ -894,7 +894,7 @@ export default function Experiences() {
         description: data.description || "No description provided",
         locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
         duration: parseInt(String(data.duration || 1)),
-        price: typeof data.price === 'number' ? data.price.toString() : (data.price || "0"),
+        price: parseFloat(typeof data.price === 'number' ? data.price.toString() : (data.price || "0")),
         capacity: parseInt(String(data.capacity || 1)),
         category: data.category || "other_hunting",
         images: optimizedImages,
