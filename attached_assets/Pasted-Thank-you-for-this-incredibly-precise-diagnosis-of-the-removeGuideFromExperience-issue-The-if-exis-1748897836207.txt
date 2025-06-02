@@ -1,0 +1,110 @@
+Thank you for this incredibly precise diagnosis of the removeGuideFromExperience issue. The if (existingExperience.guideId !== guideId) check is indeed the root cause of the unassignment failure.
+
+Your primary task is to modify the removeGuideFromExperience function in server/storage.ts to ensure that any assigned guide can be removed, not just the one currently designated as primary on the experiences table.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: Inside the async removeGuideFromExperience(...) function, specifically the if (existingExperience.guideId !== guideId) block.
+Proposed Code Changes (applying to removeGuideFromExperience):
+
+Find this block (within removeGuideFromExperience function):
+
+TypeScript
+
+async removeGuideFromExperience(experienceId: number, guideId: string, outfitterId: number): Promise<boolean> {
+  // First, verify the experience exists and belongs to the outfitter
+  const existingExperience = await db.query.experiences.findFirst({
+    where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+    columns: { id: true, outfitterId: true, guideId: true } // Fetches guideId from experiences table
+  });
+
+  if (!existingExperience) {
+    console.error(`[STORAGE_REMOVE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId} for removal.`);
+    return false; // Experience not found or not authorized
+  }
+
+  // Check if the guide is actually assigned to this experience.
+  // This is crucial, as the updateExperience function ensures consistency.
+  if (existingExperience.guideId !== guideId) { // <--- THIS IS THE PROBLEM LINE
+    console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but a different guide (${existingExperience.guideId}) is currently assigned.`);
+    return false; // Not assigned or already a different guide
+  }
+
+  // ... rest of the function (transaction, delete, update experiences.guideId to null) ...
+}
+Replace it with (removing the overly strict check and adding a more precise check if the guide exists in the junction table):
+
+TypeScript
+
+async removeGuideFromExperience(experienceId: number, guideId: string, outfitterId: number): Promise<boolean> {
+  // First, verify the experience exists and belongs to the outfitter
+  const existingExperience = await db.query.experiences.findFirst({
+    where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+    // No need to select guideId from experiences table for this check
+    columns: { id: true, outfitterId: true } // Only verify existence and ownership
+  });
+
+  if (!existingExperience) {
+    console.error(`[STORAGE_REMOVE_FAIL] Experience ID ${experienceId} not found or not owned by outfitter ID ${outfitterId} for removal.`);
+    return false; // Experience not found or not authorized
+  }
+
+  // --- NEW CHECK: Verify the specific guide is actually assigned in experienceGuides ---
+  const assignmentExists = await db.query.experienceGuides.findFirst({
+    where: (ag, { eq, and }) => and(
+      eq(ag.experienceId, experienceId),
+      eq(ag.guideId, guideId)
+    )
+  });
+
+  if (!assignmentExists) {
+    console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but no such assignment exists in experienceGuides table.`);
+    return false; // Guide not found for this experience in the junction table
+  }
+  // --- END NEW CHECK ---
+
+  // Use a transaction for atomicity
+  try {
+    await db.transaction(async (tx) => {
+      // Step 1: Remove the specific guide from the junction table
+      await tx.delete(experienceGuides)
+        .where(and(
+          eq(experienceGuides.experienceId, experienceId),
+          eq(experienceGuides.guideId, guideId)
+        ));
+
+      // Step 2: If the removed guide was the primary guide for this experience,
+      // update the guideId on the experiences table to null.
+      // We check this *after* deleting from experienceGuides to ensure consistency.
+      if (existingExperience.guideId === guideId) { // Check if the removed guide was the primary one on the main experience
+        await tx.update(experiences)
+          .set({ guideId: null, updatedAt: new Date() })
+          .where(eq(experiences.id, experienceId));
+      }
+      // If the removed guide was *not* the primary (existingExperience.guideId != guideId),
+      // we don't need to change experiences.guideId for compatibility yet.
+      // The updateExperience handles setting a new primary later.
+    });
+
+    console.log(`[STORAGE_REMOVE_SUCCESS] Guide ${guideId} successfully unassigned from experience ${experienceId}.`);
+    return true;
+  } catch (error) {
+    console.error(`[STORAGE_REMOVE_ERROR] Database error during guide unassignment for experience ${experienceId}, guide ${guideId}:`, error);
+    return false;
+  }
+}
+Also, ensure the User type in @shared/schema.ts (or wherever User is defined) does NOT have an outfitterId directly on it, as this was the previous confusion. outfitterId should come from userOutfitters.
+(Replit: Your query db.query.experiences.findFirst({ columns: { id: true, outfitterId: true, guideId: true } }) is correct to get guideId from experiences, but the if check needs to be changed).
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts.
+
+Success Criteria for My Approval (for this functional fix):
+
+The removeGuideFromExperience function's check for existingExperience.guideId !== guideId is replaced with a more robust check that verifies the guide's existence in the experienceGuides junction table for that experience.
+The existingExperience.guideId (from the experiences table) is correctly used after the deletion, to determine if experiences.guideId needs to be set to null.
+The core db.transaction for deleting from experienceGuides and optionally updating experiences remains correct.
+All relevant diagnostic logs are updated/maintained.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This fix is crucial for guide unassignment to work for all guides!

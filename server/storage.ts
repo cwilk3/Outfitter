@@ -1129,7 +1129,7 @@ export class DatabaseStorage implements IStorage {
     // First, verify the experience exists and belongs to the outfitter
     const existingExperience = await db.query.experiences.findFirst({
       where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
-      columns: { id: true, outfitterId: true, guideId: true }
+      columns: { id: true, outfitterId: true, guideId: true } // Still need guideId for primary check later
     });
 
     if (!existingExperience) {
@@ -1137,11 +1137,17 @@ export class DatabaseStorage implements IStorage {
       return false; // Experience not found or not authorized
     }
 
-    // Check if the guide is actually assigned to this experience.
-    // This is crucial, as the updateExperience function ensures consistency.
-    if (existingExperience.guideId !== guideId) {
-      console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but a different guide (${existingExperience.guideId}) is currently assigned.`);
-      return false; // Not assigned or already a different guide
+    // NEW CHECK: Verify the specific guide is actually assigned in experienceGuides
+    const assignmentExists = await db.query.experienceGuides.findFirst({
+      where: (ag, { eq, and }) => and(
+        eq(ag.experienceId, experienceId),
+        eq(ag.guideId, guideId)
+      )
+    });
+
+    if (!assignmentExists) {
+      console.warn(`[STORAGE_REMOVE_WARN] Attempted to remove guide ${guideId} from experience ${experienceId}, but no such assignment exists in experienceGuides table.`);
+      return false; // Guide not found for this experience in the junction table
     }
 
     // Use a transaction for atomicity if multiple DB operations are involved
@@ -1154,10 +1160,14 @@ export class DatabaseStorage implements IStorage {
             eq(experienceGuides.guideId, guideId)
           ));
 
-        // Step 2: Set guideId to null in the experiences table if this was the primary guide
-        await tx.update(experiences)
-          .set({ guideId: null, updatedAt: new Date() })
-          .where(eq(experiences.id, experienceId));
+        // Step 2: If the removed guide was the primary guide, set experiences.guideId to null
+        if (existingExperience.guideId === guideId) {
+          await tx.update(experiences)
+            .set({ guideId: null, updatedAt: new Date() })
+            .where(eq(experiences.id, experienceId));
+        }
+        // If the removed guide was not the primary (existingExperience.guideId != guideId),
+        // we don't need to change experiences.guideId for compatibility yet.
       });
 
       console.log(`[STORAGE_REMOVE_SUCCESS] Guide ${guideId} successfully unassigned from experience ${experienceId}.`);
