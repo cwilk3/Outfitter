@@ -264,7 +264,7 @@ export function ExperienceGuides({
       
       // Update local state by filtering the removed guide from draftGuides
       const updatedDraftGuidesAfterRemoval = draftGuides.filter( 
-          (g: ExperienceGuide) => g.guideId !== variables.guideId
+          (g: DraftGuideAssignment) => g.guideId !== variables.guideId
       );
 
       // --- ADDED: Explicitly update draftGuides state ---
@@ -298,28 +298,67 @@ export function ExperienceGuides({
     },
   });
 
+  // Add a guide to an existing experience
+  const addGuideMutation = useMutation({
+    mutationFn: async ({ experienceId, guideId, isPrimary }: { experienceId: number; guideId: string; isPrimary: boolean }) => {
+      console.log('🔍 [ADD_GUIDE_MUT_DEBUG] MutationFn called for guide addition.');
+      console.log('🔍 [ADD_GUIDE_MUT_DEBUG] Payload:', { experienceId, guideId, isPrimary });
+      
+      // Make the POST API call to add a guide
+      const response = await apiRequest('POST', `/api/experiences/${experienceId}/guides`, { guideId, isPrimary });
+      
+      console.log('🔍 [ADD_GUIDE_MUT_DEBUG] API response:', response);
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      console.log('🔄 [ADD_GUIDE_MUT_SUCCESS] Guide added successfully via API. Data:', data, 'Variables:', variables);
+      
+      // Invalidate queries to re-fetch the latest assigned guides
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
+      
+      // Update local state by adding the newly assigned guide
+      const newAssignedGuideObject: DraftGuideAssignment = {
+          tempId: Date.now(), // Use timestamp as temp ID for added guides
+          guideId: variables.guideId,
+          isPrimary: variables.isPrimary
+      };
+
+      const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject];
+      setDraftGuides(updatedDraftGuidesAfterAdd);
+      console.log('🔍 [ADD_GUIDE_MUT_DEBUG] draftGuides updated locally after addition:', updatedDraftGuidesAfterAdd);
+
+      // Notify parent component about the change
+      if (onChange) {
+          onChange(updatedDraftGuidesAfterAdd);
+      }
+      
+      toast({
+        title: 'Guide added!',
+        description: 'The guide has been successfully assigned to this experience.',
+      });
+    },
+    onError: (error) => {
+      console.error('❌ [ADD_GUIDE_MUT_ERROR] Error during guide addition mutation:', error);
+      toast({
+        title: 'Addition failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred during guide addition.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Handle guide selection and assignment
   const handleAssignGuide = () => {
     if (!selectedGuideId) return;
 
-    console.log('🔍 [GUIDE_ASSIGNMENT_DEBUG] Starting assignment process:', {
-      selectedGuideId,
-      draftMode,
-      draftGuidesLength: draftGuides.length,
-      assignedGuidesLength: assignedGuides.length,
-      experienceId
-    });
-
-    // In edit mode, we need to check both assignedGuides (from API) and draftGuides (local state)
-    const allCurrentGuides = draftMode 
-      ? draftGuides 
-      : [...assignedGuides, ...draftGuides]; // Combine both in edit mode
-
-    const isPrimary = allCurrentGuides.length === 0; // First guide added is primary
+    // Determine if this should be primary (make first guide primary by default)
+    const currentGuides = draftMode ? draftGuides : assignedGuides;
+    const isPrimary = currentGuides.length === 0;
 
     // Check if guide is already assigned in current state
-    if (allCurrentGuides.some(g => g.guideId === selectedGuideId)) {
-      console.log('❌ [GUIDE_ASSIGNMENT_DEBUG] Guide already assigned');
+    if (currentGuides.some((g: any) => g.guideId === selectedGuideId)) {
       toast({
         title: 'Guide already assigned',
         description: 'This guide is already assigned to this experience.',
@@ -328,31 +367,32 @@ export function ExperienceGuides({
       return;
     }
 
-    // Create a new guide assignment object (DraftGuideAssignment for consistency)
+    // Create a new guide assignment object
     const newGuideAssignment: DraftGuideAssignment = {
-      tempId: nextTempId, // Use tempId for new guides in draft state
+      tempId: nextTempId,
       guideId: selectedGuideId,
       isPrimary: isPrimary
     };
 
-    const updatedDraftGuides = [...draftGuides, newGuideAssignment]; // Always update draftGuides
-
-    console.log('✅ [GUIDE_ASSIGNMENT_DEBUG] Adding guide to draft state:', {
-      newGuideAssignment,
-      updatedDraftGuidesLength: updatedDraftGuides.length
-    });
-
-    // Update local state and notify parent
-    setDraftGuides(updatedDraftGuides);
-    setNextTempId(nextTempId + 1); // Increment temp ID counter
-    setSelectedGuideId(''); // Clear selection
-
-    // Notify parent component, which will store the guides for final submission
-    if (onChange) {
-      onChange(updatedDraftGuides);
+    if (draftMode) {
+      // In draft mode (new experience creation), only update local state
+      const updatedDraftGuides = [...draftGuides, newGuideAssignment];
+      setDraftGuides(updatedDraftGuides);
+      setNextTempId(nextTempId + 1);
+      setSelectedGuideId('');
+      if (onChange) {
+        onChange(updatedDraftGuides);
+      }
+    } else {
+      // For existing experiences, make immediate API call to persist assignment
+      addGuideMutation.mutate({ 
+        experienceId: experienceId!, 
+        guideId: newGuideAssignment.guideId, 
+        isPrimary: newGuideAssignment.isPrimary 
+      });
+      // Clear selection immediately for next addition
+      setSelectedGuideId('');
     }
-
-    // Note: The API call will now happen when the main experience form is submitted
   };
 
   // Handle setting a guide as primary
