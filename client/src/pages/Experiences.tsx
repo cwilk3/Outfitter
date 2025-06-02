@@ -199,6 +199,7 @@ export default function Experiences() {
   const { isAdmin, isGuide, user } = useRole();
   const [isCreating, setIsCreating] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAssignedOnly, setShowAssignedOnly] = useState(false); // Default to showing all experiences
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [experienceToDelete, setExperienceToDelete] = useState<Experience | null>(null);
@@ -932,18 +933,7 @@ export default function Experiences() {
 
       {/* Experience List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(() => {
-          // Diagnostic logging
-          console.log('=== DIAGNOSTIC LOGGING ===');
-          console.log('experienceLocations value:', experienceLocations);
-          console.log('typeof experienceLocations:', typeof experienceLocations);
-          console.log('Array.isArray(experienceLocations):', Array.isArray(experienceLocations));
-          console.log('experiences value:', experiences);
-          console.log('typeof experiences:', typeof experiences);
-          console.log('Array.isArray(experiences):', Array.isArray(experiences));
-          console.log('========================');
-          return null;
-        })()}
+
         {experiences?.map((experience: Experience) => (
           <Card key={experience.id} className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader>

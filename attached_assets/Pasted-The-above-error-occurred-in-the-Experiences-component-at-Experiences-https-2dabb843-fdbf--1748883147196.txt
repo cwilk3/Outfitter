@@ -1,0 +1,21 @@
+The above error occurred in the <Experiences> component:
+
+    at Experiences (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/src/pages/Experiences.tsx:135:21)
+    at Route (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f1fe48f6:323:16)
+    at Switch (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f1fe48f6:379:17)
+    at main
+    at div
+    at div
+    at AppLayout (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/src/layouts/AppLayout.tsx:32:37)
+    at OutfitterProvider (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/src/contexts/OutfitterContext.tsx:21:37)
+    at ProtectedRoutes (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/src/App.tsx?v=S5Aev-xy9bsx2qde5y4br:41:42)
+    at Route (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f1fe48f6:323:16)
+    at Switch (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=f1fe48f6:379:17)
+    at Provider (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-SMG2J5QA.js?v=f1fe48f6:38:15)
+    at TooltipProvider (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f1fe48f6:61:5)
+    at QueryClientProvider (https://2dabb843-fdbf-4ba4-a2b8-4b0677149d29-00-3tnarguwdmtx8.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=f1fe48f6:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+isDialogOpen is not defined
