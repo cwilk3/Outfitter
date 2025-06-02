@@ -874,17 +874,11 @@ export default function Experiences() {
     try {
       console.log("Form submission started...", { isEditing: !!selectedExperience });
       console.log("Current addons state:", addons);
+      console.log("Current draftGuides state:", draftGuides);
       
-      // Show loading toast
-      toast({
-        title: selectedExperience ? "Updating..." : "Creating...",
-        description: "Processing your request...",
-      });
-      
-      // Optimize images before submission to prevent payload too large errors
+      // Optimize images before submission
       console.log("Optimizing images...", { imageCount: selectedImages.length });
       
-      // First, validate all images to make sure they're valid
       const validImages = selectedImages.filter(img => 
         img && 
         typeof img === 'string' && 
@@ -892,18 +886,15 @@ export default function Experiences() {
       );
       
       console.log(`Found ${validImages.length} valid images out of ${selectedImages.length}`);
-      
-      // Then optimize them (with our improved optimization function)
       const optimizedImages = await optimizeImages(validImages);
       
-      // CRITICAL FIX: Create a brand new object with the minimum required fields
-      // This prevents any undefined fields or data structure issues
-      const basicData = {
+      // Prepare comprehensive mutation payload
+      const mutationData = {
         name: data.name || "Untitled Experience",
         description: data.description || "No description provided",
-        locationId: 1, // CRITICAL: Always use a valid locationId
-        duration: parseInt(String(data.duration || 1)) * 24, // Convert days to hours
-        price: parseFloat(String(data.price || 0)),
+        locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
+        duration: parseInt(String(data.duration || 1)),
+        price: typeof data.price === 'number' ? data.price.toString() : (data.price || "0"),
         capacity: parseInt(String(data.capacity || 1)),
         category: data.category || "other_hunting",
         images: optimizedImages,
@@ -912,489 +903,30 @@ export default function Experiences() {
         amenities: amenities || [],
         tripIncludes: tripIncludes || [],
         addons: addons || [],
+        // CRITICAL: Include assignedGuideIds for multi-guide assignment
+        assignedGuideIds: draftGuides.map(guide => ({
+          guideId: guide.guideId,
+          isPrimary: guide.isPrimary
+        }))
       };
       
-      console.log("Data prepared successfully:", basicData);
+      console.log("Mutation data prepared:", mutationData);
       
+      // Use mutations instead of direct API calls
       if (selectedExperience) {
-        // Update workflow for existing experience
-        console.log("Updating experience", { id: selectedExperience.id });
-        
-        try {
-          // Step 1: Update the experience data
-          const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
-            ...basicData,
-            locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
-          });
-          
-          console.log("Experience update successful", result);
-          
-          // Step 2: Handle add-ons separately
-          try {
-            // First get existing add-ons to determine what needs to be created, updated, or deleted
-            console.log("Fetching existing add-ons for experience:", selectedExperience.id);
-            
-            // Use direct fetch to get better debugging information
-            const addonResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons`);
-            if (!addonResponse.ok) {
-              console.error(`Error fetching add-ons: ${addonResponse.status} ${addonResponse.statusText}`);
-              throw new Error(`Failed to fetch add-ons: ${addonResponse.statusText}`);
-            }
-            
-            const existingAddons = await addonResponse.json();
-            console.log("Existing add-ons:", existingAddons);
-            
-            if (addons && addons.length > 0) {
-              console.log(`Processing ${addons.length} add-ons for experience ${selectedExperience.id}`);
-              
-              // Process each addon in our form state
-              for (const addon of addons) {
-                try {
-                  // Check if this addon has an ID and if it matches any existing addon
-                  const existingAddon = Array.isArray(existingAddons) && addon.id 
-                    ? existingAddons.find(ea => ea.id === addon.id) 
-                    : null;
-                  
-                  if (existingAddon) {
-                    // Update existing addon
-                    console.log("Updating addon:", addon);
-                    // Use direct fetch for better error visibility
-                    const updateResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons/${addon.id}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                        name: addon.name,
-                        description: addon.description || '',
-                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
-                        inventory: addon.inventory !== undefined ? addon.inventory : 0,
-                        maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
-                      })
-                    });
-                    
-                    if (!updateResponse.ok) {
-                      console.error(`Error updating add-on: ${updateResponse.status} ${updateResponse.statusText}`);
-                      const errorText = await updateResponse.text();
-                      throw new Error(`Failed to update add-on: ${errorText}`);
-                    }
-                    
-                    console.log(`Add-on ${addon.id} updated successfully`);
-                  } else {
-                    // Create new addon
-                    console.log("Creating new addon:", addon);
-                    const createResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                        experienceId: selectedExperience.id,
-                        name: addon.name,
-                        description: addon.description || '',
-                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
-                        inventory: addon.inventory !== undefined ? addon.inventory : 0,
-                        maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
-                      })
-                    });
-                    
-                    if (!createResponse.ok) {
-                      console.error(`Error creating add-on: ${createResponse.status} ${createResponse.statusText}`);
-                      const errorText = await createResponse.text();
-                      throw new Error(`Failed to create add-on: ${errorText}`);
-                    }
-                    
-                    const newAddon = await createResponse.json();
-                    console.log("New add-on created successfully:", newAddon);
-                  }
-                } catch (addonError) {
-                  console.error("Error processing add-on:", addonError);
-                  // Show error toast but continue with other add-ons
-                  toast({
-                    title: "Add-on Error",
-                    description: `Failed to process add-on "${addon.name}": ${addonError.message}`,
-                    variant: "destructive"
-                  });
-                }
-              }
-            } else {
-              console.log("No add-ons to process");
-            }
-            
-            // Find add-ons that were removed and delete them
-            if (Array.isArray(existingAddons) && existingAddons.length > 0) {
-              for (const existingAddon of existingAddons) {
-                try {
-                  // If an existing addon is not in our current list, delete it
-                  if (!addons.some(a => a.id === existingAddon.id)) {
-                    console.log("Deleting addon:", existingAddon);
-                    const deleteResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons/${existingAddon.id}`, {
-                      method: 'DELETE'
-                    });
-                    
-                    if (!deleteResponse.ok) {
-                      console.error(`Error deleting add-on: ${deleteResponse.status} ${deleteResponse.statusText}`);
-                      const errorText = await deleteResponse.text();
-                      throw new Error(`Failed to delete add-on: ${errorText}`);
-                    }
-                    
-                    console.log(`Add-on ${existingAddon.id} deleted successfully`);
-                  }
-                } catch (deleteError) {
-                  console.error("Error deleting add-on:", deleteError);
-                  // Show error toast but continue with other deletions
-                  toast({
-                    title: "Add-on Error",
-                    description: `Failed to delete add-on "${existingAddon.name}": ${deleteError.message}`,
-                    variant: "destructive"
-                  });
-                }
-              }
-            }
-            
-            // Invalidate add-ons query to ensure we get fresh data
-            queryClient.invalidateQueries({ queryKey: [`/api/experiences/${selectedExperience.id}/addons`] });
-          } catch (addonsError) {
-            console.error("Error handling add-ons:", addonsError);
-            // Show error toast but don't rethrow - we still want to complete the experience update
-            toast({
-              title: "Add-ons Error",
-              description: `Problem processing add-ons: ${addonsError.message}`,
-              variant: "destructive"
-            });
-          }
-          
-          // Temporary debug logging for guide assignments
-          console.log("DEBUG - Guide Assignment Processing:", {
-            isCreating,
-            hasDraftGuides: draftGuides.length > 0,
-            hasSelectedExperience: !!selectedExperience,
-            draftGuides,
-            experienceId: selectedExperience?.id
-          });
-          
-          // Process guide assignments if we're editing an experience with guides
-          // Removed isCreating check to ensure guides are processed during updates
-          if (draftGuides.length > 0 && selectedExperience) {
-            const experienceId = selectedExperience.id;
-            console.log(`Processing ${draftGuides.length} draft guides for existing experience ID ${experienceId}`);
-            
-            try {
-              // First, fetch existing guide assignments to determine what to keep or remove
-              const guidesResponse = await fetch(`/api/experiences/${experienceId}/guides`);
-              if (!guidesResponse.ok) {
-                throw new Error(`Failed to fetch current guides: ${guidesResponse.statusText}`);
-              }
-              
-              const existingGuides = await guidesResponse.json();
-              console.log("Existing guides:", existingGuides);
-              
-              // Remove guides that are no longer assigned
-              for (const existingGuide of existingGuides) {
-                // If an existing guide is not in our draft list, remove it
-                if (!draftGuides.some(g => g.guideId === existingGuide.guideId)) {
-                  console.log(`Removing guide ${existingGuide.guideId} from experience ${experienceId}`);
-                  
-                  const removeResponse = await fetch(`/api/experience-guides/${existingGuide.id}`, {
-                    method: 'DELETE'
-                  });
-                  
-                  if (!removeResponse.ok) {
-                    console.error(`Error removing guide: ${removeResponse.status}`);
-                    throw new Error(`Failed to remove guide: ${removeResponse.statusText}`);
-                  }
-                }
-              }
-              
-              // Add or update guides from draft list
-              for (const guide of draftGuides) {
-                const existingAssignment = existingGuides.find(g => g.guideId === guide.guideId);
-                
-                if (existingAssignment) {
-                  // Update existing assignment if primary status changed
-                  if (existingAssignment.isPrimary !== guide.isPrimary) {
-                    console.log(`Updating guide ${guide.guideId} primary status to ${guide.isPrimary}`);
-                    
-                    const updateResponse = await fetch(`/api/experience-guides/${existingAssignment.id}`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ isPrimary: guide.isPrimary })
-                    });
-                    
-                    if (!updateResponse.ok) {
-                      console.error(`Error updating guide: ${updateResponse.status}`);
-                      throw new Error(`Failed to update guide: ${updateResponse.statusText}`);
-                    }
-                  }
-                } else {
-                  // Create new assignment
-                  console.log(`Adding new guide ${guide.guideId} to experience ${experienceId}`);
-                  
-                  const addResponse = await fetch(`/api/experiences/${experienceId}/guides`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      guideId: guide.guideId,
-                      isPrimary: guide.isPrimary
-                    })
-                  });
-                  
-                  if (!addResponse.ok) {
-                    console.error(`Error adding guide: ${addResponse.status}`);
-                    throw new Error(`Failed to add guide: ${addResponse.statusText}`);
-                  }
-                }
-              }
-              
-              console.log("Guide assignments updated successfully");
-            } catch (guidesError) {
-              console.error("Error processing guides:", guidesError);
-              toast({
-                title: "Guide Assignment Error",
-                description: `Problem processing guides: ${guidesError.message}`,
-                variant: "destructive"
-              });
-            }
-          }
-
-          toast({
-            title: "Success",
-            description: "Experience and add-ons updated successfully",
-          });
-          
-          // Refresh data
-          // Invalidate both admin and public experience queries
-          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/experiences', selectedExperience.id, 'guides'] });
-          
-          // Close dialog
-          setIsCreating(false);
-        } catch (updateError) {
-          console.error("Error updating experience:", updateError);
-          toast({
-            title: "Update Failed",
-            description: "Could not update the experience. Please try again.",
-            variant: "destructive",
-          });
-        }
+        // Update existing experience
+        console.log("Calling updateMutation.mutate for experience:", selectedExperience.id);
+        updateMutation.mutate({ 
+          id: selectedExperience.id, 
+          data: mutationData 
+        });
       } else {
-        // Create workflow for new experience
-        console.log("Creating new experience with simplified data");
-        
-        try {
-          console.log("Making direct fetch call for better error visibility");
-          
-          // Direct fetch for maximum debugging information
-          const response = await fetch('/api/experiences', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              // Basic information
-              name: data.name || "New Experience",
-              description: data.description || "Experience description",
-              locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
-              duration: parseInt(String(data.duration || 1)),
-              price: typeof data.price === 'number' ? data.price.toString() : (data.price || "0"),
-              capacity: parseInt(String(data.capacity || 1)),
-              category: data.category || "other_hunting",
-              
-              // Additional details
-              images: selectedImages || [],
-              availableDates: selectedDates || [],
-              rules: rules || [],
-              amenities: amenities || [],
-              tripIncludes: tripIncludes || [],
-              addons: addons || []
-            }),
-          });
-          
-          console.log("API Response status:", response.status);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("API error:", errorText);
-            throw new Error(`API Error ${response.status}: ${errorText}`);
-          }
-          
-          const result = await response.json();
-          console.log("Creation successful:", result);
-          
-          // Success notification
-          toast({
-            title: "Success",
-            description: "Experience created successfully",
-          });
-          
-          // If there are selected locations, associate them with the new experience
-          if (selectedLocIds.length > 0 && result) {
-            const experienceId = result.id;
-            
-            for (const locationId of selectedLocIds) {
-              try {
-                await apiRequest('POST', '/api/experience-locations', { 
-                  experienceId, 
-                  locationId 
-                });
-              } catch (err) {
-                console.error("Error associating location:", err);
-              }
-            }
-          }
-          
-          // Process draft guides if any exist
-          if (draftGuides.length > 0 && result) {
-            const experienceId = result.id;
-            console.log(`Processing ${draftGuides.length} draft guides for new experience ID ${experienceId}`);
-            
-            // Create each guide assignment
-            for (const guide of draftGuides) {
-              try {
-                console.log(`Assigning guide ${guide.guideId} to experience ${experienceId}, isPrimary: ${guide.isPrimary}`);
-                
-                // Direct fetch for better error visibility
-                const response = await fetch(`/api/experiences/${experienceId}/guides`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    guideId: guide.guideId,
-                    isPrimary: guide.isPrimary
-                  })
-                });
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error(`Error assigning guide: ${response.status} ${errorText}`);
-                  throw new Error(`Failed to assign guide: ${errorText}`);
-                }
-                
-                console.log(`Guide ${guide.guideId} assigned successfully`);
-              } catch (err) {
-                console.error("Error assigning guide:", err);
-                toast({
-                  title: "Guide Assignment Error",
-                  description: `Failed to assign guide: ${err.message}`,
-                  variant: "destructive"
-                });
-              }
-            }
-            
-            // Invalidate guides queries
-            queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
-          }
-          
-          // Step 2: Check if add-ons were already created by the server
-          try {
-            if (addons && addons.length > 0 && result && result.id) {
-              console.log(`Checking existing add-ons for the new experience ID ${result.id}`);
-              
-              // First check if add-ons were already created by the server
-              const checkResponse = await fetch(`/api/experiences/${result.id}/addons`);
-              const existingAddons = await checkResponse.json();
-              
-              if (existingAddons && existingAddons.length > 0) {
-                console.log(`Server already created ${existingAddons.length} add-ons, skipping client-side creation`);
-              } else {
-                console.log(`No existing add-ons found, creating ${addons.length} add-ons for the new experience:`, addons);
-                
-                // Create each add-on individually if they weren't already created by the server
-                for (const addon of addons) {
-                  try {
-                    console.log("Creating addon:", addon);
-                    // Only include fields that match the database schema
-                    const response = await fetch(`/api/experiences/${result.id}/addons`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        experienceId: result.id,
-                        name: addon.name,
-                        description: addon.description || '',
-                        price: typeof addon.price === 'number' ? addon.price.toString() : addon.price,
-                        isOptional: addon.isOptional !== undefined ? addon.isOptional : true,
-                        inventory: addon.inventory !== undefined ? addon.inventory : 0,
-                        maxPerBooking: addon.maxPerBooking !== undefined ? addon.maxPerBooking : 0
-                      })
-                    });
-                    
-                    if (!response.ok) {
-                      const errorText = await response.text();
-                      console.error(`Error creating add-on: Server responded with ${response.status}`, errorText);
-                      // Show error toast but continue with other add-ons
-                      toast({
-                        title: "Add-on Error",
-                        description: `Failed to create add-on "${addon.name}": ${response.status} ${errorText}`,
-                        variant: "destructive"
-                      });
-                    } else {
-                      const addonResult = await response.json();
-                      console.log("Add-on created successfully:", addonResult);
-                    }
-                  } catch (addonError) {
-                    console.error("Error creating add-on:", addonError);
-                    // Show error toast but continue with other add-ons
-                    toast({
-                      title: "Add-on Error",
-                      description: `Error creating add-on "${addon.name}": ${addonError.message}`,
-                      variant: "destructive"
-                    });
-                  }
-                }
-              }
-              
-              // Invalidate add-ons query to ensure we get fresh data
-              queryClient.invalidateQueries({ queryKey: [`/api/experiences/${result.id}/addons`] });
-            } else {
-              console.log("No add-ons to create for this experience");
-            }
-          } catch (addonsError) {
-            console.error("Error handling add-ons for new experience:", addonsError);
-            // Show error toast but don't throw - we still want to complete the experience creation
-            toast({
-              title: "Add-ons Error",
-              description: `Problem processing add-ons: ${addonsError.message}`,
-              variant: "destructive"
-            });
-          }
-          
-          // Invalidate data
-          try {
-            queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/public/experiences'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/experience-locations'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-            
-            // Reset and close the form
-            closeDialog();
-          } catch (cleanupError) {
-            console.warn("Non-critical cleanup error:", cleanupError);
-            // Still close the dialog even if cleanup fails
-            setIsCreating(false);
-          }
-        } catch (createError: any) {
-          console.error("Error creating experience:", createError);
-          toast({
-            title: "Creation Failed",
-            description: createError.message || "Could not create the experience. Please try again.",
-            variant: "destructive",
-          });
-        }
+        // Create new experience  
+        console.log("Calling createMutation.mutate for new experience");
+        createMutation.mutate(mutationData);
       }
+      
     } catch (error) {
-      // Handle submission errors
       console.error("Form submission error:", error);
       toast({
         title: "Error",
