@@ -431,7 +431,10 @@ export const insertExperienceSchema = baseExperienceSchema.extend({
     z.number().min(1)
   ),
   guideId: z.string().optional(), // Keep for compatibility
-  assignedGuideIds: z.array(z.string()).optional(), // New field for multi-guide assignment
+  assignedGuideIds: z.array(z.object({
+    guideId: z.string(),
+    isPrimary: z.boolean().optional()
+  })).optional(), // New field for multi-guide assignment
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({ 

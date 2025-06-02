@@ -124,6 +124,10 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
   
+  // Add missing interface methods
+  getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<any>;
+  removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number): Promise<void>;
+  removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number): Promise<void>;
 
 }
 
@@ -461,10 +465,10 @@ export class DatabaseStorage implements IStorage {
 
       // Step 2: Create entries in experienceGuides for all assigned guides
       if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
-        const guideAssignments = experienceData.assignedGuideIds.map((guideId, index) => ({
+        const guideAssignments = experienceData.assignedGuideIds.map((guide, index) => ({
           experienceId: createdExperience.id,
-          guideId: guideId,
-          isPrimary: index === 0 // Set first assigned guide as primary
+          guideId: guide.guideId,
+          isPrimary: guide.isPrimary !== undefined ? guide.isPrimary : (index === 0) // Use explicit isPrimary or default to first as primary
         }));
         console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert multiple guide assignments:', JSON.stringify(guideAssignments, null, 2));
         await tx.insert(experienceGuides).values(guideAssignments);
@@ -1649,6 +1653,63 @@ export class DatabaseStorage implements IStorage {
       .where(eq(experienceGuides.guideId, guideId));
   }
 
+  // Add missing interface method implementations
+  async getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<any> {
+    const result = await db.query.experienceGuides.findFirst({
+      where: (guide, { eq }) => eq(guide.id, id),
+      with: {
+        experience: {
+          columns: { outfitterId: true }
+        }
+      }
+    });
+    
+    if (!result || result.experience.outfitterId !== outfitterId) {
+      return undefined;
+    }
+    
+    return result;
+  }
+
+  async removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number): Promise<void> {
+    // First verify the experience belongs to the outfitter
+    const experience = await db.query.experiences.findFirst({
+      where: (exp, { eq, and }) => and(eq(exp.id, experienceId), eq(exp.outfitterId, outfitterId)),
+      columns: { id: true }
+    });
+
+    if (!experience) {
+      throw new Error('Experience not found or unauthorized');
+    }
+
+    await db.delete(experienceGuides)
+      .where(and(
+        eq(experienceGuides.guideId, guideId),
+        eq(experienceGuides.experienceId, experienceId)
+      ));
+  }
+
+  async removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number): Promise<void> {
+    // First verify the booking belongs to the outfitter through the experience
+    const booking = await db.query.bookings.findFirst({
+      where: (b, { eq }) => eq(b.id, bookingId),
+      with: {
+        experience: {
+          columns: { outfitterId: true }
+        }
+      }
+    });
+
+    if (!booking || booking.experience.outfitterId !== outfitterId) {
+      throw new Error('Booking not found or unauthorized');
+    }
+
+    await db.delete(bookingGuides)
+      .where(and(
+        eq(bookingGuides.guideId, guideId),
+        eq(bookingGuides.bookingId, bookingId)
+      ));
+  }
 
 }
 
