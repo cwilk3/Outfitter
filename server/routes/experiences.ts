@@ -328,18 +328,24 @@ const assignGuideSchema = z.object({
 
 // POST /api/experiences/:id/guides - Assign a guide to an experience (admin only)
 router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: POST /api/experiences/:id/guides ---');
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Route Hit. Experience ID param:', req.params.id);
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Request Body RAW:', JSON.stringify(req.body, null, 2));
+
   const experienceId = parseInt(req.params.id);
   const user = (req as any).user;
   const outfitterId = user?.outfitterId;
 
   // Validate path parameter
   if (isNaN(experienceId)) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Invalid experience ID format from param.');
     return res.status(400).json({ message: 'Invalid experience ID format.' });
   }
 
   // Validate request body
   const validationResult = assignGuideSchema.safeParse(req.body);
   if (!validationResult.success) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Invalid request data:', validationResult.error.errors);
     return res.status(400).json({ 
       message: 'Invalid request data', 
       errors: validationResult.error.errors 
@@ -348,15 +354,18 @@ router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Res
 
   const { guideId, isPrimary } = validationResult.data;
 
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Validated Payload: guideId:', guideId, 'isPrimary:', isPrimary);
+
   // Basic authentication/authorization checks
   if (!user || !outfitterId) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Authentication or outfitter context missing.');
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE assignment
   const existingExperience = await storage.getExperience(experienceId);
   if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
-    // Return 404 to obscure existence for security
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Experience not found or not authorized for assignment. ID:', experienceId, 'Outfitter:', outfitterId);
     return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
   }
 
@@ -364,10 +373,10 @@ router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Res
 
   try {
     // Call storage.updateExperience to handle the guide assignment
-    // The updateExperience function already handles updating guideId on experience and junction table logic
+    console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Calling storage.updateExperience for guide assignment...');
     const updatedExperience = await storage.updateExperience(
       experienceId,
-      { guideId: guideId }, // Pass the new guideId to updateExperience
+      { guideId: guideId, assignedGuideIds: [{ guideId: guideId, isPrimary: isPrimary }] },
       outfitterId
     );
 

@@ -1,0 +1,151 @@
+Thank you for this critical analysis. The problem is clear: the POST /api/experiences/:id/guides endpoint is failing to persist the first guide, despite reporting success.
+
+Your primary task is to add highly targeted diagnostic logging within the POST /api/experiences/:id/guides route handler in server/routes/experiences.ts to trace the payload processing and database interaction.
+
+Specific Focus Areas for Modification:
+
+File: server/routes/experiences.ts
+Location: Inside the router.post('/:id/guides', ...) handler.
+Proposed Code Changes (applying to router.post('/:id/guides', ...)):
+
+Find this block (the POST /api/experiences/:id/guides handler):
+
+TypeScript
+
+// POST /api/experiences/:id/guides - Assign a guide to an experience (admin only)
+router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  const experienceId = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Validate path parameter
+  if (isNaN(experienceId)) {
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
+  }
+
+  // Validate request body
+  const validationResult = assignGuideSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    return res.status(400).json({ 
+      message: 'Invalid request data', 
+      errors: validationResult.error.errors 
+    });
+  }
+
+  const { guideId, isPrimary } = validationResult.data;
+
+  // Basic authentication/authorization checks
+  if (!user || !outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE assignment
+  const existingExperience = await storage.getExperience(experienceId);
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
+  }
+
+  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId, isPrimary });
+
+  try {
+    // Call storage.updateExperience to handle the guide assignment
+    const updatedExperience = await storage.updateExperience(
+      experienceId,
+      { guideId: guideId }, // Pass the new guideId to updateExperience
+      outfitterId
+    );
+
+    if (!updatedExperience) {
+      console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to update experience with new guide:', { experienceId, guideId });
+      return res.status(500).json({ message: 'Failed to assign guide.' });
+    }
+
+    console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId });
+    res.status(200).json(updatedExperience);
+  } catch (error) {
+    console.error('❌ [ASSIGN_GUIDE_ROUTE] Error during guide assignment:', error);
+    res.status(500).json({ message: 'Internal server error during guide assignment.' });
+  }
+}));
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+// POST /api/experiences/:id/guides - Assign a guide to an experience (admin only)
+router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: POST /api/experiences/:id/guides ---'); // <--- ADD THIS LINE
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Route Hit. Experience ID param:', req.params.id); // <--- ADD THIS LINE
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Request Body RAW:', JSON.stringify(req.body, null, 2)); // <--- ADD THIS LINE
+
+  const experienceId = parseInt(req.params.id);
+  const user = (req as any).user;
+  const outfitterId = user?.outfitterId;
+
+  // Validate path parameter
+  if (isNaN(experienceId)) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Invalid experience ID format from param.'); // <--- ADD LOG
+    return res.status(400).json({ message: 'Invalid experience ID format.' });
+  }
+
+  // Validate request body
+  const validationResult = assignGuideSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Invalid request data:', validationResult.error.errors); // <--- ADD LOG
+    return res.status(400).json({ 
+      message: 'Invalid request data', 
+      errors: validationResult.error.errors 
+    });
+  }
+
+  const { guideId, isPrimary } = validationResult.data;
+
+  console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Validated Payload: guideId:', guideId, 'isPrimary:', isPrimary); // <--- ADD THIS LOG
+
+  // Basic authentication/authorization checks
+  if (!user || !outfitterId) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Authentication or outfitter context missing.'); // <--- ADD LOG
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // 🔒 TENANT ISOLATION: Verify experience belongs to user's outfitter BEFORE assignment
+  const existingExperience = await storage.getExperience(experienceId);
+  if (!existingExperience || existingExperience.outfitterId !== outfitterId) {
+    console.error('❌ [ASSIGN_GUIDE_PERSIST_ERROR] Experience not found or not authorized for assignment. ID:', experienceId, 'Outfitter:', outfitterId); // <--- ADD LOG
+    return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
+  }
+
+  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId, isPrimary }); // Existing log
+
+  try {
+    // Call storage.updateExperience to handle the guide assignment
+    // The updateExperience function already handles updating guideId on experience and junction table logic.
+    console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Calling storage.updateExperience for guide assignment...'); // <--- ADD THIS LOG
+    const updatedExperience = await storage.updateExperience(
+      experienceId,
+      { guideId: guideId, assignedGuideIds: [{ guideId: guideId, isPrimary: isPrimary }] }, // <--- MODIFIED PAYLOAD FOR UPDATEEXPERIENCE
+      outfitterId
+    );
+
+    if (!updatedExperience) {
+      console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to update experience with new guide:', { experienceId, guideId }); // Existing log
+      return res.status(500).json({ message: 'Failed to assign guide.' });
+    }
+
+    console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId }); // Existing log
+    res.status(200).json(updatedExperience);
+  } catch (error) {
+    console.error('❌ [ASSIGN_GUIDE_ROUTE] Error during guide assignment:', error); // Existing log
+    res.status(500).json({ message: 'Internal server error during guide assignment.' });
+  }
+}));
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/routes/experiences.ts. After approval, you will perform a manual test (creating a new experience with multiple guides) and provide the complete server console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+All specified 🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] and ❌ [ASSIGN_GUIDE_PERSIST_ERROR] logs are correctly added within the POST /api/experiences/:id/guides route handler.
+The logs correctly capture the payload, validation results, and storage call parameters.
+Crucially, the payload passed to storage.updateExperience is explicitly modified to include assignedGuideIds: [{ guideId: guideId, isPrimary: isPrimary }] for a single guide assignment via this route. (This is the critical part for debugging).
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff (though the payload modification is a functional change to enable debugging).
+I will not approve this step until these criteria are met. This logging is crucial to understand why the first guide is not persisting.
