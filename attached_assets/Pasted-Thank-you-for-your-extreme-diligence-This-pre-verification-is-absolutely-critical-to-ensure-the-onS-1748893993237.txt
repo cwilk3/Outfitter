@@ -1,0 +1,42 @@
+Thank you for your extreme diligence. This pre-verification is absolutely critical to ensure the onSubmit refactor proceeds safely.
+
+Your primary task is to perform the detailed verification outlined in your report to confirm the existence and correct configuration of createMutation, updateMutation, their respective success handlers, and the backend payload support for assignedGuideIds.
+
+Specific Actions to Perform (as per your report):
+
+1. CREATEMUTATION VERIFICATION:
+Location: Search for createMutation definition in client/src/pages/Experiences.tsx.
+Requirements to Verify:
+It uses useMutation.
+Its mutationFn calls POST /api/experiences (via apiRequest).
+It has an onSuccess handler that closes the dialog (setIsCreating(false) or closeDialog()) and shows a success toast.
+It has an onError handler for error states.
+2. UPDATEMUTATION VERIFICATION:
+Location: Search for updateMutation definition in client/src/pages/Experiences.tsx.
+Requirements to Verify:
+It uses useMutation.
+Its mutationFn calls PATCH /api/experiences/{id} (via apiRequest).
+It has an onSuccess handler that closes the dialog (setIsCreating(false) or closeDialog()) and invalidates cache.
+It has an onError handler for error states.
+3. BACKEND PAYLOAD SUPPORT VERIFICATION:
+Location: Check server/routes/experiences.ts for POST /api/experiences and PATCH /api/experiences/:id handlers.
+Requirements to Verify:
+These handlers must accept and properly process the assignedGuideIds field in the request body.
+Expected Structure: assignedGuideIds: Array<{ guideId: string, isPrimary?: boolean }>
+For POST /api/experiences, createExperience in server/storage.ts expects this structure.
+For PATCH /api/experiences/:id, updateExperience in server/storage.ts expects this structure.
+4. SUCCESS HANDLER VERIFICATION (Detailed onSuccess logic confirmation):
+Location: Check the onSuccess callbacks for both createMutation and updateMutation.
+Requirements to Verify:
+They include setIsCreating(false) or closeDialog() calls (for dialog management).
+They include queryClient.invalidateQueries() for cache refresh.
+They include appropriate success toast notifications.
+Output Required for My Review:
+Please provide a detailed report for each of the 4 verification points. For each point, state whether the requirement is met (✅) or not met (❌), and provide relevant code snippets or explanations from your investigation.
+
+Success Criteria for My Approval (for this verification phase):
+
+A clear, detailed report covering all 4 verification points is provided.
+The report definitively confirms the readiness for the onSubmit refactor.
+No code changes are proposed in this step; this is purely a verification report.
+This verification is absolutely critical for a safe refactor. I await your detailed report

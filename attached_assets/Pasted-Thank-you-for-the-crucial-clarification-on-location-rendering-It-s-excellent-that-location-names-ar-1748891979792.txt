@@ -1,0 +1,29 @@
+Thank you for the crucial clarification on location rendering. It's excellent that location names are displaying correctly as section headers. This means that particular issue is resolved.
+
+Now, let's proceed to Phase 1, Item 1.3: Verify onSubmit Handler Refactor. This is vital to ensure our core multi-guide creation and update logic is correctly wired up.
+
+Your primary task is to verify that the onSubmit handler in client/src/pages/Experiences.tsx has been refactored to correctly use createMutation.mutate() for new experiences and updateMutation.mutate() for existing experiences, and that it includes the assignedGuideIds array in its payload.
+
+Specific Focus Areas for Verification:
+
+File: client/src/pages/Experiences.tsx
+Location: The const onSubmit = async (data: ExperienceFormValues) => { ... } function definition.
+Output Required for My Review:
+Please provide the complete and exact source code of the const onSubmit = async (data: ExperienceFormValues) => { ... }; block (including its definition and entire body) as it currently exists in your working environment.
+
+Success Criteria for My Approval (for this verification phase):
+
+The provided onSubmit source code clearly shows it uses createMutation.mutate(data) for creation.
+The provided onSubmit source code clearly shows it uses updateMutation.mutate({ id: experienceId, data }) for updates.
+The createMutation's mutationFn payload is confirmed to include assignedGuideIds: draftGuides.map(...).
+The updateMutation's mutationFn payload is confirmed to include assignedGuideIds: draftGuides.map(...).
+The redundant manual for...of loop for guide processing is confirmed to be removed.
+Dialog closing and success toasts are confirmed to be managed by the onSuccess handlers of createMutation/updateMutation in Experiences.tsx.
+Appropriate diagnostic logs are present (as per the approved diff for onSubmit).
+Emergency Protocols:
+
+If you see compilation errors after providing the code, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+I will not approve further steps until these criteria are met. This verification is crucial for the multi-guide assignment feature!

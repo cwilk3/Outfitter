@@ -1,0 +1,41 @@
+Thank you for successfully implementing the missing state variable declarations! The application is now compiling, which is excellent.
+
+Now, let's proceed to Phase 1, Item 1.2: Correct the experienceLocationData variable reference. This will fix the display of location names for experiences.
+
+Your primary task is to locate the incorrect reference to locationExperiences (or a similar variable) in the .map() call within client/src/pages/Experiences.tsx and replace it with the correct experienceLocationData.find(...) lookup.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Experiences.tsx
+Location: Find the line where location names for experiences are rendered. Based on previous context, this was Line 945 (or around there).
+Proposed Code Changes:
+
+Find this line (at Line 945 approximate from previous context, or wherever experienceLocations?.map or locationExperiences.find is used in the rendering of experience cards):
+
+TypeScript
+
+locationExperiences.find(le => le.experienceId === experience.id && le.locationId === location.id)
+Replace it with (referencing experienceLocationData correctly):
+
+TypeScript
+
+experienceLocationData.find(el => el.experienceId === experience.id && el.locationId === location.id)
+(Replit, please ensure that experienceLocationData is correctly declared and populated in the file. If its useQuery or useState declaration was lost during the initial deletion, you will need to re-add it with appropriate default values, likely as const { data: experienceLocationData = [] } = useQuery(...) or const [experienceLocationData, setExperienceLocationData] = useState([]); if it's managed locally. The goal is to make the component functional.)
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/pages/Experiences.tsx.
+
+Success Criteria for My Approval (for this surgical fix):
+
+The locationExperiences (or similar incorrect) reference is correctly replaced with experienceLocationData.find(...).
+experienceLocationData (and its source useQuery or useState) is correctly declared and populated if it was missing.
+The component compiles and runs without is not defined errors for these variables (this will be confirmed after implementation).
+The location names are correctly displayed for each experience.
+No other unrelated functional code is affected.
+Emergency Protocols:
+
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+I will not approve further steps until these criteria are met. This will get Experiences.tsx closer to full functionality!
