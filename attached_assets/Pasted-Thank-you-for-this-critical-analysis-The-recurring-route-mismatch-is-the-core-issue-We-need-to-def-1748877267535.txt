@@ -1,0 +1,27 @@
+Thank you for this critical analysis. The recurring route mismatch is the core issue. We need to definitively identify the exact URL the frontend is calling for guide assignment.
+
+Your primary task is to capture the complete details of the POST request made by the frontend when attempting to assign a guide, using the browser's developer tools' Network tab. This is the definitive way to pinpoint the actual endpoint being hit.
+
+Specific Actions to Perform:
+
+Open Browser Developer Tools: Navigate to your browser's "Network" tab.
+Clear Network Log: Clear any existing logs in the Network tab to ensure a clean capture.
+Reproduce the Issue: In the application, go to an experience edit form, attempt to assign multiple guides (which triggers multiple individual POST calls for initial creation, or a PUT for updates).
+Capture Request Details: Locate the POST requests that are made to /api/... in the Network tab. There should be multiple such requests if you assign multiple guides.
+Output Required for My Review:
+For each POST request related to guide assignment that you observe in the Network tab (if multiple are made, provide details for the first one and confirm if others follow the same pattern):
+
+HTTP Method: (Should be POST)
+Full Request URL: (The complete URL, e.g., http://localhost:5000/api/some-path/experience/123/guides)
+Status Code: (e.g., 200, 201, 204, 404, 500, etc.)
+Request Headers: (Specifically look for Authorization, Content-Type, and Cookie headers)
+Request Payload/Body: (The JSON body sent in the request, specifically verify guideId and isPrimary)
+Response Headers:
+Response Preview/Body: (What the server returned)
+Any errors/warnings shown directly in the Network tab (e.g., "CORS Error").
+Success Criteria for My Approval (for this investigation phase):
+
+All requested network tab details for the POST requests related to guide assignment are provided.
+A clear conclusion is drawn on the exact URL pattern the frontend is calling.
+No code changes are proposed in this step; this is purely a verification report.
+This information is absolutely critical for us to align the frontend and backend routes. I await your detailed report.

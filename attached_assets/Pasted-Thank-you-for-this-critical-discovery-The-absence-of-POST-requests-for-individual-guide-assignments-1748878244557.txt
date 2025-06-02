@@ -1,0 +1,111 @@
+Thank you for this critical discovery. The absence of POST requests for individual guide assignments confirms the frontend's intended design is batch saving. The problem is that the assignedGuideIds array is not being included in the main experience form submission.
+
+Your primary task is to modify the createMutation and updateMutation definitions in client/src/pages/Experiences.tsx to ensure the assignedGuideIds array (derived from draftGuides) is correctly included in their respective submission payloads.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Experiences.tsx
+Locations: The mutationFn for both createMutation and updateMutation.
+Proposed Code Changes:
+
+1. Modify createMutation Definition (Include assignedGuideIds in Payload):
+Find this block (the createMutation definition's mutationFn):
+
+TypeScript
+
+const createMutation = useMutation({
+  mutationFn: (data: ExperienceFormValues) => {
+    const payload = {
+      name: data.name,
+      description: data.description,
+      duration: data.duration,
+      price: data.price,
+      capacity: data.capacity,
+      category: data.category,
+      locationId: data.locationId,
+      rules: rules, // Ensure all fields from data are passed
+      amenities: amenities,
+      tripIncludes: tripIncludes,
+      images: data.images,
+      availableDates: data.availableDates,
+      // assignedGuideIds: MISSING HERE in current code
+    };
+    
+    // ... existing logging ...
+    return apiRequest<Experience>('POST', '/api/experiences', payload);
+  },
+  // ... onSuccess handler continues
+Replace it with (adding assignedGuideIds to payload):
+
+TypeScript
+
+const createMutation = useMutation({
+  mutationFn: (data: ExperienceFormValues) => {
+    const payload = {
+      name: data.name,
+      description: data.description,
+      duration: data.duration,
+      price: data.price,
+      capacity: data.capacity,
+      category: data.category,
+      locationId: data.locationId,
+      rules: data.rules, // Ensure all fields from data are passed
+      amenities: data.amenities,
+      tripIncludes: data.tripIncludes,
+      images: data.images,
+      availableDates: data.availableDates,
+      assignedGuideIds: draftGuides.map(guide => ({ // <--- CRITICAL: INCLUDE DRAFT GUIDES
+        guideId: guide.guideId,
+        isPrimary: guide.isPrimary
+      }))
+    };
+    
+    console.log("🔍 [CREATE_MUTATION_DEBUG] Creating experience with payload:", payload); // Keep this log
+    return apiRequest<Experience>('POST', '/api/experiences', payload);
+  },
+  // ... onSuccess handler continues
+2. Modify updateMutation Definition (Include assignedGuideIds in Payload):
+Find this block (the updateMutation definition's mutationFn):
+
+TypeScript
+
+const updateMutation = useMutation({
+  mutationFn: ({ id, data }: { id: number; data: ExperienceFormValues }) => {
+    // ... existing logic for locationId ...
+    
+    return apiRequest('PATCH', `/api/experiences/${id}`, {
+      ...data,
+      locationId,
+      // assignedGuideIds: MISSING HERE in current code
+    });
+  },
+  // ... onSuccess handler continues
+Replace it with (adding assignedGuideIds to payload):
+
+TypeScript
+
+const updateMutation = useMutation({
+  mutationFn: ({ id, data }: { id: number; data: ExperienceFormValues }) => {
+    // ... existing logic for locationId ...
+    
+    return apiRequest('PATCH', `/api/experiences/${id}`, {
+      ...data,
+      locationId,
+      assignedGuideIds: draftGuides.map(guide => ({ // <--- CRITICAL: INCLUDE DRAFT GUIDES
+        guideId: guide.guideId,
+        isPrimary: guide.isPrimary
+      }))
+    });
+  },
+  // ... onSuccess handler continues
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/pages/Experiences.tsx.
+
+Success Criteria for My Approval (for this critical fix):
+
+The mutationFn for both createMutation and updateMutation is updated to correctly include assignedGuideIds in their respective payloads.
+assignedGuideIds is derived from draftGuides.map(guide => ({ guideId: guide.guideId, isPrimary: guide.isPrimary })).
+The createMutation's mutationFn explicitly uses apiRequest for its network call (already confirmed, just ensure it stays).
+Diagnostic logs are correctly preserved (e.g., 🔍 [CREATE_MUTATION_DEBUG]).
+No other unrelated functional code is affected.
+I will not approve further steps until these critical issues are resolved. This will correctly enable multi-guide creation and updates!

@@ -292,12 +292,14 @@ export default function Experiences() {
         amenities: amenities,
         tripIncludes: tripIncludes,
         images: data.images,
-        availableDates: data.availableDates
+        availableDates: data.availableDates,
+        assignedGuideIds: draftGuides.map(guide => ({
+          guideId: guide.guideId,
+          isPrimary: guide.isPrimary
+        }))
       };
       
-      // Log the exact payload being sent with emphasized locationId
-      console.log("Creating experience with payload:", payload);
-      console.log("  ↳ Using locationId:", payload.locationId);
+      console.log("🔍 [CREATE_MUTATION_DEBUG] Creating experience with payload:", payload);
       
       return apiRequest<Experience>('POST', '/api/experiences', payload);
     },
@@ -341,6 +343,10 @@ export default function Experiences() {
       return apiRequest('PATCH', `/api/experiences/${id}`, {
         ...data,
         locationId,
+        assignedGuideIds: draftGuides.map(guide => ({
+          guideId: guide.guideId,
+          isPrimary: guide.isPrimary
+        }))
       });
     },
     onSuccess: (response) => {
