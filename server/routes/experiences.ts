@@ -51,7 +51,10 @@ router.post('/', adminOnly, asyncHandler(async (req: Request, res: Response) => 
     guideId: validatedData.guideId, // Ensure this line is present or added
   };
 
-  const experience = await storage.createExperience(experienceData);
+  const experience = await storage.createExperience({
+    ...experienceData,
+    assignedGuideIds: validatedData.assignedGuideIds // Pass through the correct object array type
+  });
   res.status(201).json(experience);
 }));
 

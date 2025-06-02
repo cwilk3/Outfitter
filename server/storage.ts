@@ -124,12 +124,10 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
   
-  // Add missing interface methods
+  // Add missing interface methods  
   getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<any>;
   removeGuideFromExperienceWithTenant(id: number, outfitterId: number): Promise<void>;
-  removeGuideFromExperienceWithTenant(guideId: string, experienceId: number, outfitterId: number): Promise<void>;
   removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<void>;
-  removeGuideFromBookingWithTenant(guideId: string, bookingId: number, outfitterId: number): Promise<void>;
 
 }
 
@@ -246,7 +244,23 @@ export class DatabaseStorage implements IStorage {
     if (roles && roles.length > 0) {
       const validRoles = roles.filter(role => role === 'admin' || role === 'guide') as ('admin' | 'guide')[];
       if (validRoles.length > 0) {
-        query = query.where(and(
+        // Replace the existing where clause instead of chaining
+        query = db.select({
+          id: users.id,
+          email: users.email,
+          passwordHash: users.passwordHash,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          phone: users.phone,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+          outfitterId: userOutfitters.outfitterId
+        })
+        .from(users)
+        .innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+        .where(and(
           eq(userOutfitters.outfitterId, outfitterId),
           inArray(users.role, validRoles)
         ));
@@ -446,15 +460,18 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async createExperience(experienceData: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience> {
+  async createExperience(experienceData: InsertExperience & { assignedGuideIds?: Array<{ guideId: string; isPrimary?: boolean }> }): Promise<Experience> {
     // Use a database transaction for atomicity (highly recommended for multiple inserts)
     const newExperience = await db.transaction(async (tx) => {
       // Step 1: Create the main experience record
+      // Extract assignedGuideIds before database insert since it's not a database column
+      const { assignedGuideIds, ...dbExperienceData } = experienceData;
+      
       const [createdExperience] = await tx.insert(experiences).values({
-        ...experienceData,
+        ...dbExperienceData,
         // IMPORTANT: Still set experiences.guideId for now for compatibility, use first primary guide if available
-        guideId: (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) 
-                   ? experienceData.assignedGuideIds[0] : experienceData.guideId || null, // Default to first assigned guide if any, fallback to existing guideId
+        guideId: (assignedGuideIds && assignedGuideIds.length > 0) 
+                   ? assignedGuideIds[0].guideId : experienceData.guideId || null, // Default to first assigned guide if any, fallback to existing guideId
         createdAt: new Date(),
         updatedAt: new Date(),
       }).returning();

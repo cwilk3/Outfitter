@@ -1,0 +1,35 @@
+Thank you for the critical update. The compilation errors are blocking.
+
+Your primary task is to investigate and implement the necessary fixes for all three identified critical compilation errors to get the application compiling and running.
+
+Specific Focus Areas for Modification:
+
+1. Fix Routes Error: assignedGuideIds Type Mismatch
+Symptom: assignedGuideIds type mismatch in experiences route - expects string[] but receives Array<{ guideId: string, isPrimary?: boolean }>.
+Location: server/routes/experiences.ts (or any other route handler where assignedGuideIds is used in a payload for create or update Experience).
+Action: Ensure the route handler correctly processes assignedGuideIds as Array<{ guideId: string, isPrimary?: boolean }>. This might involve:
+Updating zod schema to include this type for incoming payload.
+Correctly destructuring or passing this array to storage functions.
+2. Fix Storage Interface Error: Method Signature Mismatches
+Symptom: IStorage interface method signatures do not match DatabaseStorage implementation.
+Location: server/storage.ts (compare export interface IStorage { ... } with class DatabaseStorage implements IStorage { ... }).
+Action: Systematically go through each method in DatabaseStorage and ensure its signature (parameters and return type) precisely matches the corresponding method in IStorage. This often means adding outfitterId parameters, or correcting return types based on our previous approved diffs.
+3. Fix Drizzle Query Error: Property 'where' does not exist on type
+Symptom: Property 'where' does not exist on type in storage.ts line 249.
+Location: server/storage.ts, line 249 (or the line where this error occurs).
+Action: This typically means a Drizzle query builder chain is incomplete or incorrectly typed, or the where clause is being called on a variable that is not a query builder. Review the context of line 249 to ensure the Drizzle query is correctly constructed before .where() is called. This might involve chaining select().from().where(...) correctly.
+Output Required for My Review:
+Once you have implemented these fixes, please provide a comprehensive diff preview that includes all modified files (server/routes/experiences.ts, server/storage.ts, shared/schema.ts or any other file affected).
+
+Success Criteria for My Approval (for this compilation fix phase):
+
+All identified TypeScript compilation errors are resolved.
+The application compiles successfully.
+The assignedGuideIds type is consistently and correctly handled across frontend routes and backend storage.
+No other unrelated functional code is affected beyond these specific fixes.
+Emergency Protocols:
+
+If you encounter new, unexpected errors or are unsure about a fix, report the exact error and ask for specific fix approval.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+I will not approve further steps until these criteria are met. This is crucial to get the application running!
