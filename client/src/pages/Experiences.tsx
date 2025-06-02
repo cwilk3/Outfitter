@@ -866,68 +866,32 @@ export default function Experiences() {
   
   // Form submission handler
   const onSubmit = async (data: ExperienceFormValues) => {
-    try {
-      console.log("Form submission started...", { isEditing: !!selectedExperience });
-      console.log("Current addons state:", addons);
-      
-      // Show loading toast
-      toast({
-        title: selectedExperience ? "Updating..." : "Creating...",
-        description: "Processing your request...",
+    console.log('--- DIAGNOSTIC: onSubmit Handler Called ---');
+    console.log('🔍 [ONSUBMIT_DEBUG] Form Data received by onSubmit:', JSON.stringify(data, null, 2));
+
+    // Determine if creating or updating
+    const isCreating = !selectedExperience;
+    const experienceId = selectedExperience?.id;
+
+    if (isCreating) {
+      console.log('🔍 [ONSUBMIT_DEBUG] Mode: Creating new experience.');
+      // Call createMutation to handle creation with multi-guide payload
+      createMutation.mutate(data);
+    } else if (experienceId) {
+      console.log('🔍 [ONSUBMIT_DEBUG] Mode: Updating existing experience. ID:', experienceId);
+      // Call updateMutation to handle update with multi-guide payload
+      updateMutation.mutate({ id: experienceId, data });
+    } else {
+      console.error('❌ [ONSUBMIT_ERROR] Invalid state: Not creating and no experienceId for update.');
+      toast({ 
+        title: 'Error', 
+        description: 'Invalid form submission state.', 
+        variant: 'destructive' 
       });
-      
-      // Optimize images before submission to prevent payload too large errors
-      console.log("Optimizing images...", { imageCount: selectedImages.length });
-      
-      // First, validate all images to make sure they're valid
-      const validImages = selectedImages.filter(img => 
-        img && 
-        typeof img === 'string' && 
-        (img.startsWith('data:image/') || img.startsWith('http'))
-      );
-      
-      console.log(`Found ${validImages.length} valid images out of ${selectedImages.length}`);
-      
-      // Then optimize them (with our improved optimization function)
-      const optimizedImages = await optimizeImages(validImages);
-      
-      // CRITICAL FIX: Create a brand new object with the minimum required fields
-      // This prevents any undefined fields or data structure issues
-      const basicData = {
-        name: data.name || "Untitled Experience",
-        description: data.description || "No description provided",
-        locationId: 1, // CRITICAL: Always use a valid locationId
-        duration: parseInt(String(data.duration || 1)) * 24, // Convert days to hours
-        price: parseFloat(String(data.price || 0)),
-        capacity: parseInt(String(data.capacity || 1)),
-        category: data.category || "other_hunting",
-        images: optimizedImages,
-        availableDates: selectedDates || [],
-        rules: rules || [],
-        amenities: amenities || [],
-        tripIncludes: tripIncludes || [],
-        addons: addons || [],
-      };
-      
-      console.log("Data prepared successfully:", basicData);
-      
-      if (selectedExperience) {
-        // Update workflow for existing experience
-        console.log("Updating experience", { id: selectedExperience.id });
-        
-        try {
-          // Step 1: Update the experience data
-          const result = await apiRequest('PATCH', `/api/experiences/${selectedExperience.id}`, {
-            ...basicData,
-            locationId: selectedLocIds.length > 0 ? selectedLocIds[0] : 1,
-          });
-          
-          console.log("Experience update successful", result);
-          
-          // Step 2: Handle add-ons separately
-          try {
-            // First get existing add-ons to determine what needs to be created, updated, or deleted
-            console.log("Fetching existing add-ons for experience:", selectedExperience.id);
+    }
+  };
+
+  // Loading state
             
             // Use direct fetch to get better debugging information
             const addonResponse = await fetch(`/api/experiences/${selectedExperience.id}/addons`);
