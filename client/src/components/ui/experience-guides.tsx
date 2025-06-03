@@ -267,11 +267,12 @@ export function ExperienceGuides({
   const handleAssignGuide = () => {
     if (!selectedGuideId) return;
 
-    // Determine if this should be primary (first guide assigned in this session)
-    const isPrimary = internalAssignedGuides.length === 0;
+    // Determine current guides and check for primary status correctly based on mode
+    const currentGuides = draftMode ? initialDraftGuides : internalAssignedGuides;
+    const isPrimary = currentGuides.length === 0;
 
     // Check if guide is already assigned in current state
-    if (internalAssignedGuides.some((g: any) => g.guideId === selectedGuideId)) {
+    if (currentGuides.some((g: any) => g.guideId === selectedGuideId)) {
       toast({ title: 'Guide already assigned', description: 'This guide is already assigned to this experience.', variant: 'destructive' });
       return;
     }
@@ -283,7 +284,7 @@ export function ExperienceGuides({
       if (onChange) onChange(updatedGuides);
       setSelectedGuideId('');
     } else {
-      // NORMAL MODE (EDITING EXISTING EXPERIENCE): CALL API IMMEDIATELY
+      // In edit mode, call API immediately
       addGuideMutation.mutate({ 
         experienceId: experienceId!, 
         guideId: selectedGuideId, 

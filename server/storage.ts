@@ -482,14 +482,31 @@ export class DatabaseStorage implements IStorage {
       }
       console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Main experience record created:', createdExperience.id);
 
-      // Step 2: Create entries in experienceGuides for all assigned guides
+      // Step 2: Create entries in experienceGuides for all assigned guides with proper primary enforcement
       if (experienceData.assignedGuideIds && experienceData.assignedGuideIds.length > 0) {
-        const guideAssignments = experienceData.assignedGuideIds.map((guide, index) => ({
-          experienceId: createdExperience.id,
-          guideId: guide.guideId,
-          isPrimary: guide.isPrimary !== undefined ? guide.isPrimary : (index === 0) // Use explicit isPrimary or default to first as primary
-        }));
-        console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Attempting to insert multiple guide assignments:', JSON.stringify(guideAssignments, null, 2));
+        // Enforce primary guide rules: only one primary guide allowed
+        let primaryCount = 0;
+        const guideAssignments = experienceData.assignedGuideIds.map((guide, index) => {
+          let isPrimary = false;
+          
+          if (guide.isPrimary === true && primaryCount === 0) {
+            // Allow first guide marked as primary
+            isPrimary = true;
+            primaryCount++;
+          } else if (index === 0 && primaryCount === 0) {
+            // If no guide is explicitly marked primary, make first guide primary
+            isPrimary = true;
+            primaryCount++;
+          }
+          
+          return {
+            experienceId: createdExperience.id,
+            guideId: guide.guideId,
+            isPrimary: isPrimary
+          };
+        });
+        
+        console.log('🔍 [CREATE_EXP_GUIDES_PERSIST] Primary guide enforcement applied. Assignments:', JSON.stringify(guideAssignments, null, 2));
         await tx.insert(experienceGuides).values(guideAssignments);
         console.log('✅ [CREATE_EXP_GUIDES_PERSIST] Multiple guide assignments inserted successfully.');
       } else if (experienceData.guideId) {

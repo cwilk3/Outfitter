@@ -372,24 +372,43 @@ router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Res
     return res.status(404).json({ error: 'Experience not found or not authorized for assignment.' });
   }
 
-  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId, isPrimary });
+  // Check existing guide assignments for primary guide enforcement
+  const existingGuides = await storage.getExperienceGuides(experienceId);
+  console.log('🔍 [PRIMARY_GUIDE_ENFORCEMENT] Existing guides:', existingGuides);
+
+  // If setting as primary, remove primary status from all other guides
+  let finalIsPrimary = isPrimary;
+  if (existingGuides.length === 0) {
+    // First guide must be primary
+    finalIsPrimary = true;
+    console.log('🔄 [PRIMARY_GUIDE_ENFORCEMENT] First guide assignment - forcing primary status');
+  } else if (isPrimary) {
+    // Remove primary status from existing guides
+    console.log('🔄 [PRIMARY_GUIDE_ENFORCEMENT] New primary guide - removing primary from existing guides');
+    for (const existingGuide of existingGuides) {
+      if (existingGuide.isPrimary) {
+        await storage.updateGuideAssignment(existingGuide.id, { isPrimary: false });
+      }
+    }
+  }
+
+  console.log('✅ [ASSIGN_GUIDE_ROUTE] Assigning guide', { experienceId, guideId, outfitterId, isPrimary: finalIsPrimary });
 
   try {
-    // Call storage.updateExperience to handle the guide assignment
-    console.log('🔍 [ASSIGN_GUIDE_PERSIST_DEBUG] Calling storage.updateExperience for guide assignment...');
-    const updatedExperience = await storage.updateExperience(
+    // Use storage.assignGuideToExperience for proper guide assignment
+    const guideAssignment = await storage.assignGuideToExperience({
       experienceId,
-      { guideId: guideId, assignedGuideIds: [{ guideId: guideId, isPrimary: isPrimary }] },
-      outfitterId
-    );
+      guideId,
+      isPrimary: finalIsPrimary
+    });
 
-    if (!updatedExperience) {
-      console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to update experience with new guide:', { experienceId, guideId });
+    if (!guideAssignment) {
+      console.error('❌ [ASSIGN_GUIDE_ROUTE] Failed to assign guide:', { experienceId, guideId });
       return res.status(500).json({ message: 'Failed to assign guide.' });
     }
 
-    console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId });
-    res.status(200).json(updatedExperience);
+    console.log('🔄 [SUCCESS] Guide assigned to experience:', { experienceId, guideId, assignmentId: guideAssignment.id });
+    res.status(201).json(guideAssignment);
   } catch (error) {
     console.error('❌ [ASSIGN_GUIDE_ROUTE] Error during guide assignment:', error);
     res.status(500).json({ message: 'Internal server error during guide assignment.' });
