@@ -57,9 +57,7 @@ export function ExperienceGuides({
   const queryClient = useQueryClient();
   const [selectedGuideId, setSelectedGuideId] = useState<string>('');
   
-  // For draft mode - local state for guide assignments
-  const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides);
-  const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1);
+  // draftGuides and nextTempId states are removed
 
   // Fetch available guides with 'admin' and 'guide' roles
   const { data: availableGuides = [] } = useQuery({
@@ -89,33 +87,7 @@ export function ExperienceGuides({
     enabled: !!experienceId && !draftMode,
   });
 
-  // Initialize draftGuides from initialDraftGuides or internalAssignedGuides
-  useEffect(() => {
-    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---');
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, internalAssignedGuidesLength: internalAssignedGuides.length });
-    
-    // Determine the source of truth for initial draftGuides based on mode
-    let sourceGuides: DraftGuideAssignment[] = [];
-    if (draftMode) {
-      // For new experiences (creation), use initialDraftGuides (which usually starts empty or from parent's initial state)
-      sourceGuides = initialDraftGuides;
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing from initialDraftGuides (creation mode).');
-    } else {
-      // For existing experiences (edit mode), use internalAssignedGuides (from API)
-      // Map them to DraftGuideAssignment to ensure tempId and mutability
-      sourceGuides = (internalAssignedGuides || []).map(guide => ({
-        tempId: guide.id, // Use existing ID as tempId for edits
-        guideId: guide.guideId,
-        isPrimary: guide.isPrimary || false // Ensure isPrimary is boolean
-      }));
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing from internalAssignedGuides (edit mode).');
-    }
-
-    setDraftGuides(sourceGuides);
-    setNextTempId(Math.max(...sourceGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter based on source guides
-    
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Final draftGuides state:', JSON.stringify(sourceGuides, null, 2));
-  }, [draftMode, initialDraftGuides, internalAssignedGuides]); // Simplify dependencies, `setDraftGuides` and `setNextTempId` are stable.
+  // --- REMOVED: useEffect for draftGuides initialization (now obsolete) ---
 
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
@@ -246,29 +218,13 @@ export function ExperienceGuides({
       const response = await apiRequest('DELETE', `/api/experiences/${experienceId}/guides/${guideId}`);
       return response;
     },
-    onSuccess: (data, variables) => { 
-      console.log('🔄 [FRONTEND_UNASSIGN_SUCCESS] Guide successfully unassigned from experience');
-      
+    onSuccess: (data, variables) => {
       // Invalidate related queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
       queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
       
-      // Update local state by filtering the removed guide from draftGuides
-      const updatedDraftGuidesAfterRemoval = draftGuides.filter( 
-          (g: DraftGuideAssignment) => g.guideId !== variables.guideId
-      );
-
-      // --- ADDED: Explicitly update draftGuides state ---
-      setDraftGuides(updatedDraftGuidesAfterRemoval); 
-      console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] draftGuides updated locally after unassignment:', updatedDraftGuidesAfterRemoval);
-      // --- END ADDED ---
-      
-      // Notify parent component about the change in assigned guides
-      if (onChange) { 
-          console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Calling onChange with updatedDraftGuidesAfterRemoval.');
-          onChange(updatedDraftGuidesAfterRemoval); 
-      }
+      // No manual state updates. Rely on query invalidation.
       
       // Force refetch to ensure UI consistency
       setTimeout(() => {
@@ -351,81 +307,45 @@ export function ExperienceGuides({
 
   // Handle guide selection and assignment
   const handleAssignGuide = () => {
-    console.log('--- DIAGNOSTIC: handleAssignGuide Called ---');
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] selectedGuideId:', selectedGuideId, 'draftMode:', draftMode);
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] draftGuides BEFORE assignment:', JSON.stringify(draftGuides, null, 2));
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] internalAssignedGuides:', JSON.stringify(internalAssignedGuides, null, 2));
-
     if (!selectedGuideId) return;
 
-    // Determine if this should be primary (make first guide primary by default)
-    const currentGuides = draftMode ? draftGuides : internalAssignedGuides;
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] currentGuides source:', draftMode ? 'draftGuides' : 'internalAssignedGuides');
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] currentGuides length:', currentGuides.length);
-    const isPrimary = currentGuides.length === 0;
+    // Determine if this should be primary (first guide assigned in this session)
+    const isPrimary = internalAssignedGuides.length === 0;
 
     // Check if guide is already assigned in current state
-    if (currentGuides.some((g: any) => g.guideId === selectedGuideId)) {
-      console.log('❌ [HANDLE_ASSIGN_DEBUG] Guide already assigned.');
-      toast({
-        title: 'Guide already assigned',
-        description: 'This guide is already assigned to this experience.',
-        variant: 'destructive',
-      });
+    if (internalAssignedGuides.some((g: any) => g.guideId === selectedGuideId)) {
+      toast({ title: 'Guide already assigned', description: 'This guide is already assigned to this experience.', variant: 'destructive' });
       return;
     }
 
-    // Create a new guide assignment object
-    const newGuideAssignment: DraftGuideAssignment = {
-      tempId: nextTempId,
-      guideId: selectedGuideId,
-      isPrimary: isPrimary
-    };
-    console.log('🔍 [HANDLE_ASSIGN_DEBUG] newGuideAssignment created:', JSON.stringify(newGuideAssignment, null, 2));
-
     if (draftMode) {
-      // In draft mode (new experience creation), only update local state
-      const updatedDraftGuides = [...draftGuides, newGuideAssignment];
-      setDraftGuides(updatedDraftGuides);
-      setNextTempId(nextTempId + 1);
+      // In creation mode, notify parent to add guide to form state
+      const newGuideAssignment = { tempId: Date.now(), guideId: selectedGuideId, isPrimary };
+      const updatedGuides = [...initialDraftGuides, newGuideAssignment];
+      if (onChange) onChange(updatedGuides);
       setSelectedGuideId('');
-      if (onChange) {
-        onChange(updatedDraftGuides);
-      }
-      console.log('✅ [HANDLE_ASSIGN_DEBUG] DRAFT MODE - Guide added to draftGuides. Final draftGuides:', JSON.stringify(updatedDraftGuides, null, 2));
     } else {
-      console.log('🔍 [HANDLE_ASSIGN_DEBUG] EDIT MODE - About to call addGuideMutation.mutate');
-      console.log('🔍 [HANDLE_ASSIGN_DEBUG] Mutation payload:', { experienceId: experienceId!, guideId: newGuideAssignment.guideId, isPrimary: newGuideAssignment.isPrimary });
-      
-      // For existing experiences, make immediate API call to persist assignment
+      // NORMAL MODE (EDITING EXISTING EXPERIENCE): CALL API IMMEDIATELY
       addGuideMutation.mutate({ 
         experienceId: experienceId!, 
-        guideId: newGuideAssignment.guideId, 
-        isPrimary: newGuideAssignment.isPrimary 
+        guideId: selectedGuideId, 
+        isPrimary: isPrimary 
       });
-      // Clear selection immediately for next addition
       setSelectedGuideId('');
-      console.log('🔍 [HANDLE_ASSIGN_DEBUG] addGuideMutation.mutate called, selectedGuideId cleared');
     }
   };
 
   // Handle setting a guide as primary
   const handleSetPrimary = (id: number) => {
     if (draftMode) {
-      // In draft mode, update local state
-      const updatedDraftGuides = draftGuides.map(guide => ({
+      // In creation mode, update parent form state
+      const updatedGuides = initialDraftGuides.map(guide => ({
         ...guide,
         isPrimary: guide.tempId === id
       }));
-      
-      setDraftGuides(updatedDraftGuides);
-      
-      // Notify parent component
-      if (onChange) {
-        onChange(updatedDraftGuides);
-      }
+      if (onChange) onChange(updatedGuides);
     } else {
-      // In normal mode, make API call
+      // In edit mode, make API call
       updateGuideMutation.mutate({ id, isPrimary: true });
     }
   };
@@ -449,9 +369,8 @@ export function ExperienceGuides({
     }
   }, [internalAssignedGuides, onChange, draftMode]);
 
-  // Determine which guides to display based on mode
-  // THIS IS THE CRITICAL LINE: guidesToDisplay should always reflect the current mutable draft state
-  const guidesToDisplay = draftGuides; // <--- FIX: Always display from draftGuides
+  // In pure query-based approach, guidesToDisplay comes directly from the query
+  const guidesToDisplay = draftMode ? initialDraftGuides : internalAssignedGuides;
   
   // Filter out already assigned guides from the selection dropdown
   const availableForSelection = availableGuides.filter(

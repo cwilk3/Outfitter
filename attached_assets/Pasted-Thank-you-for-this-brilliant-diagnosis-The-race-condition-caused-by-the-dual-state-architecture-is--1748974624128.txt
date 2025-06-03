@@ -1,0 +1,172 @@
+Thank you for this brilliant diagnosis. The race condition caused by the dual-state architecture is the root cause. We will implement Option 1: Pure Query-Based Approach.
+
+Your primary task is to refactor the ExperienceGuides component in client/src/components/ui/experience-guides.tsx to rely solely on its internal useQuery (internalAssignedGuides) as the single source of truth for assigned guide data.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Locations: State declarations, useEffect hooks, guidesToDisplay derivation, and mutation onSuccess/onError handlers.
+Proposed Code Changes:
+
+1. Remove draftGuides State & nextTempId:
+Goal: Eliminate local mutable state that conflicts with query data.
+Find (State declarations, e.g., after selectedGuideId):
+TypeScript
+
+const [selectedGuideId, setSelectedGuideId] = useState<string>('');
+// For draft mode - local state for guide assignments
+const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides); // <--- REMOVE THIS
+const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1); // <--- REMOVE THIS
+Replace with:
+TypeScript
+
+const [selectedGuideId, setSelectedGuideId] = useState<string>('');
+// draftGuides and nextTempId states are removed
+2. Remove useEffect for draftGuides Initialization:
+Goal: This useEffect becomes obsolete as draftGuides is no longer managed locally.
+Find (the entire useEffect block):
+TypeScript
+
+useEffect(() => {
+  // ... all logic inside this useEffect ...
+}, [draftMode, initialDraftGuides, internalAssignedGuides]);
+Replace with:
+TypeScript
+
+// --- REMOVED: useEffect for draftGuides initialization (now obsolete) ---
+3. Modify guidesToDisplay Derivation:
+Goal: guidesToDisplay should directly reflect the data from the internal query.
+Location: Where guidesToDisplay is currently defined.
+Find:
+TypeScript
+
+const guidesToDisplay = draftGuides; // <--- This line needs to change
+Replace with:
+TypeScript
+
+// In pure query-based approach, guidesToDisplay comes directly from the query
+const guidesToDisplay = internalAssignedGuides; // <--- FIX: Directly display from internalAssignedGuides
+4. Refactor handleAssignGuide Function:
+Goal: This function should now only handle adding guides via addGuideMutation in normalMode (edit). The draftMode (creation) logic will be handled differently (parent onSubmit provides full payload).
+Location: The const handleAssignGuide = () => { ... } function definition.
+Find (the entire handleAssignGuide function):
+TypeScript
+
+const handleAssignGuide = () => {
+  // ... existing logic ...
+};
+Replace with (simplified to only trigger addGuideMutation in normal mode):
+TypeScript
+
+const handleAssignGuide = () => {
+  if (!selectedGuideId) return;
+
+  // Determine if this should be primary (first guide assigned in this session)
+  // This logic will now use the current state from the query for internalAssignedGuides
+  const isPrimary = internalAssignedGuides.length === 0;
+
+  // Check if guide is already assigned in current state
+  if (internalAssignedGuides.some((g: any) => g.guideId === selectedGuideId)) {
+    toast({ title: 'Guide already assigned', description: 'This guide is already assigned to this experience.', variant: 'destructive', });
+    return;
+  }
+
+  if (draftMode) { // <--- DRAFT MODE (CREATION): Handle here, but it's simplified
+    // In pure query-based approach, adding guides in creation mode
+    // is done by adding to the parent's form state (assignedGuideIds) which is then submitted.
+    // This function will now simply add to the local state (if component is reused for creation-like draft)
+    // or this branch can be simplified/removed if creation is handled purely by parent's form submission.
+    // For now, let's assume this button is primarily for ADDING in edit mode.
+    // If this handleAssignGuide is *only* called in edit mode now, this draftMode branch is redundant.
+    // If it's used for creation, it should notify parent via onChange.
+    console.warn('⚠️ [HANDLE_ASSIGN_DEBUG] handleAssignGuide in draftMode: This path might be redundant if parent manages guide array directly.');
+    // If this part of handleAssignGuide needs to stay for draft mode, it must notify parent:
+    // onChange([...internalAssignedGuides, { guideId: selectedGuideId, isPrimary }]);
+    // For now, we will simplify handleAssignGuide to primarily handle the 'else' (edit) case.
+    toast({ title: 'Add guide not supported in draft mode directly here', variant: 'destructive'});
+    return; // This path will be removed in next step (frontend form sends all guides)
+  } else { // NORMAL MODE (EDITING EXISTING EXPERIENCE): CALL API IMMEDIATELY
+    addGuideMutation.mutate({ 
+      experienceId: experienceId!, 
+      guideId: selectedGuideId, 
+      isPrimary: isPrimary 
+    });
+    setSelectedGuideId(''); // Clear selection immediately
+  }
+};
+5. Update Mutations' onSuccess & onError Callbacks:
+Goal: Remove manual setDraftGuides calls. Rely on queryClient.invalidateQueries to trigger internalAssignedGuides re-fetch.
+Location: onSuccess and onError handlers of assignGuideMutation, removeGuideMutation, updateGuideMutation.
+For assignGuideMutation.onSuccess (add guide):
+Find:
+TypeScript
+
+const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject];
+setDraftGuides(updatedDraftGuidesAfterAdd); // <--- REMOVE THIS
+console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] draftGuides updated locally after addition:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2));
+// ...
+if (onChange) { // <--- REMOVE THIS BLOCK (and its onChange call)
+    onChange(updatedDraftGuidesAfterAdd);
+}
+Replace with:
+TypeScript
+
+// No manual setDraftGuides or onChange calls here. Rely on query invalidation.
+For removeGuideMutation.onSuccess (remove guide):
+Find:
+TypeScript
+
+const updatedDraftGuidesAfterRemoval = draftGuides.filter(
+    (g: ExperienceGuide) => g.guideId !== variables.guideId
+);
+setDraftGuides(updatedAssignedGuidesAfterRemoval); // <--- REMOVE THIS
+console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] draftGuides updated locally after unassignment:', JSON.stringify(updatedAssignedGuidesAfterRemoval, null, 2));
+// ...
+if (onChange) { // <--- REMOVE THIS BLOCK (and its onChange call)
+    onChange(updatedAssignedGuidesAfterRemoval);
+}
+Replace with:
+TypeScript
+
+// No manual setDraftGuides or onChange calls here. Rely on query invalidation.
+For updateGuideMutation.onSuccess (make primary):
+Find:
+TypeScript
+
+const updatedAssignedGuides = assignedGuides.map((g: ExperienceGuide) => ({ ... }));
+// ... logic for setting one primary ...
+if (onChange) { // <--- REMOVE THIS BLOCK (and its onChange call)
+    onChange(updatedAssignedGuides);
+}
+Replace with:
+TypeScript
+
+// No manual setDraftGuides or onChange calls here. Rely on query invalidation.
+For updateGuideMutation.onError (rollback):
+Find:
+TypeScript
+
+if (onChange) { // <--- REMOVE THIS BLOCK (and its onChange call)
+    console.log('⚡ [OPTIMISTIC_ROLLBACK] Rolling back onChange call.');
+    onChange(context.previousAssignedGuides);
+}
+Replace with:
+TypeScript
+
+// No onChange rollback call here. Rely on queryClient.setQueryData for rollback.
+6. Clean Up Component Signature Destructuring:
+Remove assignedGuides: externalAssignedGuides = [] and refetchExperienceQuery from component props destructuring.
+Output Required for My Review:
+Once you have implemented this refactor, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this architectural refactor):
+
+ExperienceGuidesProps interface is updated (removed assignedGuides and refetchExperienceQuery).
+Component signature is updated (removed externalAssignedGuides and refetchExperienceQuery from destructuring).
+An internal useQuery for internalAssignedGuides is correctly implemented.
+useEffect correctly initializes draftGuides from initialDraftGuides OR internalAssignedGuides (simplified dependencies).
+handleAssignGuide function is simplified to primarily trigger addGuideMutation in normal mode, or the draftMode branch is simplified/removed if it's not needed for the parent's creation flow.
+All mutations' onSuccess and onError handlers are updated to remove manual setDraftGuides/onChange calls, relying solely on queryClient.invalidateQueries and queryClient.setQueryData for state synchronization.
+The component compiles without errors.
+No other unrelated functional code is affected.
+This rebuild is crucial for a clean and functional multi-guide component! I await your detailed diff preview.
