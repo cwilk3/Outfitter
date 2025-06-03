@@ -304,6 +304,7 @@ export function ExperienceGuides({
     },
     onSuccess: (data, variables) => {
       console.log('🔄 [ADD_GUIDE_MUT_SUCCESS] Guide added successfully via API. Data:', data, 'Variables:', variables);
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] draftGuides state BEFORE local update:', JSON.stringify(draftGuides, null, 2));
       
       // Invalidate queries to re-fetch the latest assigned guides
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
@@ -316,14 +317,20 @@ export function ExperienceGuides({
           guideId: variables.guideId,
           isPrimary: variables.isPrimary
       };
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] newAssignedGuideObject created:', JSON.stringify(newAssignedGuideObject, null, 2));
 
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] About to create updatedDraftGuidesAfterAdd using spread operator');
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] Current draftGuides:', JSON.stringify(draftGuides, null, 2));
       const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject];
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] updatedDraftGuidesAfterAdd created:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2));
+      
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] About to call setDraftGuides');
       setDraftGuides(updatedDraftGuidesAfterAdd);
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] draftGuides updated locally AFTER addGuideMutation success:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2));
+      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] setDraftGuides called');
 
       // Notify parent component about the change
       if (onChange) {
-          console.log('🔍 [DRAFT_GUIDES_DEBUG] Calling onChange with updatedDraftGuidesAfterAdd.');
+          console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] Calling onChange with updatedDraftGuidesAfterAdd.');
           onChange(updatedDraftGuidesAfterAdd);
       }
       
@@ -345,18 +352,21 @@ export function ExperienceGuides({
   // Handle guide selection and assignment
   const handleAssignGuide = () => {
     console.log('--- DIAGNOSTIC: handleAssignGuide Called ---');
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - selectedGuideId:', selectedGuideId, 'draftMode:', draftMode);
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - draftGuides before update:', JSON.stringify(draftGuides, null, 2));
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] selectedGuideId:', selectedGuideId, 'draftMode:', draftMode);
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] draftGuides BEFORE assignment:', JSON.stringify(draftGuides, null, 2));
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] internalAssignedGuides:', JSON.stringify(internalAssignedGuides, null, 2));
 
     if (!selectedGuideId) return;
 
     // Determine if this should be primary (make first guide primary by default)
     const currentGuides = draftMode ? draftGuides : internalAssignedGuides;
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] currentGuides source:', draftMode ? 'draftGuides' : 'internalAssignedGuides');
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] currentGuides length:', currentGuides.length);
     const isPrimary = currentGuides.length === 0;
 
     // Check if guide is already assigned in current state
     if (currentGuides.some((g: any) => g.guideId === selectedGuideId)) {
-      console.log('❌ [DRAFT_GUIDES_DEBUG] Guide already assigned.');
+      console.log('❌ [HANDLE_ASSIGN_DEBUG] Guide already assigned.');
       toast({
         title: 'Guide already assigned',
         description: 'This guide is already assigned to this experience.',
@@ -371,6 +381,7 @@ export function ExperienceGuides({
       guideId: selectedGuideId,
       isPrimary: isPrimary
     };
+    console.log('🔍 [HANDLE_ASSIGN_DEBUG] newGuideAssignment created:', JSON.stringify(newGuideAssignment, null, 2));
 
     if (draftMode) {
       // In draft mode (new experience creation), only update local state
@@ -381,8 +392,11 @@ export function ExperienceGuides({
       if (onChange) {
         onChange(updatedDraftGuides);
       }
-      console.log('✅ [DRAFT_GUIDES_DEBUG] handleAssignGuide - Guide added to draftGuides (creation mode). Final draftGuides:', JSON.stringify(updatedDraftGuides, null, 2));
+      console.log('✅ [HANDLE_ASSIGN_DEBUG] DRAFT MODE - Guide added to draftGuides. Final draftGuides:', JSON.stringify(updatedDraftGuides, null, 2));
     } else {
+      console.log('🔍 [HANDLE_ASSIGN_DEBUG] EDIT MODE - About to call addGuideMutation.mutate');
+      console.log('🔍 [HANDLE_ASSIGN_DEBUG] Mutation payload:', { experienceId: experienceId!, guideId: newGuideAssignment.guideId, isPrimary: newGuideAssignment.isPrimary });
+      
       // For existing experiences, make immediate API call to persist assignment
       addGuideMutation.mutate({ 
         experienceId: experienceId!, 
@@ -391,7 +405,7 @@ export function ExperienceGuides({
       });
       // Clear selection immediately for next addition
       setSelectedGuideId('');
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - Triggering addGuideMutation (edit mode).');
+      console.log('🔍 [HANDLE_ASSIGN_DEBUG] addGuideMutation.mutate called, selectedGuideId cleared');
     }
   };
 

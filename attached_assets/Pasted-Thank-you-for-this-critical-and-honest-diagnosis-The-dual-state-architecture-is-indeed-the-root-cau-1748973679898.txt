@@ -1,0 +1,26 @@
+Thank you for this critical and honest diagnosis. The dual-state architecture is indeed the root cause, and we must implement a unified state management pattern.
+
+Your primary task is to investigate the mutation logic within the handleAssignGuide function in client/src/components/ui/experience-guides.tsx to identify the exact line or block of code that is causing the guide replacement behavior (i.e., overwriting existing guides instead of appending).
+
+Specific Focus Areas for Investigation:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The const handleAssignGuide = () => { ... } function definition. Pay close attention to the else block (normal mode) where addGuideMutation.mutate() is called, and also to the onSuccess handler of addGuideMutation.
+Proposed Code Changes (No Functional Changes Yet, Just Diagnostic):
+
+Add highly targeted console.log statements at critical points within handleAssignGuide (especially the else block) and addGuideMutation's onSuccess handler to trace the state of draftGuides and newGuideAssignment just before and after setDraftGuides calls, and the onChange calls.
+
+Output Required for My Review:
+Please provide:
+
+The complete source code of the handleAssignGuide function.
+The complete source code of the addGuideMutation definition (the useMutation block).
+A comprehensive diff preview showing only the diagnostic logs you add to these two parts of the code.
+The complete browser console output after attempting to add a guide in edit mode.
+Success Criteria for My Approval (for this diagnostic phase):
+
+The complete source code for both handleAssignGuide and addGuideMutation is provided.
+Diagnostic logs are correctly added to trace draftGuides state and mutation behavior.
+A clear browser console output is provided after an edit mode guide addition attempt.
+No functional code changes are proposed in this step; this is purely a diagnostic report.
+This investigation is crucial to implement the unified state management pattern. I await your detailed report."
