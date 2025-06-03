@@ -104,29 +104,18 @@ export function ExperienceGuides({
         throw error;
       }
     },
-    onSuccess: (data) => {
-      console.log(`[CLIENT] Guide assignment mutation succeeded:`, data);
+    onSuccess: (data, variables) => {
+      // Invalidate queries to re-fetch the latest assigned guides
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+      queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
       
-      // Aggressively invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
-      
-      // Force refetch of internal assigned guides
-      const performRefetch = () => {
-        console.log(`[CLIENT] Forcing guide assignments refetch for experience ${experienceId}`);
-        refetchInternalAssignedGuides();
-      };
-      
-      // Stagger the refetches to ensure data is up-to-date
-      setTimeout(performRefetch, 100);
-      setTimeout(performRefetch, 500);
+      // No manual state updates. Rely on query invalidation.
       
       toast({
-        title: 'Guide assigned',
+        title: 'Guide added!',
         description: 'The guide has been successfully assigned to this experience.',
       });
-      setSelectedGuideId('');
     },
     onError: (error) => {
       toast({
@@ -192,21 +181,14 @@ export function ExperienceGuides({
     },
     
     onError: (error, newGuideData, context) => {
-      // If the mutation fails, use the context to roll back the optimistic update
-      if (context?.previousAssignedGuides) {
-        queryClient.setQueryData(
-          ['/api/experiences', experienceId, 'guides'],
-          context.previousAssignedGuides
-        );
-        // Also roll back local state if onChange was called
-        if (onChange) {
-            onChange(context.previousAssignedGuides);
-        }
-      }
+      // Rollback the optimistic update on error
+      queryClient.setQueryData(['/api/experiences', experienceId, 'guides'], context?.previousAssignedGuides);
+      
+      // No onChange rollback call here. Rely on queryClient.setQueryData for rollback.
       
       toast({
         title: 'Update failed',
-        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+        description: error instanceof Error ? error.message : 'Failed to update primary guide.',
         variant: 'destructive',
       });
     },
@@ -259,36 +241,12 @@ export function ExperienceGuides({
       return response;
     },
     onSuccess: (data, variables) => {
-      console.log('🔄 [ADD_GUIDE_MUT_SUCCESS] Guide added successfully via API. Data:', data, 'Variables:', variables);
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] draftGuides state BEFORE local update:', JSON.stringify(draftGuides, null, 2));
-      
       // Invalidate queries to re-fetch the latest assigned guides
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
       queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
       
-      // Update local state by adding the newly assigned guide
-      const newAssignedGuideObject: DraftGuideAssignment = {
-          tempId: Date.now(), // Use timestamp as temp ID for added guides
-          guideId: variables.guideId,
-          isPrimary: variables.isPrimary
-      };
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] newAssignedGuideObject created:', JSON.stringify(newAssignedGuideObject, null, 2));
-
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] About to create updatedDraftGuidesAfterAdd using spread operator');
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] Current draftGuides:', JSON.stringify(draftGuides, null, 2));
-      const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject];
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] updatedDraftGuidesAfterAdd created:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2));
-      
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] About to call setDraftGuides');
-      setDraftGuides(updatedDraftGuidesAfterAdd);
-      console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] setDraftGuides called');
-
-      // Notify parent component about the change
-      if (onChange) {
-          console.log('🔍 [ADD_GUIDE_MUT_SUCCESS] Calling onChange with updatedDraftGuidesAfterAdd.');
-          onChange(updatedDraftGuidesAfterAdd);
-      }
+      // No manual state updates. Rely on query invalidation.
       
       toast({
         title: 'Guide added!',
@@ -403,12 +361,11 @@ export function ExperienceGuides({
                       e.stopPropagation();
                       
                       if (draftMode) {
-                        const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
-                        if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
-                          updatedDraftGuides[0].isPrimary = true;
+                        const updatedGuides = initialDraftGuides.filter(guide => guide.tempId !== assignment.tempId);
+                        if (updatedGuides.length > 0 && !updatedGuides.some(g => g.isPrimary)) {
+                          updatedGuides[0].isPrimary = true;
                         }
-                        setDraftGuides(updatedDraftGuides);
-                        if (onChange) onChange(updatedDraftGuides);
+                        if (onChange) onChange(updatedGuides);
                       } else {
                         removeGuideMutation.mutate({ 
                           experienceId: experienceId!, 
@@ -528,12 +485,11 @@ export function ExperienceGuides({
                             e.stopPropagation();
                             
                             if (draftMode) {
-                              const updatedDraftGuides = draftGuides.filter(guide => guide.tempId !== assignment.tempId);
-                              if (updatedDraftGuides.length > 0 && !updatedDraftGuides.some(g => g.isPrimary)) {
-                                updatedDraftGuides[0].isPrimary = true;
+                              const updatedGuides = initialDraftGuides.filter(guide => guide.tempId !== assignment.tempId);
+                              if (updatedGuides.length > 0 && !updatedGuides.some(g => g.isPrimary)) {
+                                updatedGuides[0].isPrimary = true;
                               }
-                              setDraftGuides(updatedDraftGuides);
-                              if (onChange) onChange(updatedDraftGuides);
+                              if (onChange) onChange(updatedGuides);
                             } else {
                               removeGuideMutation.mutate({ 
                                 experienceId: experienceId!, 
