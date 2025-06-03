@@ -63,26 +63,6 @@ export function ExperienceGuides({
   const [draftGuides, setDraftGuides] = useState<DraftGuideAssignment[]>(initialDraftGuides);
   const [nextTempId, setNextTempId] = useState<number>(initialDraftGuides.length + 1);
 
-  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
-  // This useEffect ensures draftGuides is the mutable source of truth for the UI
-  useEffect(() => {
-    // Only set initial draft guides if we are in draft mode (creation)
-    // OR if we are in normal mode (editing) and there are external guides to load
-    if (draftMode && initialDraftGuides.length > 0) {
-      setDraftGuides(initialDraftGuides);
-      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter
-    } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
-      // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
-      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
-        tempId: guide.id, // Use existing ID as tempId for edits
-        guideId: guide.guideId,
-        isPrimary: guide.isPrimary ?? false // Handle null values for isPrimary
-      }));
-      setDraftGuides(mappedGuides);
-      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
-    }
-  }, [draftMode, initialDraftGuides, externalAssignedGuides]);
-
   // Fetch available guides with 'admin' and 'guide' roles
   const { data: availableGuides = [] } = useQuery({
     queryKey: ['/api/users', { roles: ['admin', 'guide'] }],
@@ -110,6 +90,34 @@ export function ExperienceGuides({
       return response.json();
     },
   });
+
+  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
+  // This useEffect ensures draftGuides is the mutable source of truth for the UI
+  useEffect(() => {
+    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---');
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, externalAssignedGuidesLength: externalAssignedGuides.length });
+    
+    // Only set initial draft guides if we are in draft mode (creation)
+    // OR if we are in normal mode (editing) and there are external guides to load
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from initialDraftGuides (creation mode). Result:', initialDraftGuides);
+    } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
+      // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        tempId: guide.id, // Use existing ID as tempId for edits
+        guideId: guide.guideId,
+        isPrimary: guide.isPrimary ?? false // Handle null values for isPrimary
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from externalAssignedGuides (edit mode). Result:', mappedGuides);
+    } else if (!draftMode && externalAssignedGuides.length === 0 && assignedGuides.length > 0) {
+        console.warn('⚠️ [DRAFT_GUIDES_DEBUG] useEffect - externalAssignedGuides is empty, but assignedGuides has data. Potential sync issue.');
+    }
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Current draftGuides state:', JSON.stringify(draftGuides, null, 2));
+  }, [draftMode, initialDraftGuides, externalAssignedGuides, assignedGuides]);
 
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
@@ -327,10 +335,11 @@ export function ExperienceGuides({
 
       const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject];
       setDraftGuides(updatedDraftGuidesAfterAdd);
-      console.log('🔍 [ADD_GUIDE_MUT_DEBUG] draftGuides updated locally after addition:', updatedDraftGuidesAfterAdd);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] draftGuides updated locally AFTER addGuideMutation success:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2));
 
       // Notify parent component about the change
       if (onChange) {
+          console.log('🔍 [DRAFT_GUIDES_DEBUG] Calling onChange with updatedDraftGuidesAfterAdd.');
           onChange(updatedDraftGuidesAfterAdd);
       }
       
@@ -351,6 +360,10 @@ export function ExperienceGuides({
 
   // Handle guide selection and assignment
   const handleAssignGuide = () => {
+    console.log('--- DIAGNOSTIC: handleAssignGuide Called ---');
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - selectedGuideId:', selectedGuideId, 'draftMode:', draftMode);
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - draftGuides before update:', JSON.stringify(draftGuides, null, 2));
+
     if (!selectedGuideId) return;
 
     // Determine if this should be primary (make first guide primary by default)
@@ -359,6 +372,7 @@ export function ExperienceGuides({
 
     // Check if guide is already assigned in current state
     if (currentGuides.some((g: any) => g.guideId === selectedGuideId)) {
+      console.log('❌ [DRAFT_GUIDES_DEBUG] Guide already assigned.');
       toast({
         title: 'Guide already assigned',
         description: 'This guide is already assigned to this experience.',
@@ -383,6 +397,7 @@ export function ExperienceGuides({
       if (onChange) {
         onChange(updatedDraftGuides);
       }
+      console.log('✅ [DRAFT_GUIDES_DEBUG] handleAssignGuide - Guide added to draftGuides (creation mode). Final draftGuides:', JSON.stringify(updatedDraftGuides, null, 2));
     } else {
       // For existing experiences, make immediate API call to persist assignment
       addGuideMutation.mutate({ 
@@ -392,6 +407,7 @@ export function ExperienceGuides({
       });
       // Clear selection immediately for next addition
       setSelectedGuideId('');
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - Triggering addGuideMutation (edit mode).');
     }
   };
 

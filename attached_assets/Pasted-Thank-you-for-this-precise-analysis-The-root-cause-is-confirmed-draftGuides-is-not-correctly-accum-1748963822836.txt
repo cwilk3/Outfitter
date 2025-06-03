@@ -1,0 +1,186 @@
+Thank you for this precise analysis. The root cause is confirmed: draftGuides is not correctly accumulating both initial and newly added guides, leading to data overwrite on save.
+
+Your primary task is to implement highly targeted diagnostic logging in client/src/components/ui/experience-guides.tsx to trace the draftGuides state, its initialization, and its contents during assignment/removal.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Locations:
+The useEffect hook that initializes draftGuides from initialDraftGuides or externalAssignedGuides.
+The handleAssignGuide function.
+The removeGuideMutation's onSuccess handler.
+The handleSetPrimary function. (Optional, if still needed for context)
+Proposed Code Changes:
+
+1. Modify useEffect for draftGuides Initialization:
+Find this block (the useEffect that initializes draftGuides):
+
+TypeScript
+
+  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
+  useEffect(() => {
+    // ... existing initialization logic ...
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+    } else if (!draftMode && externalAssignedGuides.length > 0) {
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        ...guide,
+        tempId: guide.id, // Use existing ID as tempId for edits
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+    }
+  }, [draftMode, initialDraftGuides, externalAssignedGuides, setDraftGuides, setNextTempId]);
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
+  useEffect(() => {
+    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---'); // <--- ADD THIS
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, externalAssignedGuidesLength: externalAssignedGuides.length }); // <--- ADD THIS
+    
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from initialDraftGuides (creation mode). Result:', initialDraftGuides); // <--- ADD THIS
+    } else if (!draftMode && externalAssignedGuides.length > 0) {
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        ...guide,
+        tempId: guide.id,
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from externalAssignedGuides (edit mode). Result:', mappedGuides); // <--- ADD THIS
+    } else if (!draftMode && externalAssignedGuides.length === 0 && assignedGuides.length > 0) { // Edge case: no external, but assigned (e.g. initial fetch not done yet)
+        // This 'assignedGuides' comes from useQuery. If it's loaded *after* useEffect runs,
+        // draftGuides might not get initialized from it. This is a potential bug.
+        // We need to ensure externalAssignedGuides is the correct source.
+        console.warn('⚠️ [DRAFT_GUIDES_DEBUG] useEffect - externalAssignedGuides is empty, but assignedGuides has data. Potential sync issue.');
+        // If this warning appears, it means query data might not be ready when useEffect runs.
+        // The fix would be to rely on the query's data for initialization if it's the primary source.
+    }
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Current draftGuides state:', JSON.stringify(draftGuides, null, 2)); // <--- ADD THIS (log AFTER state update)
+  }, [draftMode, initialDraftGuides, externalAssignedGuides, setDraftGuides, setNextTempId, assignedGuides]); // Add assignedGuides to dependencies
+2. Modify handleAssignGuide Function:
+Find this block (the handleAssignGuide function definition):
+
+TypeScript
+
+const handleAssignGuide = () => {
+  if (!selectedGuideId) return;
+  // ... rest of handleAssignGuide logic ...
+  // This is where new guide is added to draftGuides or mutation is called
+};
+Replace it with (adding diagnostic logs):
+
+TypeScript
+
+const handleAssignGuide = () => {
+  console.log('--- DIAGNOSTIC: handleAssignGuide Called ---'); // <--- ADD THIS
+  console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - selectedGuideId:', selectedGuideId, 'draftMode:', draftMode); // <--- ADD THIS
+  console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - draftGuides before update:', JSON.stringify(draftGuides, null, 2)); // <--- ADD THIS
+
+  if (!selectedGuideId) return;
+
+  // Determine if this should be primary (make first guide primary by default)
+  const currentGuides = draftMode ? draftGuides : assignedGuides; // Re-evaluate this if draftGuides is always source of truth
+  const isPrimary = currentGuides.length === 0;
+
+  // Check if guide is already assigned in current state
+  if (currentGuides.some(g => g.guideId === selectedGuideId)) {
+    console.log('❌ [DRAFT_GUIDES_DEBUG] Guide already assigned.'); // <--- ADD THIS
+    toast({
+      title: 'Guide already assigned',
+      description: 'This guide is already assigned to this experience.',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  // Create a new guide assignment object
+  const newGuideAssignment: DraftGuideAssignment = {
+    tempId: nextTempId,
+    guideId: selectedGuideId,
+    isPrimary: isPrimary
+  };
+
+  if (draftMode) { // Creation mode
+    const updatedDraftGuides = [...draftGuides, newGuideAssignment];
+    setDraftGuides(updatedDraftGuides);
+    setNextTempId(nextTempId + 1);
+    setSelectedGuideId('');
+    if (onChange) {
+      onChange(updatedDraftGuides);
+    }
+    console.log('✅ [DRAFT_GUIDES_DEBUG] handleAssignGuide - Guide added to draftGuides (creation mode). Final draftGuides:', JSON.stringify(updatedDraftGuides, null, 2)); // <--- ADD THIS
+  } else { // Edit mode (normal mode)
+    addGuideMutation.mutate({ 
+      experienceId: experienceId!,
+      guideId: newGuideAssignment.guideId,
+      isPrimary: newGuideAssignment.isPrimary
+    });
+    // setNextTempId and setSelectedGuideId will be handled by mutation onSuccess
+    // and onChange will be handled by mutation onSuccess
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] handleAssignGuide - Triggering addGuideMutation (edit mode).'); // <--- ADD THIS
+  }
+};
+3. Modify addGuideMutation's onSuccess Handler:
+Find this block (within addGuideMutation definition, onSuccess handler):
+
+TypeScript
+
+onSuccess: (data, variables) => {
+  // ... existing logging ...
+  // ... query invalidation ...
+  // ... update local state by adding the newly assigned guide ...
+  // ... notify parent ...
+  // ... toast ...
+}
+Replace it with (adding diagnostic logs for draftGuides update):
+
+TypeScript
+
+onSuccess: (data, variables) => { 
+  console.log('🔄 [ADD_GUIDE_MUT_SUCCESS] Guide added successfully via API. Data:', data, 'Variables:', variables);
+  
+  // Invalidate queries to re-fetch the latest assigned guides
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+  queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); 
+  
+  // Update local state by adding the newly assigned guide (from variables or data)
+  const newAssignedGuideObject = {
+      id: data?.id || variables.guideId, // Use ID from response if available, else guideId
+      guideId: variables.guideId,
+      isPrimary: variables.isPrimary,
+      guideUser: availableGuides.find(g => g.id === variables.guideId) // Get guideUser data from availableGuides
+  };
+
+  const updatedDraftGuidesAfterAdd = [...draftGuides, newAssignedGuideObject]; // <--- CRITICAL: Update based on draftGuides
+  setDraftGuides(updatedDraftGuidesAfterAdd);
+  console.log('🔍 [DRAFT_GUIDES_DEBUG] draftGuides updated locally AFTER addGuideMutation success:', JSON.stringify(updatedDraftGuidesAfterAdd, null, 2)); // <--- ADD THIS
+  
+  // Notify parent component about the change (crucial for form submission)
+  if (onChange) {
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Calling onChange with updatedDraftGuidesAfterAdd.'); // <--- ADD THIS
+      onChange(updatedDraftGuidesAfterAdd);
+  }
+  
+  toast({
+    title: 'Guide added!',
+    description: 'The guide has been successfully assigned to this experience.',
+  });
+}
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx. After approval, you will perform a manual test (adding a guide in edit mode) and provide the complete browser console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+All specified 🔍 [DRAFT_GUIDES_DEBUG], ❌ [DRAFT_GUIDES_DEBUG], and ✅ [DRAFT_GUIDES_DEBUG] logs are correctly added.
+The logs effectively trace draftGuides initialization and updates within useEffect and handleAssignGuide.
+The onSuccess for addGuideMutation correctly updates draftGuides locally.
+No other unrelated functional code is affected.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+I will not approve this step until these criteria are met. This logging is crucial to understand the draftGuides state sync! 
