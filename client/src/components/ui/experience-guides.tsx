@@ -192,23 +192,7 @@ export function ExperienceGuides({
           return updated;
         }
       );
-      
-      // Also update the local assignedGuides state and notify parent immediately
-      // This is the part that updates the UI directly, before the API call returns
-      const updatedAssignedGuidesOptimistic = (assignedGuides || []).map((g: ExperienceGuide) => ({
-          ...g,
-          isPrimary: g.id === newGuideData.id // Set the selected guide as primary
-      }));
-      if (newGuideData.isPrimary) {
-          updatedAssignedGuidesOptimistic.forEach((g: ExperienceGuide) => {
-              if (g.id !== newGuideData.id) {
-                  g.isPrimary = false;
-              }
-          });
-      }
-      if (onChange) {
-          onChange(updatedAssignedGuidesOptimistic);
-      }
+
 
       return { previousAssignedGuides }; // Return a context object with the old data
     },
@@ -359,7 +343,7 @@ export function ExperienceGuides({
     if (!selectedGuideId) return;
 
     // Determine if this should be primary (make first guide primary by default)
-    const currentGuides = draftMode ? draftGuides : assignedGuides;
+    const currentGuides = draftMode ? draftGuides : internalAssignedGuides;
     const isPrimary = currentGuides.length === 0;
 
     // Check if guide is already assigned in current state
@@ -439,9 +423,9 @@ export function ExperienceGuides({
   // Update parent component when assigned guides change (in non-draft mode)
   useEffect(() => {
     if (onChange && !draftMode) {
-      onChange(assignedGuides);
+      onChange(internalAssignedGuides);
     }
-  }, [assignedGuides, onChange, draftMode]);
+  }, [internalAssignedGuides, onChange, draftMode]);
 
   // Determine which guides to display based on mode
   // THIS IS THE CRITICAL LINE: guidesToDisplay should always reflect the current mutable draft state
@@ -543,7 +527,7 @@ export function ExperienceGuides({
       <div className="space-y-2">
         <Label>Guide Details & Management</Label>
         
-        {(!draftMode && isLoading) ? (
+        {(!draftMode && isInternalLoading) ? (
           <div className="py-4 text-center text-muted-foreground">Loading guides...</div>
         ) : guidesToDisplay.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground border-2 border-dashed rounded-lg">
