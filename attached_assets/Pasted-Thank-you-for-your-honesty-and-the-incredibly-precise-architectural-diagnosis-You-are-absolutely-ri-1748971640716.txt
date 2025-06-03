@@ -1,0 +1,178 @@
+Thank you for your honesty and the incredibly precise architectural diagnosis. You are absolutely right: stop patching and rebuild ExperienceGuides properly.
+
+Your primary task is to implement Option C: Eliminate External Dependency for the ExperienceGuides component in client/src/components/ui/experience-guides.tsx. This means ExperienceGuides will become self-contained, fetching and managing its own assigned guide data.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Locations: The ExperienceGuidesProps interface, the component's function signature, internal useQuery hooks, and useEffects.
+Proposed Code Changes:
+
+1. Update ExperienceGuidesProps Interface:
+Goal: Remove assignedGuides prop, as it will no longer be an external dependency.
+Find:
+TypeScript
+
+interface ExperienceGuidesProps {
+  experienceId: number;
+  onChange?: (guides: ExperienceGuide[] | DraftGuideAssignment[]) => void;
+  readOnly?: boolean;
+  draftMode?: boolean;
+  initialDraftGuides?: DraftGuideAssignment[];
+  assignedGuides?: ExperienceGuide[]; // <--- REMOVE THIS PROP
+  refetchExperienceQuery?: () => void; // <--- REMOVE THIS PROP
+}
+Replace with:
+TypeScript
+
+interface ExperienceGuidesProps {
+  experienceId: number;
+  onChange?: (guides: ExperienceGuide[] | DraftGuideAssignment[]) => void;
+  readOnly?: boolean;
+  draftMode?: boolean;
+  initialDraftGuides?: DraftGuideAssignment[];
+  // assignedGuides prop and refetchExperienceQuery are removed
+}
+2. Update ExperienceGuides Component Signature:
+Goal: Remove externalAssignedGuides from destructuring.
+Find:
+TypeScript
+
+export function ExperienceGuides({ 
+  experienceId, 
+  onChange, 
+  readOnly = false, 
+  draftMode = false,
+  initialDraftGuides = [],
+  assignedGuides: externalAssignedGuides = [], // <--- REMOVE THIS
+  refetchExperienceQuery // <--- REMOVE THIS
+}: ExperienceGuidesProps) {
+Replace with:
+TypeScript
+
+export function ExperienceGuides({ 
+  experienceId, 
+  onChange, 
+  readOnly = false, 
+  draftMode = false,
+  initialDraftGuides = []
+}: ExperienceGuidesProps) {
+3. Implement Internal useQuery for Assigned Guides:
+Goal: ExperienceGuides will now fetch its own assigned guides.
+Location: Add this useQuery hook near existing useQuery hooks in the component.
+Add:
+TypeScript
+
+// Fetch currently assigned guides for this experience internally
+const { 
+  data: internalAssignedGuides = [], 
+  isLoading: isLoadingInternalAssignedGuides, // Use this for loading states
+  refetch: refetchInternalAssignedGuides // Use this for refetching
+} = useQuery<ExperienceGuide[]>({ // Or ExperienceGuideWithUser if type includes user details
+  queryKey: ['/api/experiences', experienceId, 'guides'],
+  queryFn: async () => {
+    // Only fetch if experienceId is valid and not in draft mode (creation)
+    if (!experienceId || draftMode) return []; 
+
+    const response = await fetch(`/api/experiences/${experienceId}/guides`);
+    if (!response.ok) throw new Error('Failed to fetch assigned guides');
+    return response.json();
+  },
+  enabled: !!experienceId && !draftMode, // Enable query only when experienceId exists and not creating
+});
+(Replit: Ensure ExperienceGuide type is correct. If useQuery should fetch user details, adapt it to return ExperienceGuideWithUser[] and ensure the backend provides that.)
+4. Refactor useEffect for draftGuides Initialization:
+Goal: draftGuides should now be initialized from initialDraftGuides (for creation) OR internalAssignedGuides (for editing).
+Location: The useEffect hook that currently initializes draftGuides.
+Find:
+TypeScript
+
+useEffect(() => {
+  // ... initialization logic using initialDraftGuides or externalAssignedGuides ...
+  // ... relies on externalAssignedGuides ...
+}, [draftMode, initialDraftGuides, externalAssignedGuides, setDraftGuides, setNextTempId, assignedGuides]); // Current dependencies
+Replace with:
+TypeScript
+
+useEffect(() => {
+  // This useEffect runs once on mount or when relevant props change
+  // Only set initial draft guides if we are in draft mode (creation)
+  if (draftMode && initialDraftGuides.length > 0) {
+    setDraftGuides(initialDraftGuides);
+    setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+    console.log('⚡ [INIT_DEBUG] DraftMode: Initializing from initialDraftGuides (creation mode).');
+  } 
+  // For editing, populate draftGuides from internally fetched guides
+  else if (!draftMode && internalAssignedGuides.length > 0) { // Check if internalAssignedGuides is loaded
+    const mappedGuides = internalAssignedGuides.map((guide) => ({
+      ...guide,
+      tempId: guide.id, // Use existing ID as tempId for edits
+      // Ensure guideUser is copied if it's part of the guide object
+    }));
+    setDraftGuides(mappedGuides);
+    setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+    console.log('⚡ [INIT_DEBUG] NormalMode: Initializing from internalAssignedGuides (edit mode).');
+  }
+  // If no initial guides (e.g., new experience with no guides, or edit with no guides), draftGuides will remain empty initially
+  console.log('⚡ [INIT_DEBUG] useEffect finished. Final draftGuides state:', JSON.stringify(draftGuides, null, 2));
+}, [draftMode, initialDraftGuides, internalAssignedGuides]); // Simplified dependencies, rely on internal fetch
+(Replit: Ensure assignedGuides from useQuery is renamed to internalAssignedGuides within this component to avoid confusion.)
+5. Update Mutations' onSuccess & onError Callbacks for Invalidation/Rollback:
+Goal: Invalidate the internal internalAssignedGuides query and remove refetchExperienceQuery calls.
+Location: onSuccess and onError handlers of assignGuideMutation, removeGuideMutation, updateGuideMutation.
+Find (in each onSuccess):
+TypeScript
+
+queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); // Existing line
+queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // Existing line
+if (refetchExperienceQuery) { // <--- REMOVE THIS BLOCK
+    console.log('🔄 [GUIDE_MUT_SUCCESS] Triggering parent experience query refetch.');
+    refetchExperienceQuery(); 
+}
+Replace with (simplifying invalidation, removing parent refetch):
+TypeScript
+
+// Invalidate the INTERNAL query for assigned guides
+queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] }); 
+// You may still want to invalidate the parent's general experience query if guide counts/status impact the list view directly.
+queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); 
+(Replit: Ensure other invalidations like users query remain as needed).
+Find (in onError of updateGuideMutation for rollback):
+TypeScript
+
+if (context?.previousAssignedGuides) {
+  queryClient.setQueryData(
+    ['/api/experiences', experienceId, 'guides'],
+    context.previousAssignedGuides
+  );
+  if (onChange) { // <--- REMOVE THIS BLOCK
+      console.log('⚡ [OPTIMISTIC_ROLLBACK] Rolling back onChange call.');
+      onChange(context.previousAssignedGuides);
+  }
+  console.log('⚡ [OPTIMISTIC_ROLLBACK] Optimistic update rolled back.');
+}
+Replace with (simplifying rollback for onChange):
+TypeScript
+
+if (context?.previousAssignedGuides) {
+  queryClient.setQueryData(
+    ['/api/experiences', experienceId, 'guides'],
+    context.previousAssignedGuides
+  );
+  console.log('⚡ [OPTIMISTIC_ROLLBACK] Optimistic update rolled back.'); // Keep this log
+}
+6. Clean Up Component Signature Destructuring:
+Remove assignedGuides: externalAssignedGuides = [] and refetchExperienceQuery from component props destructuring.
+Output Required for My Review:
+Once you have implemented this refactor, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this architectural refactor):
+
+ExperienceGuidesProps interface is updated (removed assignedGuides and refetchExperienceQuery).
+Component signature is updated (removed externalAssignedGuides and refetchExperienceQuery from destructuring).
+An internal useQuery for internalAssignedGuides is correctly implemented.
+useEffect correctly initializes draftGuides from initialDraftGuides OR internalAssignedGuides.
+All mutations' onSuccess and onError handlers are updated to invalidate the internal query and remove external refetchExperienceQuery calls.
+The component compiles without errors.
+No other unrelated functional code is affected.
+This rebuild is crucial for a clean and functional multi-guide component! I await your detailed diff preview. 

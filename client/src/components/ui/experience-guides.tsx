@@ -44,8 +44,6 @@ interface ExperienceGuidesProps {
   readOnly?: boolean;
   draftMode?: boolean; // New prop to indicate we're in creation flow
   initialDraftGuides?: DraftGuideAssignment[]; // For restoring draft state
-  assignedGuides?: ExperienceGuide[]; // External assigned guides for better integration
-  refetchExperienceQuery?: () => void; // Function to refresh parent experience data
 }
 
 export function ExperienceGuides({ 
@@ -53,9 +51,7 @@ export function ExperienceGuides({
   onChange, 
   readOnly = false, 
   draftMode = false,
-  initialDraftGuides = [],
-  assignedGuides: externalAssignedGuides = [],
-  refetchExperienceQuery
+  initialDraftGuides = []
 }: ExperienceGuidesProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -76,50 +72,42 @@ export function ExperienceGuides({
     enabled: !readOnly,
   });
 
-  // Fetch currently assigned guides for this experience (only in non-draft mode)
+  // Fetch currently assigned guides for this experience internally
   const { 
-    data: assignedGuides = [], 
-    isLoading,
-    refetch: refetchAssignedGuides 
-  } = useQuery({
+    data: internalAssignedGuides = [], 
+    isLoading: isLoadingInternalAssignedGuides,
+    refetch: refetchInternalAssignedGuides
+  } = useQuery<ExperienceGuide[]>({
     queryKey: ['/api/experiences', experienceId, 'guides'],
     queryFn: async () => {
-      // Handle case for new experiences (no ID yet) or draft mode
       if (!experienceId || draftMode) return [];
-      
+
       const response = await fetch(`/api/experiences/${experienceId}/guides`);
       if (!response.ok) throw new Error('Failed to fetch assigned guides');
       return response.json();
     },
+    enabled: !!experienceId && !draftMode,
   });
 
-  // Initialize draftGuides from initialDraftGuides or externalAssignedGuides only once
-  // This useEffect ensures draftGuides is the mutable source of truth for the UI
+  // Clean initialization useEffect - single source of truth
   useEffect(() => {
-    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---');
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, externalAssignedGuidesLength: externalAssignedGuides.length });
-    
-    // Only set initial draft guides if we are in draft mode (creation)
-    // OR if we are in normal mode (editing) and there are external guides to load
     if (draftMode && initialDraftGuides.length > 0) {
       setDraftGuides(initialDraftGuides);
-      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from initialDraftGuides (creation mode). Result:', initialDraftGuides);
-    } else if (!draftMode && externalAssignedGuides.length > 0) { // For editing, populate draftGuides from externally assigned
-      // Map externalAssignedGuides to DraftGuideAssignment if necessary for tempId consistency
-      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
-        tempId: guide.id, // Use existing ID as tempId for edits
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+      console.log('⚡ [INIT_DEBUG] DraftMode: Initializing from initialDraftGuides (creation mode).');
+    } 
+    else if (!draftMode && internalAssignedGuides.length > 0) {
+      const mappedGuides = internalAssignedGuides.map((guide) => ({
+        tempId: guide.id,
         guideId: guide.guideId,
-        isPrimary: guide.isPrimary ?? false // Handle null values for isPrimary
+        isPrimary: guide.isPrimary || false
       }));
       setDraftGuides(mappedGuides);
       setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
-      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from externalAssignedGuides (edit mode). Result:', mappedGuides);
-    } else if (!draftMode && externalAssignedGuides.length === 0 && assignedGuides.length > 0) {
-        console.warn('⚠️ [DRAFT_GUIDES_DEBUG] useEffect - externalAssignedGuides is empty, but assignedGuides has data. Potential sync issue.');
+      console.log('⚡ [INIT_DEBUG] NormalMode: Initializing from internalAssignedGuides (edit mode).');
     }
-    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Current draftGuides state:', JSON.stringify(draftGuides, null, 2));
-  }, [draftMode, initialDraftGuides, externalAssignedGuides, assignedGuides]);
+    console.log('⚡ [INIT_DEBUG] useEffect finished. Final draftGuides state:', JSON.stringify(draftGuides, null, 2));
+  }, [draftMode, initialDraftGuides, internalAssignedGuides]);
 
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
@@ -144,22 +132,15 @@ export function ExperienceGuides({
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId] });
       queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
       
-      // Force multiple refetches to ensure UI is updated - this helps with in-memory storage
+      // Force refetch of internal assigned guides
       const performRefetch = () => {
         console.log(`[CLIENT] Forcing guide assignments refetch for experience ${experienceId}`);
-        refetchAssignedGuides();
+        refetchInternalAssignedGuides();
       };
       
       // Stagger the refetches to ensure data is up-to-date
       setTimeout(performRefetch, 100);
       setTimeout(performRefetch, 500);
-      
-      // --- ADDED: Call parent's refetch function ---
-      if (refetchExperienceQuery) {
-        console.log('🔄 [GUIDE_MUT_SUCCESS] Triggering parent experience query refetch.');
-        refetchExperienceQuery();
-      }
-      // --- END ADDED ---
       
       toast({
         title: 'Guide assigned',
@@ -238,12 +219,7 @@ export function ExperienceGuides({
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences too
       queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
       
-      // --- ADDED: Call parent's refetch function ---
-      if (refetchExperienceQuery) {
-        console.log('🔄 [UPDATE_GUIDE_SUCCESS] Triggering parent experience query refetch.');
-        refetchExperienceQuery();
-      }
-      // --- END ADDED ---
+
       
       toast({
         title: 'Guide updated!',
@@ -302,16 +278,9 @@ export function ExperienceGuides({
           onChange(updatedDraftGuidesAfterRemoval); 
       }
       
-      // --- ADDED: Call parent's refetch function ---
-      if (refetchExperienceQuery) {
-        console.log('🔄 [REMOVE_GUIDE_SUCCESS] Triggering parent experience query refetch.');
-        refetchExperienceQuery();
-      }
-      // --- END ADDED ---
-      
       // Force refetch to ensure UI consistency
       setTimeout(() => {
-        refetchAssignedGuides();
+        refetchInternalAssignedGuides();
       }, 100);
       
       toast({
