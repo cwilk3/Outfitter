@@ -324,11 +324,43 @@ export default function Experiences() {
       
       return apiRequest<Experience>('POST', '/api/experiences', payload);
     },
-    onSuccess: (response: Experience) => {
+    onSuccess: async (response: Experience) => {
       toast({
         title: "Success",
         description: "Experience created successfully",
       });
+      
+      // Process add-ons if any exist
+      if (addons.length > 0) {
+        console.log(`🔍 [ADDON_PROCESSING] Creating ${addons.length} add-ons for experience ${response.id}`);
+        
+        try {
+          for (const addon of addons) {
+            const addonPayload = {
+              experienceId: response.id,
+              name: addon.name,
+              description: addon.description || '',
+              price: addon.price,
+              isOptional: addon.isOptional,
+              inventory: addon.inventory,
+              maxPerBooking: addon.maxPerBooking
+            };
+            
+            console.log(`🔍 [ADDON_PROCESSING] Creating addon:`, addonPayload);
+            
+            await apiRequest('POST', `/api/experiences/${response.id}/addons`, addonPayload);
+          }
+          
+          console.log(`✅ [ADDON_PROCESSING] Successfully created all ${addons.length} add-ons`);
+        } catch (addonError) {
+          console.error('❌ [ADDON_PROCESSING] Failed to create add-ons:', addonError);
+          toast({
+            title: "Warning",
+            description: `Experience created but add-ons failed to save: ${addonError instanceof Error ? addonError.message : 'Unknown error'}`,
+            variant: "destructive",
+          });
+        }
+      }
       
       // Location relationship is now created directly with the experience
       // No need for separate addExperienceLocationMutation call
@@ -370,15 +402,77 @@ export default function Experiences() {
         }))
       });
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast({
         title: "Success",
         description: "Experience updated successfully",
       });
       
-      // Handle location associations - but more carefully to avoid removing the only location
+      // Process add-on updates if selectedExperience exists
       if (selectedExperience) {
         const experienceId = selectedExperience.id;
+        
+        // Handle add-on updates
+        try {
+          console.log(`🔍 [ADDON_UPDATE] Processing add-ons for experience ${experienceId}`);
+          
+          // Get current add-ons from the API to compare with local state
+          const currentAddonsResponse = await fetch(`/api/experiences/${experienceId}/addons`);
+          const currentAddons = currentAddonsResponse.ok ? await currentAddonsResponse.json() : [];
+          
+          // Create new add-ons (ones without an ID)
+          const newAddons = addons.filter(addon => !addon.id);
+          for (const addon of newAddons) {
+            const addonPayload = {
+              experienceId: experienceId,
+              name: addon.name,
+              description: addon.description || '',
+              price: addon.price,
+              isOptional: addon.isOptional,
+              inventory: addon.inventory,
+              maxPerBooking: addon.maxPerBooking
+            };
+            
+            console.log(`🔍 [ADDON_UPDATE] Creating new addon:`, addonPayload);
+            await apiRequest('POST', `/api/experiences/${experienceId}/addons`, addonPayload);
+          }
+          
+          // Update existing add-ons (ones with an ID)
+          const existingAddons = addons.filter(addon => addon.id);
+          for (const addon of existingAddons) {
+            const addonPayload = {
+              name: addon.name,
+              description: addon.description || '',
+              price: addon.price,
+              isOptional: addon.isOptional,
+              inventory: addon.inventory,
+              maxPerBooking: addon.maxPerBooking
+            };
+            
+            console.log(`🔍 [ADDON_UPDATE] Updating addon ${addon.id}:`, addonPayload);
+            await apiRequest('PATCH', `/api/experiences/${experienceId}/addons/${addon.id}`, addonPayload);
+          }
+          
+          // Delete removed add-ons (current add-ons not in local state)
+          const localAddonIds = addons.filter(addon => addon.id).map(addon => addon.id);
+          const addonsToDelete = currentAddons.filter((currentAddon: any) => !localAddonIds.includes(currentAddon.id));
+          
+          for (const addonToDelete of addonsToDelete) {
+            console.log(`🔍 [ADDON_UPDATE] Deleting addon ${addonToDelete.id}`);
+            await apiRequest('DELETE', `/api/experiences/${experienceId}/addons/${addonToDelete.id}`);
+          }
+          
+          console.log(`✅ [ADDON_UPDATE] Successfully processed all add-on updates`);
+        } catch (addonError) {
+          console.error('❌ [ADDON_UPDATE] Failed to update add-ons:', addonError);
+          toast({
+            title: "Warning",
+            description: `Experience updated but add-ons failed to save: ${addonError instanceof Error ? addonError.message : 'Unknown error'}`,
+            variant: "destructive",
+          });
+        }
+        
+        // Handle location associations - but more carefully to avoid removing the only location
         const existingLocations = experienceLocations[experienceId] || [];
         
         // Only handle location changes if there are selected locations
