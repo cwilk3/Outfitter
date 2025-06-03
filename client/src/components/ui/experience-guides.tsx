@@ -89,25 +89,33 @@ export function ExperienceGuides({
     enabled: !!experienceId && !draftMode,
   });
 
-  // Clean initialization useEffect - single source of truth
+  // Initialize draftGuides from initialDraftGuides or internalAssignedGuides
   useEffect(() => {
-    if (draftMode && initialDraftGuides.length > 0) {
-      setDraftGuides(initialDraftGuides);
-      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
-      console.log('⚡ [INIT_DEBUG] DraftMode: Initializing from initialDraftGuides (creation mode).');
-    } 
-    else if (!draftMode && internalAssignedGuides.length > 0) {
-      const mappedGuides = internalAssignedGuides.map((guide) => ({
-        tempId: guide.id,
+    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---');
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, internalAssignedGuidesLength: internalAssignedGuides.length });
+    
+    // Determine the source of truth for initial draftGuides based on mode
+    let sourceGuides: DraftGuideAssignment[] = [];
+    if (draftMode) {
+      // For new experiences (creation), use initialDraftGuides (which usually starts empty or from parent's initial state)
+      sourceGuides = initialDraftGuides;
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing from initialDraftGuides (creation mode).');
+    } else {
+      // For existing experiences (edit mode), use internalAssignedGuides (from API)
+      // Map them to DraftGuideAssignment to ensure tempId and mutability
+      sourceGuides = (internalAssignedGuides || []).map(guide => ({
+        tempId: guide.id, // Use existing ID as tempId for edits
         guideId: guide.guideId,
-        isPrimary: guide.isPrimary || false
+        isPrimary: guide.isPrimary || false // Ensure isPrimary is boolean
       }));
-      setDraftGuides(mappedGuides);
-      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
-      console.log('⚡ [INIT_DEBUG] NormalMode: Initializing from internalAssignedGuides (edit mode).');
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing from internalAssignedGuides (edit mode).');
     }
-    console.log('⚡ [INIT_DEBUG] useEffect finished. Final draftGuides state:', JSON.stringify(draftGuides, null, 2));
-  }, [draftMode, initialDraftGuides, internalAssignedGuides]);
+
+    setDraftGuides(sourceGuides);
+    setNextTempId(Math.max(...sourceGuides.map(g => g.tempId || 0)) + 1); // Set tempId counter based on source guides
+    
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Final draftGuides state:', JSON.stringify(sourceGuides, null, 2));
+  }, [draftMode, initialDraftGuides, internalAssignedGuides]); // Simplify dependencies, `setDraftGuides` and `setNextTempId` are stable.
 
   // Assign a guide to the experience
   const assignGuideMutation = useMutation({
