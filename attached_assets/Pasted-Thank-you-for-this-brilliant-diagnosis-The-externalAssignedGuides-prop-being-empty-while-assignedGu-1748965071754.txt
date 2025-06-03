@@ -1,0 +1,84 @@
+Thank you for this brilliant diagnosis. The externalAssignedGuides prop being empty while assignedGuides has data is the smoking gun. draftGuides is not being initialized from the correct source.
+
+Your primary task is to modify the useEffect hook in client/src/components/ui/experience-guides.tsx to ensure draftGuides is correctly initialized from the assignedGuides useQuery result when the component is in 'normal' (edit) mode.
+
+Specific Focus Areas for Modification:
+
+File: client/src/components/ui/experience-guides.tsx
+Location: The useEffect hook that initializes draftGuides.
+Proposed Code Changes (applying to useEffect):
+
+Find this block (the useEffect that initializes draftGuides):
+
+TypeScript
+
+  useEffect(() => {
+    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---'); 
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, externalAssignedGuidesLength: externalAssignedGuides.length }); 
+    
+    if (draftMode && initialDraftGuides.length > 0) {
+      setDraftGuides(initialDraftGuides);
+      setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from initialDraftGuides (creation mode). Result:', initialDraftGuides);
+    } else if (!draftMode && externalAssignedGuides.length > 0) { // THIS IS THE PROBLEMATIC BRANCH
+      const mappedGuides = externalAssignedGuides.map((guide, index) => ({
+        ...guide,
+        tempId: guide.id,
+      }));
+      setDraftGuides(mappedGuides);
+      setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+      console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from externalAssignedGuides (edit mode). Result:', mappedGuides);
+    } else if (!draftMode && externalAssignedGuides.length === 0 && assignedGuides.length > 0) { 
+        console.warn('⚠️ [DRAFT_GUIDES_DEBUG] useEffect - externalAssignedGuides is empty, but assignedGuides has data. Potential sync issue.');
+    }
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Current draftGuides state:', JSON.stringify(draftGuides, null, 2));
+  }, [draftMode, initialDraftGuides, externalAssignedGuides, setDraftGuides, setNextTempId, assignedGuides]);
+Replace it with (modifying useEffect to correctly initialize draftGuides from assignedGuides in edit mode):
+
+TypeScript
+
+  useEffect(() => {
+    console.log('--- DIAGNOSTIC: draftGuides useEffect Init ---'); 
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect dependencies:', { draftMode, initialDraftGuidesLength: initialDraftGuides.length, externalAssignedGuidesLength: externalAssignedGuides.length, assignedGuidesLength: assignedGuides.length }); // <--- ADD assignedGuidesLength to log
+    
+    // Only initialize draftGuides once if it's currently empty, to prevent re-initialization on every render
+    // AND only if the source data (initialDraftGuides or assignedGuides) is available
+    if (draftGuides.length === 0 && (initialDraftGuides.length > 0 || assignedGuides.length > 0)) { // <--- MODIFIED INITIALIZATION CONDITION
+      if (draftMode && initialDraftGuides.length > 0) { // Creation mode
+        setDraftGuides(initialDraftGuides);
+        setNextTempId(Math.max(...initialDraftGuides.map(g => g.tempId || 0)) + 1);
+        console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from initialDraftGuides (creation mode). Result:', initialDraftGuides);
+      } else if (!draftMode && assignedGuides.length > 0) { // <--- MODIFIED: Use assignedGuides (from useQuery) for edit mode
+        const mappedGuides = assignedGuides.map((guide) => ({ // <--- Use assignedGuides directly
+          ...guide,
+          tempId: guide.id, // Use existing ID as tempId for edits
+        }));
+        setDraftGuides(mappedGuides);
+        setNextTempId(Math.max(...mappedGuides.map(g => g.tempId || 0)) + 1);
+        console.log('🔍 [DRAFT_GUIDES_DEBUG] Initializing draftGuides from assignedGuides (edit mode). Result:', mappedGuides);
+      } else {
+        // This case should ideally not happen if data is consistently provided
+        console.warn('⚠️ [DRAFT_GUIDES_DEBUG] useEffect - No guides provided for initialization. draftGuides remains empty.'); // <--- ADDED WARNING
+      }
+    } else if (draftGuides.length > 0 && assignedGuides.length === 0 && !draftMode) {
+        // Edge case: User removed all guides in edit mode, then re-opened dialog?
+        // Or assignedGuides query hasn't run yet.
+        console.log('🔍 [DRAFT_GUIDES_DEBUG] draftGuides already populated, or assignedGuides is empty in edit mode.');
+    }
+    
+    // Ensure this log always appears after the effect has potentially set state
+    console.log('🔍 [DRAFT_GUIDES_DEBUG] useEffect finished. Current draftGuides state (after potential init):', JSON.stringify(draftGuides, null, 2)); // <--- MODIFIED LOG
+  }, [draftMode, initialDraftGuides, assignedGuides, setDraftGuides, setNextTempId, draftGuides.length]); // <--- ADD draftGuides.length to dependencies for re-runs
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/components/ui/experience-guides.tsx. After approval, you will perform a manual test (adding a guide in edit mode) and provide the complete browser console output.
+
+Success Criteria for My Approval (for this functional fix):
+
+The useEffect hook correctly initializes draftGuides from:
+initialDraftGuides when draftMode is true.
+assignedGuides (the query result) when draftMode is false.
+The initialization happens only if draftGuides is currently empty, preventing redundant re-initialization.
+tempId is correctly mapped for guides initialized from assignedGuides.
+Diagnostic logs are updated/added to confirm the correct initialization path and final draftGuides state.
+No other unrelated functional code is affected.
+The change directly resolves draftGuides not accumulating existing guides, preventing overwrite on save.

@@ -1659,6 +1659,7 @@ export default function Experiences() {
                       readOnly={false}
                       draftMode={!selectedExperience?.id}
                       initialDraftGuides={draftGuides}
+                      assignedGuides={selectedExperience?.assignedGuides || []}
                       onChange={(guides) => {
                         // Add diagnostic logging for draftMode decision
                         console.log("🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode:", !selectedExperience?.id, "for experience ID:", selectedExperience?.id);

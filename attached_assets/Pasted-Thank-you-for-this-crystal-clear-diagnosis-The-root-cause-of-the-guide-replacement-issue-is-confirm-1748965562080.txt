@@ -1,0 +1,46 @@
+Thank you for this crystal-clear diagnosis. The root cause of the guide replacement issue is confirmed: externalAssignedGuides is not being properly passed to ExperienceGuides.
+
+Your primary task is to modify client/src/pages/Experiences.tsx to correctly pass the assignedGuides array (from the selectedExperience object) to the ExperienceGuides component via its assignedGuides prop.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Experiences.tsx
+Location: Where the ExperienceGuides component is rendered (you will need to locate this in the JSX, based on previous diffs around line 2121 or within the form).
+Proposed Code Changes:
+
+Find this block (where ExperienceGuides component is rendered):
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  readOnly={false}
+  draftMode={!selectedExperience?.id} // Correctly determines draft mode
+  initialDraftGuides={draftGuides} // For creation mode, should be initialized correctly
+  onChange={(guides) => { /* ... existing onChange logic ... */ }}
+  // assignedGuides prop is missing or empty here
+/>
+Replace it with (adding assignedGuides prop):
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  readOnly={false}
+  draftMode={!selectedExperience?.id}
+  initialDraftGuides={draftGuides}
+  onChange={(guides) => { /* ... existing onChange logic ... */ }}
+  assignedGuides={selectedExperience?.assignedGuides || []} // <--- CRITICAL: Pass existing assigned guides
+/>
+(Replit: Ensure selectedExperience is correctly populated with assignedGuides data from the backend query, which was part of our Phase 2 update. If selectedExperience.assignedGuides is still not populated, you might need to adjust the query that fetches selectedExperience to include with: { experienceGuides: { with: { user: true } } } similar to getExperience/listExperiences in server/storage.ts if selectedExperience comes from a fresh fetch/query here.)
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for client/src/pages/Experiences.tsx.
+
+Success Criteria for My Approval (for this functional fix):
+
+The ExperienceGuides component is correctly passed the assignedGuides prop, sourced from selectedExperience?.assignedGuides.
+The selectedExperience object is confirmed to be populated with assignedGuides data from its API source.
+The change directly resolves the externalAssignedGuides being empty, which will allow draftGuides to correctly initialize with existing guides.
+No other unrelated functional code is affected.
+I will not approve this step until these criteria are met. This fix is crucial for solving the guide replacement issue!
