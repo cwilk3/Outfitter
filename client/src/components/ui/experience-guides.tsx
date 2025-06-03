@@ -527,7 +527,7 @@ export function ExperienceGuides({
       <div className="space-y-2">
         <Label>Guide Details & Management</Label>
         
-        {(!draftMode && isInternalLoading) ? (
+        {(!draftMode && isLoadingInternalAssignedGuides) ? (
           <div className="py-4 text-center text-muted-foreground">Loading guides...</div>
         ) : guidesToDisplay.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground border-2 border-dashed rounded-lg">
