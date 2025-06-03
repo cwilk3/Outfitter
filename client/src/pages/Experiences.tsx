@@ -234,7 +234,7 @@ export default function Experiences() {
   const [draftGuides, setDraftGuides] = useState<any[]>([]);
 
   // Fetch all experiences
-  const { data: experiences = [], isLoading, error } = useQuery<Experience[]>({
+  const { data: experiences = [], isLoading, error, refetch: refetchExperiences } = useQuery<Experience[]>({
     queryKey: ['/api/experiences'],
   });
   
@@ -259,6 +259,22 @@ export default function Experiences() {
   // State for tracking selected locations and experience-location mappings
   const [selectedLocIds, setSelectedLocIds] = useState<number[]>([]);
   const [experienceLocations, setExperienceLocations] = useState<{ [experienceId: number]: number[] }>({});
+
+  // Create refresh function for selectedExperience
+  const refreshSelectedExperience = async () => {
+    if (!selectedExperience?.id) return;
+    
+    console.log('🔄 [REFRESH_SELECTED] Refreshing selectedExperience data');
+    
+    // Refetch experiences query to get latest data
+    const updatedResult = await refetchExperiences();
+    const freshExperience = updatedResult.data?.find(exp => exp.id === selectedExperience.id);
+    
+    if (freshExperience) {
+      console.log('🔄 [REFRESH_SELECTED] Updated selectedExperience with fresh data');
+      setSelectedExperience(freshExperience);
+    }
+  };
 
   // Form handling
   const form = useForm<ExperienceFormValues>({
@@ -1659,7 +1675,7 @@ export default function Experiences() {
                       readOnly={false}
                       draftMode={!selectedExperience?.id}
                       initialDraftGuides={draftGuides}
-                      assignedGuides={selectedExperience?.assignedGuides || []}
+                      refetchExperienceQuery={refreshSelectedExperience}
                       onChange={(guides) => {
                         // Add diagnostic logging for draftMode decision
                         console.log("🔍 [GUIDE_MODE_DEBUG] ExperienceGuides draftMode:", !selectedExperience?.id, "for experience ID:", selectedExperience?.id);

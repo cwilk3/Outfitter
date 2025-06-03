@@ -45,6 +45,7 @@ interface ExperienceGuidesProps {
   draftMode?: boolean; // New prop to indicate we're in creation flow
   initialDraftGuides?: DraftGuideAssignment[]; // For restoring draft state
   assignedGuides?: ExperienceGuide[]; // External assigned guides for better integration
+  refetchExperienceQuery?: () => void; // Function to refresh parent experience data
 }
 
 export function ExperienceGuides({ 
@@ -53,7 +54,8 @@ export function ExperienceGuides({
   readOnly = false, 
   draftMode = false,
   initialDraftGuides = [],
-  assignedGuides: externalAssignedGuides = []
+  assignedGuides: externalAssignedGuides = [],
+  refetchExperienceQuery
 }: ExperienceGuidesProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();

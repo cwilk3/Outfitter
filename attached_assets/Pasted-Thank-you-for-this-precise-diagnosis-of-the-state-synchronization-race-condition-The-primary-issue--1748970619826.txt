@@ -1,0 +1,102 @@
+Thank you for this precise diagnosis of the state synchronization race condition. The primary issue is the staleness of selectedExperience in Experiences.tsx.
+
+Your primary task is to implement Option 1: Fix Parent Data Flow. This involves ensuring the selectedExperience query in client/src/pages/Experiences.tsx is properly invalidated and refreshed whenever a guide assignment mutation (add, remove, make primary) occurs.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Experiences.tsx
+Locations:
+The useQuery call that fetches selectedExperience (or the experience details for editing).
+The onSuccess handlers of createMutation and updateMutation (these might need to trigger a refetch of selectedExperience if the selectedExperience is not refreshed when closeDialog is called or through other means).
+The ExperienceGuides component (child component) where assignedGuideIds mutations occur. This component will need a way to trigger the parent's query invalidation/refetch.
+Proposed Code Changes:
+
+1. Pass refetchExperienceQuery to ExperienceGuides Component:
+The ExperienceGuides component needs a way to tell its parent (Experiences.tsx) to refetch the experience data.
+
+File: client/src/pages/Experiences.tsx
+Location: Where selectedExperience is fetched using useQuery. Assume it looks like this:
+
+TypeScript
+
+const { data: selectedExperience, isLoading: isLoadingExperience, refetch: refetchSelectedExperience } = useQuery<ExperienceWithGuides>(
+  // ... query details ...
+);
+Find this block (where ExperienceGuides component is rendered):
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  // ... other props ...
+/>
+Replace it with (passing refetchExperienceQuery):
+
+TypeScript
+
+<ExperienceGuides
+  experienceId={selectedExperience?.id || 0}
+  // ... other props ...
+  refetchExperienceQuery={refetchSelectedExperience} // <--- ADD THIS PROP
+/>
+2. Update ExperienceGuidesProps Interface:
+File: client/src/components/ui/experience-guides.tsx
+Location: The ExperienceGuidesProps interface definition.
+
+Proposed Code Changes:
+
+TypeScript
+
+interface ExperienceGuidesProps {
+  // ... existing props ...
+  refetchExperienceQuery?: () => void; // <--- ADD THIS PROP
+}
+3. Call refetchExperienceQuery in Guide Mutations' onSuccess:
+Modify the onSuccess handlers of assignGuideMutation, removeGuideMutation, and updateGuideMutation (all in client/src/components/ui/experience-guides.tsx) to call props.refetchExperienceQuery() if it's provided.
+
+File: client/src/components/ui/experience-guides.tsx
+Location: Inside each mutation's onSuccess handler.
+
+Proposed Code Changes (apply to assignGuideMutation, removeGuideMutation, updateGuideMutation):
+
+Find this block (typical onSuccess handler):
+
+TypeScript
+
+onSuccess: (data, variables, context) => {
+  // ... existing success logic ...
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+  // ... other invalidations ...
+  if (onChange) { /* ... */ }
+  toast({ /* ... */ });
+},
+Replace it with (adding refetchExperienceQuery call):
+
+TypeScript
+
+onSuccess: (data, variables, context) => {
+  // ... existing success logic ...
+  queryClient.invalidateQueries({ queryKey: ['/api/experiences', experienceId, 'guides'] });
+  // ... other invalidations ...
+  
+  // --- ADDED: Call parent's refetch function ---
+  if (refetchExperienceQuery) { // refetchExperienceQuery will be available via props
+    console.log('🔄 [GUIDE_MUT_SUCCESS] Triggering parent experience query refetch.');
+    refetchExperienceQuery(); // <--- CRITICAL: Refetch the parent's selectedExperience query
+  }
+  // --- END ADDED ---
+
+  if (onChange) { /* ... */ }
+  toast({ /* ... */ });
+},
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview that includes client/src/pages/Experiences.tsx and client/src/components/ui/experience-guides.tsx.
+
+Success Criteria for My Approval (for this state sync fix):
+
+refetchExperienceQuery prop is correctly passed from Experiences.tsx to ExperienceGuides.
+ExperienceGuidesProps interface is updated to include refetchExperienceQuery.
+refetchExperienceQuery is correctly called within the onSuccess handlers of assignGuideMutation, removeGuideMutation, and updateGuideMutation in ExperienceGuides.tsx.
+The component compiles without errors.
+No other unrelated functional code is affected.
+This fix is crucial for "Make Primary" visual update and other guide assignment changes to persist correctly in the UI. I await your detailed diff preview!
