@@ -154,6 +154,13 @@ export function ExperienceGuides({
       setTimeout(performRefetch, 100);
       setTimeout(performRefetch, 500);
       
+      // --- ADDED: Call parent's refetch function ---
+      if (refetchExperienceQuery) {
+        console.log('🔄 [GUIDE_MUT_SUCCESS] Triggering parent experience query refetch.');
+        refetchExperienceQuery();
+      }
+      // --- END ADDED ---
+      
       toast({
         title: 'Guide assigned',
         description: 'The guide has been successfully assigned to this experience.',
@@ -231,6 +238,13 @@ export function ExperienceGuides({
       queryClient.invalidateQueries({ queryKey: ['/api/experiences'] }); // May need to invalidate main experiences too
       queryClient.invalidateQueries({ queryKey: ['/api/users', { roles: ['admin', 'guide'] }] }); // Invalidate available guides if needed
       
+      // --- ADDED: Call parent's refetch function ---
+      if (refetchExperienceQuery) {
+        console.log('🔄 [UPDATE_GUIDE_SUCCESS] Triggering parent experience query refetch.');
+        refetchExperienceQuery();
+      }
+      // --- END ADDED ---
+      
       toast({
         title: 'Guide updated!',
         description: `Guide ${variables.isPrimary ? 'made primary' : 'status updated'}.`,
@@ -287,6 +301,13 @@ export function ExperienceGuides({
           console.log('🔍 [FRONTEND_UNASSIGN_DEBUG] Calling onChange with updatedDraftGuidesAfterRemoval.');
           onChange(updatedDraftGuidesAfterRemoval); 
       }
+      
+      // --- ADDED: Call parent's refetch function ---
+      if (refetchExperienceQuery) {
+        console.log('🔄 [REMOVE_GUIDE_SUCCESS] Triggering parent experience query refetch.');
+        refetchExperienceQuery();
+      }
+      // --- END ADDED ---
       
       // Force refetch to ensure UI consistency
       setTimeout(() => {
