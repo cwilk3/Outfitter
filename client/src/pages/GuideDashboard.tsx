@@ -45,13 +45,13 @@ export default function GuideDashboard() {
   const { user } = useAuth();
 
   // Fetch guide's assigned experiences
-  const { data: experiences = [], isLoading: experiencesLoading } = useQuery({
+  const { data: experiences = [], isLoading: experiencesLoading } = useQuery<GuideExperience[]>({
     queryKey: ["/api/guides", user?.id, "experiences"],
     enabled: !!user?.id,
   });
 
   // Fetch guide's upcoming bookings
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading } = useQuery<GuideBooking[]>({
     queryKey: ["/api/guides", user?.id, "bookings"],
     enabled: !!user?.id,
   });
