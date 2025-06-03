@@ -123,8 +123,6 @@ export interface IStorage {
   // Additional methods needed by routes (avoid duplication with main interface)
   createUser(user: UpsertUser): Promise<User>;
   getGuideAssignmentsByGuideId(guideId: string): Promise<any[]>;
-  getBookingsForGuide(guideId: string, outfitterId: number): Promise<any[]>;
-  getGuideStats(guideId: string, outfitterId: number): Promise<any>;
   
   // Add missing interface methods  
   getExperienceGuideByIdWithTenant(id: number, outfitterId: number): Promise<any>;
@@ -1724,98 +1722,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(experienceGuides)
       .where(eq(experienceGuides.guideId, guideId));
-  }
-
-  // Get all bookings for a specific guide
-  async getBookingsForGuide(guideId: string, outfitterId: number): Promise<any[]> {
-    const guideBookings = await db
-      .select({
-        id: bookings.id,
-        bookingNumber: bookings.bookingNumber,
-        experienceId: bookings.experienceId,
-        experienceName: experiences.name,
-        customerId: bookings.customerId,
-        customerFirstName: customers.firstName,
-        customerLastName: customers.lastName,
-        startDate: bookings.startDate,
-        endDate: bookings.endDate,
-        guestCount: bookings.groupSize,
-        status: bookings.status,
-        totalAmount: bookings.totalAmount,
-        location: {
-          name: locations.name,
-          address: locations.address
-        }
-      })
-      .from(bookingGuides)
-      .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
-      .innerJoin(experiences, eq(bookings.experienceId, experiences.id))
-      .innerJoin(customers, eq(bookings.customerId, customers.id))
-      .leftJoin(locations, eq(experiences.locationId, locations.id))
-      .where(and(
-        eq(bookingGuides.guideId, guideId),
-        eq(bookings.outfitterId, outfitterId)
-      ))
-      .orderBy(desc(bookings.startDate));
-
-    return guideBookings;
-  }
-
-  // Get guide dashboard statistics
-  async getGuideStats(guideId: string, outfitterId: number): Promise<any> {
-    const now = new Date();
-    const startOfWeek = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-
-    // Count upcoming bookings
-    const upcomingBookingsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(bookingGuides)
-      .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
-      .where(and(
-        eq(bookingGuides.guideId, guideId),
-        eq(bookings.outfitterId, outfitterId),
-        gte(bookings.startDate, now)
-      ));
-
-    // Count this week's bookings
-    const thisWeekBookingsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(bookingGuides)
-      .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
-      .where(and(
-        eq(bookingGuides.guideId, guideId),
-        eq(bookings.outfitterId, outfitterId),
-        gte(bookings.startDate, now),
-        lte(bookings.startDate, new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)))
-      ));
-
-    // Count assigned experiences
-    const assignedExperiencesResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(experienceGuides)
-      .innerJoin(experiences, eq(experienceGuides.experienceId, experiences.id))
-      .where(and(
-        eq(experienceGuides.guideId, guideId),
-        eq(experiences.outfitterId, outfitterId)
-      ));
-
-    // Count primary experiences
-    const primaryExperiencesResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(experienceGuides)
-      .innerJoin(experiences, eq(experienceGuides.experienceId, experiences.id))
-      .where(and(
-        eq(experienceGuides.guideId, guideId),
-        eq(experiences.outfitterId, outfitterId),
-        eq(experienceGuides.isPrimary, true)
-      ));
-
-    return {
-      upcomingBookings: upcomingBookingsResult[0]?.count || 0,
-      thisWeekBookings: thisWeekBookingsResult[0]?.count || 0,
-      assignedExperiences: assignedExperiencesResult[0]?.count || 0,
-      primaryExperiences: primaryExperiencesResult[0]?.count || 0
-    };
   }
 
   // Add missing interface method implementations

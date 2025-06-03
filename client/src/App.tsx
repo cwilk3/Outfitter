@@ -17,13 +17,12 @@ import Settings from "@/pages/Settings";
 import PublicBooking from "@/pages/PublicBooking";
 import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
-import GuideDashboard from "@/pages/GuideDashboard";
 import AppLayout from "@/layouts/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { OutfitterProvider } from "@/contexts/OutfitterContext";
 
 function ProtectedRoutes() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -40,19 +39,6 @@ function ProtectedRoutes() {
   if (!isAuthenticated) {
     window.location.href = "/auth";
     return null;
-  }
-
-  // Role-based routing: guides see guide dashboard, admins see full app
-  if (user?.role === 'guide') {
-    return (
-      <OutfitterProvider>
-        <Switch>
-          <Route path="/" component={GuideDashboard} />
-          <Route path="/guide" component={GuideDashboard} />
-          <Route component={NotFound} />
-        </Switch>
-      </OutfitterProvider>
-    );
   }
 
   return (
@@ -75,7 +61,6 @@ function ProtectedRoutes() {
           <Route path="/payments" component={Payments} />
           <Route path="/documents" component={Documents} />
           <Route path="/settings" component={Settings} />
-          <Route path="/guide" component={GuideDashboard} />
           <Route component={NotFound} />
         </Switch>
       </AppLayout>
