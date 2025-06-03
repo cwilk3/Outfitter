@@ -1170,6 +1170,9 @@ export class DatabaseStorage implements IStorage {
     // Use a transaction for atomicity if multiple DB operations are involved
     try {
       await db.transaction(async (tx) => {
+        // Check if the guide being removed is the primary guide
+        const isPrimaryGuide = assignmentExists.isPrimary;
+        
         // Step 1: Remove the specific guide from the junction table
         await tx.delete(experienceGuides)
           .where(and(
@@ -1177,14 +1180,36 @@ export class DatabaseStorage implements IStorage {
             eq(experienceGuides.guideId, guideId)
           ));
 
-        // Step 2: If the removed guide was the primary guide, set experiences.guideId to null
-        if (existingExperience.guideId === guideId) {
-          await tx.update(experiences)
-            .set({ guideId: null, updatedAt: new Date() })
-            .where(eq(experiences.id, experienceId));
+        // Step 2: If the removed guide was the primary guide, handle primary guide promotion
+        if (isPrimaryGuide) {
+          // Find remaining guides for this experience
+          const remainingGuides = await tx
+            .select()
+            .from(experienceGuides)
+            .where(eq(experienceGuides.experienceId, experienceId))
+            .limit(1);
+          
+          if (remainingGuides.length > 0) {
+            // Promote the first remaining guide to primary
+            console.log(`🔄 [PRIMARY_GUIDE_PROMOTION] Promoting guide ${remainingGuides[0].guideId} to primary after removing ${guideId}`);
+            await tx
+              .update(experienceGuides)
+              .set({ isPrimary: true, updatedAt: new Date() })
+              .where(eq(experienceGuides.id, remainingGuides[0].id));
+            
+            // Update experiences.guideId to the new primary guide for compatibility
+            await tx
+              .update(experiences)
+              .set({ guideId: remainingGuides[0].guideId, updatedAt: new Date() })
+              .where(eq(experiences.id, experienceId));
+          } else {
+            // No remaining guides, set experiences.guideId to null
+            await tx
+              .update(experiences)
+              .set({ guideId: null, updatedAt: new Date() })
+              .where(eq(experiences.id, experienceId));
+          }
         }
-        // If the removed guide was not the primary (existingExperience.guideId != guideId),
-        // we don't need to change experiences.guideId for compatibility yet.
       });
 
       console.log(`[STORAGE_REMOVE_SUCCESS] Guide ${guideId} successfully unassigned from experience ${experienceId}.`);

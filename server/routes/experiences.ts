@@ -387,7 +387,7 @@ router.post('/:id/guides', adminOnly, asyncHandler(async (req: Request, res: Res
     console.log('🔄 [PRIMARY_GUIDE_ENFORCEMENT] New primary guide - removing primary from existing guides');
     for (const existingGuide of existingGuides) {
       if (existingGuide.isPrimary) {
-        await storage.updateGuideAssignment(existingGuide.id, { isPrimary: false });
+        await storage.updateGuideAssignment(existingGuide.id, { isPrimary: false }, outfitterId);
       }
     }
   }
