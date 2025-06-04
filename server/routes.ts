@@ -210,10 +210,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST /api/users - Create a new staff member (admin only)
   app.post('/api/users', async (req: AuthenticatedRequest, res: Response) => {
-    console.log('--- DIAGNOSTIC: POST /api/users Route ---');
-    console.log('🔍 [STAFF-CREATE] POST /api/users route hit');
-    console.log('🔍 [STAFF-CREATE] Complete req.body:', JSON.stringify(req.body, null, 2));
-
     try {
       // Dynamic imports for middleware and storage (as per existing server/routes.ts pattern)
       const { requireAuth } = await import('./emailAuth');
@@ -230,7 +226,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (authResult.error || !authResult.user) {
-        console.error('❌ [STAFF-CREATE] Authentication failed');
         return res.status(401).json({ error: "Authentication required" });
       }
 
@@ -244,19 +239,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Admin role check (as per existing server/routes.ts pattern)
       if (user.role !== 'admin') {
-        console.error('❌ [STAFF-CREATE] Access denied - admin role required');
         return res.status(403).json({ error: "Access denied. Admin role required." });
       }
 
       if (!outfitterId) {
-        console.error('❌ [STAFF-CREATE] Authentication or outfitter context missing for staff creation.');
         return res.status(401).json({ error: "Authentication required" });
       }
 
       // --- ZOD VALIDATION ---
       const validationResult = createUserSchema.safeParse(req.body);
       if (!validationResult.success) {
-        console.error('❌ [STAFF-CREATE] Invalid request data:', validationResult.error.errors);
         return res.status(400).json({ 
           message: 'Invalid request data', 
           errors: validationResult.error.errors 
@@ -268,7 +260,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user with this email already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        console.warn('⚠️ [STAFF-CREATE] Attempted to create staff member with existing email:', email);
         return res.status(409).json({ error: 'User with this email already exists' });
       }
 
@@ -276,7 +267,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const passwordHash = await hashPassword(password);
 
       // Create user with password
-      console.log('🔍 [STAFF-CREATE] Calling storage.createUserWithPassword with:', { email, firstName, lastName, phone, role });
       const newUser = await storage.createUserWithPassword({
         email,
         passwordHash, // createUserWithPassword expects passwordHash, not raw password
@@ -285,30 +275,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone,
         role
       });
-      console.log('✅ [STAFF-CREATE] User created in database:', newUser?.id);
 
       if (!newUser) {
-        console.error('❌ [STAFF-CREATE] storage.createUserWithPassword returned null/undefined.');
         return res.status(500).json({ error: 'Failed to create user record.' });
       }
 
       // Link user to outfitter
-      console.log('🔍 [STAFF-CREATE] Calling storage.addUserToOutfitter with:', { userId: newUser.id, outfitterId, role });
       const userOutfitter = await storage.addUserToOutfitter(newUser.id, outfitterId, role);
-      console.log('✅ [STAFF-CREATE] User-outfitter relationship created:', userOutfitter?.id);
 
       if (!userOutfitter) {
-        console.error('❌ [STAFF-CREATE] storage.addUserToOutfitter failed for user:', newUser.id);
         return res.status(500).json({ error: 'Failed to link user to outfitter.' });
       }
       
       // Remove password hash before sending response
       const { passwordHash: _, ...userResponse } = newUser;
-      console.log('✅ [STAFF-CREATE] Staff member created successfully. Responding with 201.');
       res.status(201).json(userResponse);
       
     } catch (error) {
-      console.error('❌ [STAFF-CREATE] Error during staff member creation:', error);
       res.status(500).json({ error: 'Internal server error during staff creation.' });
     }
   });
