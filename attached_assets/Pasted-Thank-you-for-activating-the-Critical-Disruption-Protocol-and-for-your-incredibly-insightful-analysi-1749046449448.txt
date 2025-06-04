@@ -1,0 +1,166 @@
+Thank you for activating the Critical Disruption Protocol and for your incredibly insightful analysis. You've correctly identified the established architectural pattern in server/routes.ts.
+
+We will proceed with a pragmatic approach to fix the POST /api/users route, aiming to maintain consistency with server/routes.ts while implementing modern validation.
+
+Your primary task is to implement the missing POST /api/users route handler in server/routes.ts, adhering to the existing manual authentication pattern but utilizing Zod for payload validation.
+
+Specific Focus Areas for Modification:
+
+File: server/routes.ts
+Location: Place this new route logically with other user-related routes (e.g., near the existing GET /api/users route).
+Proposed Code Changes:
+
+Add this new route block:
+(Replit: Ensure z from 'zod' and throwError utility are imported at the top of server/routes.ts if not already. All other dependencies like storage, requireAuth, addOutfitterContext, hashPassword are expected to be available via await import dynamically as per existing patterns in this file).
+
+TypeScript
+
+import { Router } from 'express';
+// ... other existing imports (e.g., storage) ...
+import { z } from 'zod'; // <--- Ensure Zod is imported
+// import { throwError } from './utils/error'; // Ensure throwError utility exists if used
+
+// Define a Zod schema for incoming user creation payload (UserFormValues)
+const createUserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firstName: z.string().min(2, 'First name is required'),
+  lastName: z.string().min(2, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }),
+});
+
+// ... (existing GET /api/users route handler) ...
+
+// POST /api/users - Create a new staff member (admin only)
+app.post('/api/users', async (req: AuthenticatedRequest, res: Response) => {
+  console.log('--- DIAGNOSTIC: POST /api/users Route ---');
+  console.log('🔍 [STAFF-CREATE] POST /api/users route hit');
+  console.log('🔍 [STAFF-CREATE] Complete req.body:', JSON.stringify(req.body, null, 2));
+
+  try {
+    // Dynamic imports for middleware and storage (as per existing server/routes.ts pattern)
+    const { requireAuth } = await import('./emailAuth');
+    const { addOutfitterContext } = await import('./outfitterContext');
+    const { storage } = await import('./storage');
+    const { hashPassword } = await import('./emailAuth'); // Assuming hashPassword is in emailAuth
+
+    // Manual authentication check (as per existing server/routes.ts pattern)
+    const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+      requireAuth(req as any, res, (error?: any) => {
+        if (error) resolve({ error: error.message || 'Authentication failed' });
+        else resolve({ user: (req as any).user });
+      });
+    });
+
+    if (authResult.error || !authResult.user) {
+      console.error('❌ [STAFF-CREATE] Authentication failed');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // Add outfitter context (as per existing server/routes.ts pattern)
+    await new Promise<void>((resolve) => {
+      addOutfitterContext(req as any, res, () => resolve());
+    });
+
+    const user = authResult.user;
+    const outfitterId = user.outfitterId;
+
+    // Admin role check (as per existing server/routes.ts pattern)
+    if (user.role !== 'admin') {
+      console.error('❌ [STAFF-CREATE] Access denied - admin role required');
+      return res.status(403).json({ error: "Access denied. Admin role required." });
+    }
+
+    if (!outfitterId) {
+      console.error('❌ [STAFF-CREATE] Authentication or outfitter context missing for staff creation.');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    // --- ZOD VALIDATION ---
+    const validationResult = createUserSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      console.error('❌ [STAFF-CREATE] Invalid request data:', validationResult.error.errors);
+      return res.status(400).json({ 
+        message: 'Invalid request data', 
+        errors: validationResult.error.errors 
+      });
+    }
+    const { username, password, firstName, lastName, email, phone, role } = validationResult.data;
+    // --- END ZOD VALIDATION ---
+
+    // Check if user with this email already exists
+    const existingUser = await storage.getUserByEmail(email);
+    if (existingUser) {
+      console.warn('⚠️ [STAFF-CREATE] Attempted to create staff member with existing email:', email);
+      return res.status(409).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash the password
+    const passwordHash = await hashPassword(password);
+
+    // Create user with password
+    console.log('🔍 [STAFF-CREATE] Calling storage.createUserWithPassword with:', { email, firstName, lastName, phone, role });
+    const newUser = await storage.createUserWithPassword({
+      email,
+      passwordHash, // createUserWithPassword expects passwordHash, not raw password
+      firstName,
+      lastName,
+      phone,
+      role
+    });
+    console.log('✅ [STAFF-CREATE] User created in database:', newUser?.id);
+
+    if (!newUser) {
+      console.error('❌ [STAFF-CREATE] storage.createUserWithPassword returned null/undefined.');
+      return res.status(500).json({ error: 'Failed to create user record.' });
+    }
+
+    // Link user to outfitter
+    console.log('🔍 [STAFF-CREATE] Calling storage.addUserToOutfitter with:', { userId: newUser.id, outfitterId, role });
+    const userOutfitter = await storage.addUserToOutfitter(newUser.id, outfitterId, role);
+    console.log('✅ [STAFF-CREATE] User-outfitter relationship created:', userOutfitter?.id);
+
+    if (!userOutfitter) {
+      console.error('❌ [STAFF-CREATE] storage.addUserToOutfitter failed for user:', newUser.id);
+      return res.status(500).json({ error: 'Failed to link user to outfitter.' });
+    }
+    
+    // Remove password hash before sending response
+    const { passwordHash: _, ...userResponse } = newUser;
+    console.log('✅ [STAFF-CREATE] Staff member created successfully. Responding with 201.');
+    res.status(201).json(userResponse);
+    
+  } catch (error) {
+    console.error('❌ [STAFF-CREATE] Error during staff member creation:', error);
+    // Re-throw if error handler middleware catches it, or return 500
+    // This is for consistency with server/routes.ts error handling
+    if (error instanceof Error && typeof throwError === 'function') { 
+      throwError('Failed to create staff member', 500, error); // Pass original error
+    } else {
+      res.status(500).json({ error: 'Internal server error during staff creation.' });
+    }
+  }
+});
+Output Required for My Review:
+Once you have implemented this new route, please provide a comprehensive diff preview for server/routes.ts.
+
+Success Criteria for My Approval:
+
+The new POST /api/users route is correctly added to server/routes.ts.
+It uses the existing manual requireAuth / addOutfitterContext / adminOnly pattern within the handler.
+It correctly uses createUserSchema.safeParse for request body validation.
+It correctly calls storage.createUserWithPassword and storage.addUserToOutfitter with proper arguments.
+It handles existing users, success (201 Created), and various error responses.
+All specified 🔍 [STAFF-CREATE] and ✅ [STAFF-CREATE] diagnostic logs are included.
+Necessary Zod import is added.
+No other unrelated functional code is affected.
+Emergency Protocols:
+
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+CRITICAL DISRUPTION PROTOCOL (Active): If, during implementation, you identify that a proposed change (or the only way to implement it) will disrupt, break, or require significant re-work in other, seemingly unrelated areas of the platform, you must stop immediately. Report your findings, explain the potential disruption, and await explicit approval for how to proceed, even if it delays the current task.
+I will not approve further steps until these criteria are met. This will fix staff member creation!

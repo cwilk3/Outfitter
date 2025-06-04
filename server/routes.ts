@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import apiRoutes from './routes/index';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { z } from 'zod';
 
 // Import User type from shared schema
 import type { User } from "@shared/schema";
@@ -10,6 +11,17 @@ import type { User } from "@shared/schema";
 interface AuthenticatedRequest extends Request {
   user?: User & { outfitterId: number };
 }
+
+// Define a Zod schema for incoming user creation payload (UserFormValues)
+const createUserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firstName: z.string().min(2, 'First name is required'),
+  lastName: z.string().min(2, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }),
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('=== REGISTERING MODULARIZED ROUTES ===');
@@ -203,20 +215,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('🔍 [STAFF-CREATE] Complete req.body:', JSON.stringify(req.body, null, 2));
 
     try {
-      // Import dependencies dynamically
+      // Dynamic imports for middleware and storage (as per existing server/routes.ts pattern)
       const { requireAuth } = await import('./emailAuth');
       const { addOutfitterContext } = await import('./outfitterContext');
       const { storage } = await import('./storage');
       const { hashPassword } = await import('./emailAuth');
 
-      // Manual authentication check
+      // Manual authentication check (as per existing server/routes.ts pattern)
       const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
         requireAuth(req as any, res, (error?: any) => {
-          if (error) {
-            resolve({ error: error.message || 'Authentication failed' });
-          } else {
-            resolve({ user: (req as any).user });
-          }
+          if (error) resolve({ error: error.message || 'Authentication failed' });
+          else resolve({ user: (req as any).user });
         });
       });
 
@@ -225,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Add outfitter context
+      // Add outfitter context (as per existing server/routes.ts pattern)
       await new Promise<void>((resolve) => {
         addOutfitterContext(req as any, res, () => resolve());
       });
@@ -233,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = authResult.user;
       const outfitterId = user.outfitterId;
 
-      // Admin role check
+      // Admin role check (as per existing server/routes.ts pattern)
       if (user.role !== 'admin') {
         console.error('❌ [STAFF-CREATE] Access denied - admin role required');
         return res.status(403).json({ error: "Access denied. Admin role required." });
@@ -244,56 +253,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Validate request body fields
-      const { username, password, firstName, lastName, email, phone, role } = req.body;
-      
-      if (!username || username.length < 3) {
-        console.error('❌ [STAFF-CREATE] Invalid username:', username);
+      // --- ZOD VALIDATION ---
+      const validationResult = createUserSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        console.error('❌ [STAFF-CREATE] Invalid request data:', validationResult.error.errors);
         return res.status(400).json({ 
           message: 'Invalid request data', 
-          errors: [{ path: ['username'], message: 'Username must be at least 3 characters' }]
+          errors: validationResult.error.errors 
         });
       }
-
-      if (!password || password.length < 6) {
-        console.error('❌ [STAFF-CREATE] Invalid password length');
-        return res.status(400).json({ 
-          message: 'Invalid request data', 
-          errors: [{ path: ['password'], message: 'Password must be at least 6 characters' }]
-        });
-      }
-
-      if (!firstName || firstName.length < 2) {
-        console.error('❌ [STAFF-CREATE] Invalid firstName:', firstName);
-        return res.status(400).json({ 
-          message: 'Invalid request data', 
-          errors: [{ path: ['firstName'], message: 'First name is required' }]
-        });
-      }
-
-      if (!lastName || lastName.length < 2) {
-        console.error('❌ [STAFF-CREATE] Invalid lastName:', lastName);
-        return res.status(400).json({ 
-          message: 'Invalid request data', 
-          errors: [{ path: ['lastName'], message: 'Last name is required' }]
-        });
-      }
-
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        console.error('❌ [STAFF-CREATE] Invalid email:', email);
-        return res.status(400).json({ 
-          message: 'Invalid request data', 
-          errors: [{ path: ['email'], message: 'Invalid email address' }]
-        });
-      }
-
-      if (!role || !['admin', 'guide'].includes(role)) {
-        console.error('❌ [STAFF-CREATE] Invalid role:', role);
-        return res.status(400).json({ 
-          message: 'Invalid request data', 
-          errors: [{ path: ['role'], message: 'Role must be admin or guide' }]
-        });
-      }
+      const { username, password, firstName, lastName, email, phone, role } = validationResult.data;
+      // --- END ZOD VALIDATION ---
 
       // Check if user with this email already exists
       const existingUser = await storage.getUserByEmail(email);
@@ -309,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 [STAFF-CREATE] Calling storage.createUserWithPassword with:', { email, firstName, lastName, phone, role });
       const newUser = await storage.createUserWithPassword({
         email,
-        passwordHash,
+        passwordHash, // createUserWithPassword expects passwordHash, not raw password
         firstName,
         lastName,
         phone,
