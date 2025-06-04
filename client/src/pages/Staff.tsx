@@ -89,7 +89,7 @@ export default function Staff() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const perPage = 10;
 
   // Fetch staff (guides and admins)
@@ -210,7 +210,7 @@ export default function Staff() {
 
   // Filter staff based on search query
   const filteredStaff = React.useMemo(() => {
-    if (!staff) return [];
+    if (!staff || !Array.isArray(staff)) return [];
     
     if (!searchQuery) return staff;
     
@@ -319,7 +319,7 @@ export default function Staff() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedStaff.map((user: User) => (
+                    {paginatedStaff.map((user: any) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center">

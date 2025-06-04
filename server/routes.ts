@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: validationResult.error.errors 
         });
       }
-      const { username, password, firstName, lastName, email, phone, role } = validationResult.data;
+      const { password, firstName, lastName, email, phone, role } = validationResult.data;
       // --- END ZOD VALIDATION ---
 
       // Check if user with this email already exists
