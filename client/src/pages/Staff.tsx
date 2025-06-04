@@ -60,6 +60,7 @@ import {
   Mail,
   Phone,
   Edit,
+  Trash2,
   UserCog,
   ShieldCheck,
   ShieldAlert
@@ -82,6 +83,29 @@ const userSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 
+const ConfirmDeleteDialog = ({ user, isOpen, onClose, onConfirm }: {
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) => (
+  <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Delete Staff Member</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to delete <strong>{user?.firstName} {user?.lastName}</strong>?
+          This action cannot be undone.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
 export default function Staff() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
@@ -89,6 +113,7 @@ export default function Staff() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const perPage = 10;
 
   // Fetch staff (guides and admins)

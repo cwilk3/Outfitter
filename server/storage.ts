@@ -24,6 +24,8 @@ export interface IStorage {
   getUserWithRole(userId: string): Promise<User & {outfitterId: number} | undefined>;
   listUsers(role?: string): Promise<User[]>;
   getUsersByOutfitterId(outfitterId: number, roles?: string[]): Promise<User[]>;
+  deleteUser(userId: string, outfitterId: number): Promise<boolean>;
+  checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }>;
   
   // Outfitter operations
   createOutfitter(outfitter: InsertOutfitter): Promise<Outfitter>;
@@ -1834,6 +1836,68 @@ export class DatabaseStorage implements IStorage {
     } else {
       throw new Error('Invalid parameters for removeGuideFromBookingWithTenant');
     }
+  }
+
+  async checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }> {
+    const blockers: string[] = [];
+    
+    // Check for active guide assignments
+    const [assignments] = await db.select({ count: sql<number>`count(*)` })
+      .from(experienceGuides)
+      .where(eq(experienceGuides.guideId, userId));
+    
+    if (assignments.count > 0) {
+      blockers.push(`User has ${assignments.count} active guide assignments`);
+    }
+    
+    // Check for active bookings where user is assigned as guide
+    const [activeBookings] = await db.select({ count: sql<number>`count(*)` })
+      .from(bookingGuides)
+      .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
+      .where(and(
+        eq(bookingGuides.guideId, userId), 
+        eq(bookings.outfitterId, outfitterId),
+        inArray(bookings.status, ['pending', 'confirmed', 'deposit_paid', 'paid'])
+      ));
+    
+    if (activeBookings.count > 0) {
+      blockers.push(`User has ${activeBookings.count} active bookings`);
+    }
+    
+    return { canDelete: blockers.length === 0, blockers };
+  }
+
+  async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+    // First check if user can be safely deleted
+    const { canDelete, blockers } = await this.checkUserDeletability(userId, outfitterId);
+    if (!canDelete) {
+      throw new Error(`Cannot delete user: ${blockers.join(', ')}`);
+    }
+    
+    // Verify user belongs to outfitter
+    const [userOutfitter] = await db.select()
+      .from(userOutfitters)
+      .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)));
+    
+    if (!userOutfitter) {
+      throw new Error('User not found in this outfitter');
+    }
+    
+    // Delete user-outfitter relationship first
+    await db.delete(userOutfitters)
+      .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)));
+    
+    // Check if user has relationships with other outfitters
+    const [otherRelations] = await db.select({ count: sql<number>`count(*)` })
+      .from(userOutfitters)
+      .where(eq(userOutfitters.userId, userId));
+    
+    // Only delete user record if no other outfitter relationships exist
+    if (otherRelations.count === 0) {
+      await db.delete(users).where(eq(users.id, userId));
+    }
+    
+    return true;
   }
 
 }
