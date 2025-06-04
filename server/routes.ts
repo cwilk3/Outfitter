@@ -22,6 +22,16 @@ const createUserSchema = z.object({
   role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }),
 });
 
+// Define a Zod schema for incoming user update payload (partial version of UserFormValues)
+const updateUserSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters').optional(),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters').optional(),
+  email: z.string().email('Invalid email address').optional(),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+}).partial();
+
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('=== REGISTERING MODULARIZED ROUTES ===');
   
@@ -292,6 +302,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       res.status(500).json({ error: 'Internal server error during staff creation.' });
+    }
+  });
+
+  // PATCH /api/users/:id - Update existing staff member (admin only)
+  app.patch('/api/users/:id', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('--- DIAGNOSTIC: PATCH /api/users/:id Route ---');
+    console.log('🔍 [STAFF-EDIT] PATCH /api/users/:id route hit');
+    console.log('🔍 [STAFF-EDIT] req.params.id:', req.params.id);
+    console.log('🔍 [STAFF-EDIT] req.body:', JSON.stringify(req.body, null, 2));
+
+    try {
+      // Dynamic imports for middleware and storage (as per existing server/routes.ts pattern)
+      const { requireAuth } = await import('./emailAuth');
+      const { addOutfitterContext } = await import('./outfitterContext');
+      const { storage } = await import('./storage');
+      const { hashPassword } = await import('./emailAuth');
+
+      // Manual authentication check (as per existing server/routes.ts pattern)
+      const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+        requireAuth(req as any, res, (error?: any) => {
+          if (error) resolve({ error: error.message || 'Authentication failed' });
+          else resolve({ user: (req as any).user });
+        });
+      });
+
+      if (authResult.error || !authResult.user) {
+        console.error('❌ [STAFF-EDIT] Authentication failed');
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Add outfitter context (as per existing server/routes.ts pattern)
+      await new Promise<void>((resolve) => {
+        addOutfitterContext(req as any, res, () => resolve());
+      });
+
+      const user = authResult.user;
+      const userId = req.params.id;
+      const outfitterId = user.outfitterId;
+
+      console.log('🔍 [STAFF-EDIT] Authenticated user:', user.id);
+      console.log('🔍 [STAFF-EDIT] Target userId:', userId);
+      console.log('🔍 [STAFF-EDIT] outfitterId:', outfitterId);
+
+      // Admin role check (as per existing server/routes.ts pattern)
+      if (user.role !== 'admin') {
+        console.error('❌ [STAFF-EDIT] Access denied - admin role required');
+        return res.status(403).json({ error: "Access denied. Admin role required." });
+      }
+
+      if (!outfitterId) {
+        console.error('❌ [STAFF-EDIT] Authentication or outfitter context missing for staff update');
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Validate path parameter
+      if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+        console.error('❌ [STAFF-EDIT] Invalid user ID format from param');
+        return res.status(400).json({ error: 'Invalid user ID format' });
+      }
+
+      // --- ZOD VALIDATION ---
+      const validationResult = updateUserSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        console.error('❌ [STAFF-EDIT] Invalid request data:', validationResult.error.errors);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: validationResult.error.errors 
+        });
+      }
+      const updateData = validationResult.data;
+      // --- END ZOD VALIDATION ---
+
+      // Hash password if provided
+      if (updateData.password) {
+        console.log('🔍 [STAFF-EDIT] Hashing provided password');
+        updateData.password = await hashPassword(updateData.password);
+      }
+
+      console.log('🔍 [STAFF-EDIT] Calling storage.updateUser with:', { userId, updateData, outfitterId });
+      const updatedUser = await storage.updateUser(userId, updateData, outfitterId);
+      console.log('✅ [STAFF-EDIT] User update result:', updatedUser?.id);
+
+      if (!updatedUser) {
+        console.error('❌ [STAFF-EDIT] storage.updateUser returned null/undefined');
+        return res.status(404).json({ error: 'User not found or update failed' });
+      }
+
+      // Remove password hash before sending response
+      const { passwordHash: _, ...userResponse } = updatedUser;
+      console.log('✅ [STAFF-EDIT] Staff member updated successfully. Responding with 200');
+      res.status(200).json(userResponse);
+      
+    } catch (error) {
+      console.error('❌ [STAFF-EDIT] Error during staff member update:', error);
+      res.status(500).json({ error: 'Internal server error during staff update' });
     }
   });
   

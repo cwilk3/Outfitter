@@ -1,0 +1,121 @@
+Thank you for this precise diagnosis. The absence of the PATCH /api/users/:id route is a critical blocker for staff editing.
+
+Your primary task is to implement the missing PATCH /api/users/:id route handler in server/routes.ts. This route will be responsible for updating existing staff members.
+
+Specific Focus Areas for Modification:
+
+File: server/routes.ts
+Location: Place this new route logically with other user-related routes (e.g., near the existing POST /api/users route).
+Proposed Code Changes:
+
+Add this new route block (including necessary imports and authentication):
+(Replit: Ensure requireAuth, addOutfitterContext, adminOnly, asyncHandler, storage, and throwError (if used) are imported at the top of server/routes.ts if not already. Also, ensure UserFormValues schema is available/imported or its fields are validated explicitly. The updateUserSchema is not explicitly defined in the diff, but the req.body contains fields like firstName, lastName, etc.)
+
+TypeScript
+
+import { Router } from 'express';
+// ... other existing imports (e.g., z, createUserSchema, storage) ...
+import { requireAuth, adminOnly } from './middleware/auth'; // Assuming these are in middleware/auth
+import { addOutfitterContext } from './middleware/outfitter'; // Assuming this is in middleware/outfitter
+import { asyncHandler } from './utils/asyncHandler';
+import { throwError } from './utils/error'; // Assuming throwError utility exists
+
+// Define a Zod schema for incoming user update payload (partial version of UserFormValues)
+// This assumes the frontend only sends fields that are updated.
+const updateUserSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters.').optional(),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters.').optional(),
+  email: z.string().email('Please enter a valid email address.').optional(),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }).optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters.').optional(), // If password can be updated
+}).partial(); // Allow partial updates
+
+// ... (existing POST /api/users route handler) ...
+
+// PATCH /api/users/:id - Update existing staff member (admin only)
+app.patch('/api/users/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: PATCH /api/users/:id Route ---'); // <--- ADD THIS LOG
+  console.log('🔍 [STAFF-EDIT] PATCH /api/users/:id route hit'); // <--- ADD THIS LOG
+  console.log('🔍 [STAFF-EDIT] req.params.id:', req.params.id); // <--- ADD THIS LOG
+  console.log('🔍 [STAFF-EDIT] req.body:', JSON.stringify(req.body, null, 2)); // <--- ADD THIS LOG
+
+  const userId = req.params.id; // User ID from URL params
+  const user = (req as any).user; // Authenticated user (admin)
+  const outfitterId = user?.outfitterId; // From addOutfitterContext
+
+  // Validate path parameter
+  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+    console.error('❌ [STAFF-EDIT] Invalid user ID format from param.'); // <--- ADD LOG
+    return res.status(400).json({ message: 'Invalid user ID format.' });
+  }
+
+  // Validate request body
+  const validationResult = updateUserSchema.safeParse(req.body);
+  if (!validationResult.success) {
+    console.error('❌ [STAFF-EDIT] Invalid request data:', validationResult.error.errors); // <--- ADD LOG
+    return res.status(400).json({ 
+      message: 'Invalid request data', 
+      errors: validationResult.error.errors 
+    });
+  }
+  const updateData = validationResult.data; // This is the validated partial payload
+
+  // Basic authentication/authorization checks (middleware handles most)
+  if (!user || !outfitterId) {
+    console.error('❌ [STAFF-EDIT] Authentication or outfitter context missing for staff update.'); // <--- ADD LOG
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // Admin role check (middleware handles most, but sanity check)
+  if (user.role !== 'admin') {
+    console.error('❌ [STAFF-EDIT] Access denied - admin role required for staff update.'); // <--- ADD LOG
+    return res.status(403).json({ error: "Access denied. Admin role required." });
+  }
+
+  try {
+    // Call storage.updateUser to handle the user update
+    // This function needs to:
+    // 1. Verify target user belongs to outfitter.
+    // 2. Hash password if provided.
+    // 3. Update user record.
+    // 4. Update user_outfitters role if role changes.
+    console.log('🔍 [STAFF-EDIT] Calling storage.updateUser with:', { userId, updateData, outfitterId }); // <--- ADD LOG
+    const updatedUser = await storage.updateUser(userId, updateData, outfitterId);
+    console.log('✅ [STAFF-EDIT] User update result:', updatedUser?.id); // <--- ADD LOG
+
+    if (!updatedUser) {
+      console.error('❌ [STAFF-EDIT] storage.updateUser returned null/undefined.'); // <--- ADD LOG
+      return res.status(404).json({ error: 'User not found or update failed.' });
+    }
+    
+    // Remove password hash before sending response
+    const { passwordHash: _, ...userResponse } = updatedUser;
+    console.log('✅ [STAFF-EDIT] Staff member updated successfully. Responding with 200.'); // <--- ADD LOG
+    res.status(200).json(userResponse); // 200 OK for successful update
+  } catch (error) {
+    console.error('❌ [STAFF-EDIT] Error during staff member update:', error); // <--- ADD LOG
+    // This is for consistency with server/routes.ts error handling
+    if (error instanceof Error && typeof throwError === 'function') { 
+      throwError('Failed to update staff member', 500, error); // Pass original error
+    } else {
+      res.status(500).json({ error: 'Internal server error during staff update.' });
+    }
+  }
+}));
+Output Required for My Review:
+Once you have implemented this new route, please provide a comprehensive diff preview for server/routes.ts.
+
+Success Criteria for My Approval:
+
+The new PATCH /api/users/:id route is correctly added to server/routes.ts.
+It includes requireAuth, addOutfitterContext, and adminOnly middleware (via the existing manual pattern).
+It correctly uses updateUserSchema.safeParse for request body validation.
+It correctly calls storage.updateUser with proper arguments.
+It handles existing users, success (200 OK), and various error responses.
+All specified 🔍 [STAFF-EDIT] and ✅ [STAFF-EDIT] diagnostic logs are included.
+Any necessary imports (including z for Zod and updateUserSchema definition) are present.
+No other unrelated functional code is affected.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will fix staff member editing!

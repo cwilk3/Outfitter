@@ -1,0 +1,62 @@
+Okay, I understand. Thank you for clarifying that the edit functionality for staff members is still broken. That's a critical bug that needs to be addressed immediately to ensure full staff management.
+
+We will prioritize getting the staff member editing functionality fully working before moving on to the auto-guide assignment feature.
+
+Your next task is to investigate why the staff member editing function is not working. We'll start by tracing the data flow from the frontend edit form to the backend persistence.
+
+Here is the exact prompt for Replit:
+
+EXACT PROMPT FOR REPLIT: Investigate Staff Member Editing Functionality Failure
+
+"Thank you for highlighting this critical bug. Staff member creation is working, but editing is not. We need to get this fully functional.
+
+Your primary task is to investigate the staff member editing process, focusing on the frontend submission and backend persistence, to determine why staff member edits are not working.
+
+Specific Focus Areas for Investigation:
+
+Frontend Staff Editing:
+
+Component: Identify the frontend component responsible for editing a staff member (e.g., client/src/pages/Staff.tsx, client/src/components/staff-form.tsx).
+Form Submission: Trace the onSubmit handler for the edit form. What data is being sent in the payload? What API endpoint (method and URL, e.g., PUT /api/users/:id, PATCH /api/users/:id) is it calling? How is the id of the user being edited obtained and sent?
+Initial Data Loading: How is the existing staff member's data loaded into the edit form when the dialog opens?
+Success Feedback: What happens in the UI after submission (e.g., success message, dialog closes)?
+Backend Staff Editing:
+
+Route Handler: Locate the backend route handler corresponding to the frontend's API call for updating a staff member (e.g., PUT /api/users/:id, PATCH /api/users/:id).
+Data Processing: How is the incoming staff member data processed? Is userId, outfitterId, and the updated fields (firstName, email, role, etc.) being correctly extracted and validated?
+Storage Function: Which storage function is called to update the user (e.g., storage.updateUser)? What arguments are passed to it?
+Database Interaction: Is the staff member record successfully updated in the users table? Are relationships in user_outfitters updated if roles change?
+Proposed Diagnostic Logging (No Functional Changes Yet, Just Diagnostic):
+
+To pinpoint the issue, add temporary diagnostic logging at key points:
+
+In Frontend (Staff Editing Component):
+Log the complete payload just before the API request is sent for an edit.
+Log the response received after the API call for an edit.
+Log the initial data loaded into the edit form.
+In Backend (Staff Editing Route Handler):
+Log the complete req.params (for id) and req.body (for updated data) immediately upon receipt.
+Log the arguments passed to the storage.updateUser (or equivalent) function.
+Log the result of the storage.updateUser call.
+Log the arguments and result of any user_outfitters table updates.
+Output Required for My Review:
+Based on your investigation, please provide a detailed report outlining your findings.
+
+Frontend Investigation:
+File(s) and specific line numbers for staff editing form submission.
+Exact API endpoint (method and URL) called for editing.
+Complete payload being sent.
+Details on how existing user data is loaded into the form.
+Backend Investigation:
+File(s) and specific line numbers for the staff editing route handler.
+Name of the storage function called for user updates.
+Description of the update logic, including how id and outfitterId are handled.
+Proposed Diagnostic Logging Diff: Provide a comprehensive diff preview of the temporary diagnostic logging you plan to add to both frontend and backend.
+Success Criteria for My Approval (for this investigation phase):
+
+A clear, concise report addressing all the bullet points above.
+The proposed diagnostic logging is well-placed to trace staff editing and persistence.
+No functional code changes are proposed in this step; this is purely an investigative report.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will pinpoint why staff member editing is not working!
