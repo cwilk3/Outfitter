@@ -60,7 +60,6 @@ import {
   Mail,
   Phone,
   Edit,
-  Calendar,
   UserCog,
   ShieldCheck,
   ShieldAlert
@@ -377,16 +376,6 @@ export default function Staff() {
                                 <span className="sr-only">Edit</span>
                               </Button>
                             )}
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                // In a real app, navigate to staff schedule
-                              }}
-                            >
-                              <Calendar className="h-4 w-4" />
-                              <span className="sr-only">Schedule</span>
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
