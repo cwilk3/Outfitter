@@ -4,7 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
-import { User } from "@/types";
+
 import {
   Card,
   CardContent,
@@ -68,7 +68,6 @@ import {
 
 // Define form validation schema
 const userSchema = z.object({
-  username: z.string().min(3, { message: "Username must be at least 3 characters." }),
   password: z.string()
     .min(6, { message: "Password must be at least 6 characters." })
     .optional()
@@ -102,7 +101,6 @@ export default function Staff() {
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      username: "",
       password: "",
       firstName: "",
       lastName: "",
@@ -180,10 +178,9 @@ export default function Staff() {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = (user: any) => {
     setSelectedUser(user);
     form.reset({
-      username: user.username,
       password: "", // Don't show existing password
       firstName: user.firstName || "",
       lastName: user.lastName || "",
@@ -196,7 +193,6 @@ export default function Staff() {
   const openCreateDialog = () => {
     setSelectedUser(null);
     form.reset({
-      username: "",
       password: "",
       firstName: "",
       lastName: "",
@@ -219,12 +215,11 @@ export default function Staff() {
     if (!searchQuery) return staff;
     
     const query = searchQuery.toLowerCase();
-    return staff.filter((user: User) => {
+    return staff.filter((user: any) => {
       const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
       return (
         fullName.includes(query) ||
-        (user.email && user.email.toLowerCase().includes(query)) ||
-        user.username.toLowerCase().includes(query)
+        (user.email && user.email.toLowerCase().includes(query))
       );
     });
   }, [staff, searchQuery]);
@@ -495,49 +490,26 @@ export default function Staff() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="johndoe" 
-                            {...field} 
-                            disabled={!!selectedUser}
-                          />
-                        </FormControl>
-                        {selectedUser && (
-                          <FormDescription>Username cannot be changed</FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{selectedUser ? 'New Password' : 'Password'}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder={selectedUser ? "Leave blank to keep current" : "Enter password"} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        {selectedUser && (
-                          <FormDescription>Leave blank to keep current password</FormDescription>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{selectedUser ? 'New Password' : 'Password'}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder={selectedUser ? "Leave blank to keep current" : "Enter password"} 
+                          {...field} 
+                        />
+                      </FormControl>
+                      {selectedUser && (
+                        <FormDescription>Leave blank to keep current password</FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
