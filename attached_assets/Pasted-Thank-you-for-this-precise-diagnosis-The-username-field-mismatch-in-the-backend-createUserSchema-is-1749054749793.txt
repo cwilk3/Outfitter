@@ -1,0 +1,51 @@
+Thank you for this precise diagnosis. The username field mismatch in the backend createUserSchema is a critical blocker.
+
+Your primary task is to modify createUserSchema in server/routes.ts (or shared/schema.ts if it's a shared schema) to remove the username field requirement, aligning it with the frontend's payload.
+
+Specific Focus Areas for Modification:
+
+File: server/routes.ts (as you confirmed it's locally defined there in previous diffs)
+Location: The createUserSchema definition.
+Proposed Code Changes:
+
+Find this block (the createUserSchema definition):
+
+TypeScript
+
+// Define a Zod schema for incoming user creation payload (UserFormValues)
+const createUserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'), // <--- REMOVE THIS LINE
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firstName: z.string().min(2, 'First name is required'),
+  lastName: z.string().min(2, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }),
+});
+Replace it with (removing the username field):
+
+TypeScript
+
+// Define a Zod schema for incoming user creation payload (UserFormValues)
+const createUserSchema = z.object({
+  // username field removed
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firstName: z.string().min(2, 'First name is required'),
+  lastName: z.string().min(2, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  role: z.enum(['admin', 'guide'], { message: 'Role must be admin or guide' }),
+});
+(Replit: Ensure no other changes are made to the schema's structure or other fields.)
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/routes.ts.
+
+Success Criteria for My Approval (for this compilation fix):
+
+The username field is correctly removed from the createUserSchema definition in server/routes.ts.
+The application compiles successfully (this will be confirmed after implementation).
+No other unrelated functional code is affected.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will resolve the staff creation error! 
