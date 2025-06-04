@@ -1888,12 +1888,12 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)));
     
     // Check if user has relationships with other outfitters
-    const [otherRelations] = await db.select({ count: sql<number>`count(*)` })
+    const otherRelations = await db.select({ count: sql<number>`count(*)` })
       .from(userOutfitters)
       .where(eq(userOutfitters.userId, userId));
     
     // Only delete user record if no other outfitter relationships exist
-    if (otherRelations.count === 0) {
+    if (otherRelations[0]?.count === 0) {
       await db.delete(users).where(eq(users.id, userId));
     }
     
