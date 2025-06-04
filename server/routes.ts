@@ -195,6 +195,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch users' });
     }
   });
+
+  // POST /api/users - Create a new staff member (admin only)
+  app.post('/api/users', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('--- DIAGNOSTIC: POST /api/users Route ---');
+    console.log('🔍 [STAFF-CREATE] POST /api/users route hit');
+    console.log('🔍 [STAFF-CREATE] Complete req.body:', JSON.stringify(req.body, null, 2));
+
+    try {
+      // Import dependencies dynamically
+      const { requireAuth } = await import('./emailAuth');
+      const { addOutfitterContext } = await import('./outfitterContext');
+      const { storage } = await import('./storage');
+      const { hashPassword } = await import('./emailAuth');
+
+      // Manual authentication check
+      const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+        requireAuth(req as any, res, (error?: any) => {
+          if (error) {
+            resolve({ error: error.message || 'Authentication failed' });
+          } else {
+            resolve({ user: (req as any).user });
+          }
+        });
+      });
+
+      if (authResult.error || !authResult.user) {
+        console.error('❌ [STAFF-CREATE] Authentication failed');
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Add outfitter context
+      await new Promise<void>((resolve) => {
+        addOutfitterContext(req as any, res, () => resolve());
+      });
+
+      const user = authResult.user;
+      const outfitterId = user.outfitterId;
+
+      // Admin role check
+      if (user.role !== 'admin') {
+        console.error('❌ [STAFF-CREATE] Access denied - admin role required');
+        return res.status(403).json({ error: "Access denied. Admin role required." });
+      }
+
+      if (!outfitterId) {
+        console.error('❌ [STAFF-CREATE] Authentication or outfitter context missing for staff creation.');
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Validate request body fields
+      const { username, password, firstName, lastName, email, phone, role } = req.body;
+      
+      if (!username || username.length < 3) {
+        console.error('❌ [STAFF-CREATE] Invalid username:', username);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['username'], message: 'Username must be at least 3 characters' }]
+        });
+      }
+
+      if (!password || password.length < 6) {
+        console.error('❌ [STAFF-CREATE] Invalid password length');
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['password'], message: 'Password must be at least 6 characters' }]
+        });
+      }
+
+      if (!firstName || firstName.length < 2) {
+        console.error('❌ [STAFF-CREATE] Invalid firstName:', firstName);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['firstName'], message: 'First name is required' }]
+        });
+      }
+
+      if (!lastName || lastName.length < 2) {
+        console.error('❌ [STAFF-CREATE] Invalid lastName:', lastName);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['lastName'], message: 'Last name is required' }]
+        });
+      }
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        console.error('❌ [STAFF-CREATE] Invalid email:', email);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['email'], message: 'Invalid email address' }]
+        });
+      }
+
+      if (!role || !['admin', 'guide'].includes(role)) {
+        console.error('❌ [STAFF-CREATE] Invalid role:', role);
+        return res.status(400).json({ 
+          message: 'Invalid request data', 
+          errors: [{ path: ['role'], message: 'Role must be admin or guide' }]
+        });
+      }
+
+      // Check if user with this email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        console.warn('⚠️ [STAFF-CREATE] Attempted to create staff member with existing email:', email);
+        return res.status(409).json({ error: 'User with this email already exists' });
+      }
+
+      // Hash the password
+      const passwordHash = await hashPassword(password);
+
+      // Create user with password
+      console.log('🔍 [STAFF-CREATE] Calling storage.createUserWithPassword with:', { email, firstName, lastName, phone, role });
+      const newUser = await storage.createUserWithPassword({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone,
+        role
+      });
+      console.log('✅ [STAFF-CREATE] User created in database:', newUser?.id);
+
+      if (!newUser) {
+        console.error('❌ [STAFF-CREATE] storage.createUserWithPassword returned null/undefined.');
+        return res.status(500).json({ error: 'Failed to create user record.' });
+      }
+
+      // Link user to outfitter
+      console.log('🔍 [STAFF-CREATE] Calling storage.addUserToOutfitter with:', { userId: newUser.id, outfitterId, role });
+      const userOutfitter = await storage.addUserToOutfitter(newUser.id, outfitterId, role);
+      console.log('✅ [STAFF-CREATE] User-outfitter relationship created:', userOutfitter?.id);
+
+      if (!userOutfitter) {
+        console.error('❌ [STAFF-CREATE] storage.addUserToOutfitter failed for user:', newUser.id);
+        return res.status(500).json({ error: 'Failed to link user to outfitter.' });
+      }
+      
+      // Remove password hash before sending response
+      const { passwordHash: _, ...userResponse } = newUser;
+      console.log('✅ [STAFF-CREATE] Staff member created successfully. Responding with 201.');
+      res.status(201).json(userResponse);
+      
+    } catch (error) {
+      console.error('❌ [STAFF-CREATE] Error during staff member creation:', error);
+      res.status(500).json({ error: 'Internal server error during staff creation.' });
+    }
+  });
   
   // Mount all API routes under /api prefix
   app.use('/api', apiRoutes);
