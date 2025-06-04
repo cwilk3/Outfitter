@@ -60,7 +60,6 @@ import {
   Mail,
   Phone,
   Edit,
-  Trash2,
   UserCog,
   ShieldCheck,
   ShieldAlert
@@ -83,29 +82,6 @@ const userSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 
-const ConfirmDeleteDialog = ({ user, isOpen, onClose, onConfirm }: {
-  user: any;
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-}) => (
-  <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Delete Staff Member</DialogTitle>
-        <DialogDescription>
-          Are you sure you want to delete <strong>{user?.firstName} {user?.lastName}</strong>?
-          This action cannot be undone.
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button variant="destructive" onClick={onConfirm}>Delete</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
-
 export default function Staff() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
@@ -113,17 +89,11 @@ export default function Staff() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [userToDelete, setUserToDelete] = useState<any>(null);
   const perPage = 10;
 
   // Fetch staff (guides and admins)
   const { data: staff, isLoading } = useQuery({
     queryKey: ['/api/users'],
-  });
-
-  // Fetch current user for self-deletion prevention
-  const { data: currentUser } = useQuery<{ id: string; email: string; role: string }>({
-    queryKey: ['/api/auth/me'],
   });
 
   // Form handling
@@ -190,33 +160,6 @@ export default function Staff() {
       console.error("Update user error:", error);
     },
   });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      return apiRequest("DELETE", `/api/users/${userId}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Staff member deleted successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      setUserToDelete(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete staff member",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteConfirm = () => {
-    if (userToDelete) {
-      deleteMutation.mutate(userToDelete.id);
-    }
-  };
 
   const onSubmit = (data: UserFormValues) => {
     if (selectedUser) {
@@ -431,17 +374,6 @@ export default function Staff() {
                               >
                                 <Edit className="h-4 w-4" />
                                 <span className="sr-only">Edit</span>
-                              </Button>
-                            )}
-                            {isAdmin && currentUser && user.id !== currentUser.id && (
-                              <Button 
-                                onClick={() => setUserToDelete(user)}
-                                variant="outline" 
-                                size="sm"
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
                               </Button>
                             )}
                           </div>
@@ -664,14 +596,6 @@ export default function Staff() {
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDeleteDialog
-        user={userToDelete}
-        isOpen={!!userToDelete}
-        onClose={() => setUserToDelete(null)}
-        onConfirm={handleDeleteConfirm}
-      />
     </>
   );
 }
