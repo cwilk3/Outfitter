@@ -1842,16 +1842,16 @@ export class DatabaseStorage implements IStorage {
     const blockers: string[] = [];
     
     // Check for active guide assignments
-    const [assignments] = await db.select({ count: sql<number>`count(*)` })
+    const assignmentCount = await db.select({ count: sql<number>`count(*)` })
       .from(experienceGuides)
       .where(eq(experienceGuides.guideId, userId));
     
-    if (assignments.count > 0) {
-      blockers.push(`User has ${assignments.count} active guide assignments`);
+    if (assignmentCount[0]?.count > 0) {
+      blockers.push(`User has ${assignmentCount[0].count} active guide assignments`);
     }
     
     // Check for active bookings where user is assigned as guide
-    const [activeBookings] = await db.select({ count: sql<number>`count(*)` })
+    const activeBookingCount = await db.select({ count: sql<number>`count(*)` })
       .from(bookingGuides)
       .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
       .where(and(
@@ -1860,8 +1860,8 @@ export class DatabaseStorage implements IStorage {
         inArray(bookings.status, ['pending', 'confirmed', 'deposit_paid', 'paid'])
       ));
     
-    if (activeBookings.count > 0) {
-      blockers.push(`User has ${activeBookings.count} active bookings`);
+    if (activeBookingCount[0]?.count > 0) {
+      blockers.push(`User has ${activeBookingCount[0].count} active bookings`);
     }
     
     return { canDelete: blockers.length === 0, blockers };

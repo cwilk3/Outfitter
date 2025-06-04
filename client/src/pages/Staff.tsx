@@ -121,6 +121,11 @@ export default function Staff() {
     queryKey: ['/api/users'],
   });
 
+  // Fetch current user for self-deletion prevention
+  const { data: currentUser } = useQuery<{ id: string; email: string; role: string }>({
+    queryKey: ['/api/auth/me'],
+  });
+
   // Form handling
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -185,6 +190,33 @@ export default function Staff() {
       console.error("Update user error:", error);
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest("DELETE", `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Staff member deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setUserToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete staff member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      deleteMutation.mutate(userToDelete.id);
+    }
+  };
 
   const onSubmit = (data: UserFormValues) => {
     if (selectedUser) {
@@ -399,6 +431,17 @@ export default function Staff() {
                               >
                                 <Edit className="h-4 w-4" />
                                 <span className="sr-only">Edit</span>
+                              </Button>
+                            )}
+                            {isAdmin && currentUser && user.id !== currentUser.id && (
+                              <Button 
+                                onClick={() => setUserToDelete(user)}
+                                variant="outline" 
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
                               </Button>
                             )}
                           </div>
@@ -621,6 +664,14 @@ export default function Staff() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDeleteDialog
+        user={userToDelete}
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 }

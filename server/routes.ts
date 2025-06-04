@@ -380,8 +380,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.password = await hashPassword(updateData.password);
       }
 
-      console.log('🔍 [STAFF-EDIT] Calling storage.updateUser with:', { userId, updateData, outfitterId });
-      const updatedUser = await storage.updateUser(userId, updateData, outfitterId);
+      console.log('🔍 [STAFF-EDIT] Calling storage.updateUser with:', { userId, updateData });
+      const updatedUser = await storage.updateUser(userId, updateData);
       console.log('✅ [STAFF-EDIT] User update result:', updatedUser?.id);
 
       if (!updatedUser) {
