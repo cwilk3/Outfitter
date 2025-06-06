@@ -400,6 +400,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // DELETE /api/users/:id - Delete staff member (admin only)
+  app.delete('/api/users/:id', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('--- DIAGNOSTIC: DELETE /api/users/:id Route ---');
+    console.log('🔍 [STAFF-DELETE] DELETE /api/users/:id route hit');
+    console.log('🔍 [STAFF-DELETE] req.params.id:', req.params.id);
+
+    try {
+      // Dynamic imports for middleware and storage (as per existing server/routes.ts pattern)
+      const { requireAuth } = await import('./emailAuth');
+      const { addOutfitterContext } = await import('./outfitterContext');
+      const { storage } = await import('./storage');
+
+      // Manual authentication check (as per existing server/routes.ts pattern)
+      const authResult = await new Promise<{ user?: any; error?: string }>((resolve) => {
+        requireAuth(req as any, res, (error?: any) => {
+          if (error) resolve({ error: error.message || 'Authentication failed' });
+          else resolve({ user: (req as any).user });
+        });
+      });
+
+      if (authResult.error || !authResult.user) {
+        console.error('❌ [STAFF-DELETE] Authentication failed');
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Add outfitter context (as per existing server/routes.ts pattern)
+      await new Promise<void>((resolve) => {
+        addOutfitterContext(req as any, res, () => resolve());
+      });
+
+      const user = authResult.user;
+      const userId = req.params.id;
+      const outfitterId = user.outfitterId;
+
+      console.log('🔍 [STAFF-DELETE] Authenticated user:', user.id);
+      console.log('🔍 [STAFF-DELETE] Target userId:', userId);
+      console.log('🔍 [STAFF-DELETE] outfitterId:', outfitterId);
+
+      // Basic authentication/authorization checks
+      if (!user || !outfitterId) {
+        console.error('❌ [STAFF-DELETE] Authentication or outfitter context missing for staff deletion.');
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Admin role check (as per existing server/routes.ts pattern)
+      if (user.role !== 'admin') {
+        console.error('❌ [STAFF-DELETE] Access denied - admin role required for staff deletion.');
+        return res.status(403).json({ error: "Access denied. Admin role required." });
+      }
+
+      // Prevent self-deletion
+      if (userId === user.id) {
+        console.error('❌ [STAFF-DELETE] Self-deletion attempt blocked.');
+        return res.status(400).json({ error: 'Cannot delete your own account.' });
+      }
+
+      // Validate path parameter
+      if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+        console.error('❌ [STAFF-DELETE] Invalid user ID format from param.');
+        return res.status(400).json({ message: 'Invalid user ID format.' });
+      }
+
+      console.log('🔍 [STAFF-DELETE] Calling storage.deleteUser with:', { userId, outfitterId });
+      const deleted = await storage.deleteUser(userId, outfitterId);
+      console.log('✅ [STAFF-DELETE] User deletion result:', deleted);
+
+      if (!deleted) {
+        console.error('❌ [STAFF-DELETE] User deletion failed at storage layer.');
+        return res.status(404).json({ error: 'User not found or deletion failed.' });
+      }
+
+      console.log('✅ [STAFF-DELETE] Staff member deleted successfully. Responding with 204.');
+      res.status(204).end(); // 204 No Content for successful deletion
+    } catch (error) {
+      console.error('❌ [STAFF-DELETE] Error during staff deletion:', error);
+      // Catch specific errors from storage.deleteUser (e.g., cannot delete due to active bookings)
+      if (error instanceof Error && error.message.includes('Cannot delete user:')) {
+        console.error('❌ [STAFF-DELETE] Deletion blocked by business logic:', error.message);
+        return res.status(409).json({ error: error.message }); // 409 Conflict
+      }
+      res.status(500).json({ error: 'Internal server error during staff deletion.' });
+    }
+  });
+  
   // Mount all API routes under /api prefix
   app.use('/api', apiRoutes);
   

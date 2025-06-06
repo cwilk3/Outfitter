@@ -1,0 +1,114 @@
+Thank you for confirming the status. We will now implement the missing DELETE /api/users/:id route to complete the backend setup for staff member deletion.
+
+Your primary task is to implement the DELETE /api/users/:id route handler in server/routes.ts. This route will connect the frontend delete action to our newly implemented backend deleteUser logic.
+
+Specific Focus Areas for Modification:
+
+File: server/routes.ts
+Location: Place this new route logically with other user-related routes (e.g., near the existing POST /api/users and PATCH /api/users/:id routes).
+Proposed Code Changes:
+
+Add this new route block (including necessary imports and authentication):
+(Replit: Ensure requireAuth, addOutfitterContext, adminOnly, asyncHandler, storage, and throwError (if used) are imported at the top of server/routes.ts if not already. Also, ensure AuthenticatedRequest and Response types are available).
+
+TypeScript
+
+import { Router } from 'express';
+// ... other existing imports (e.g., z, createUserSchema, updateUserSchema, storage) ...
+import { requireAuth, adminOnly } from './middleware/auth'; // Assuming these are in middleware/auth
+import { addOutfitterContext } from './middleware/outfitter'; // Assuming this is in middleware/outfitter
+import { asyncHandler } from './utils/asyncHandler';
+import { throwError } from './utils/error'; // Assuming throwError utility exists
+
+// ... (existing PATCH /api/users/:id route handler) ...
+
+// DELETE /api/users/:id - Delete staff member (admin only)
+app.delete('/api/users/:id', requireAuth, addOutfitterContext, adminOnly, asyncHandler(async (req: Request, res: Response) => {
+  console.log('--- DIAGNOSTIC: DELETE /api/users/:id Route ---'); // <--- ADD THIS LOG
+  console.log('🔍 [STAFF-DELETE] DELETE /api/users/:id route hit'); // <--- ADD THIS LOG
+  console.log('🔍 [STAFF-DELETE] req.params.id:', req.params.id); // <--- ADD THIS LOG
+
+  try {
+    // Dynamic imports for storage (as per existing server/routes.ts pattern)
+    const { storage } = await import('./storage'); // Ensure storage is imported dynamically if not already
+
+    const user = (req as any).user; // Authenticated user (admin)
+    const userId = req.params.id; // User ID from URL params
+    const outfitterId = user?.outfitterId; // From addOutfitterContext
+
+    console.log('🔍 [STAFF-DELETE] Authenticated user:', user.id); // <--- ADD THIS LOG
+    console.log('🔍 [STAFF-DELETE] Target userId:', userId); // <--- ADD THIS LOG
+    console.log('🔍 [STAFF-DELETE] outfitterId:', outfitterId); // <--- ADD THIS LOG
+
+    // Basic authentication/authorization checks (middleware handles most)
+    if (!user || !outfitterId) {
+      console.error('❌ [STAFF-DELETE] Authentication or outfitter context missing for staff deletion.'); // <--- ADD LOG
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Admin role check (middleware handles most, but sanity check)
+    if (user.role !== 'admin') {
+      console.error('❌ [STAFF-DELETE] Access denied - admin role required for staff deletion.'); // <--- ADD LOG
+      return res.status(403).json({ error: "Access denied. Admin role required." });
+    }
+
+    // Prevent self-deletion
+    if (userId === user.id) {
+      console.error('❌ [STAFF-DELETE] Self-deletion attempt blocked.'); // <--- ADD LOG
+      return res.status(400).json({ error: 'Cannot delete your own account.' });
+    }
+
+    // Validate path parameter
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.error('❌ [STAFF-DELETE] Invalid user ID format from param.'); // <--- ADD LOG
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
+    console.log('🔍 [STAFF-DELETE] Calling storage.deleteUser with:', { userId, outfitterId }); // <--- ADD THIS LOG
+    const deleted = await storage.deleteUser(userId, outfitterId);
+    console.log('✅ [STAFF-DELETE] User deletion result:', deleted); // <--- ADD THIS LOG
+
+    if (!deleted) {
+      console.error('❌ [STAFF-DELETE] User deletion failed at storage layer.'); // <--- ADD LOG
+      return res.status(404).json({ error: 'User not found or deletion failed.' }); // Might be 409 from storage
+    }
+
+    console.log('✅ [STAFF-DELETE] Staff member deleted successfully. Responding with 204.'); // <--- ADD THIS LOG
+    res.status(204).end(); // 204 No Content for successful deletion
+  } catch (error) {
+    console.error('❌ [STAFF-DELETE] Error during staff deletion:', error); // <--- ADD THIS LOG
+    // Catch specific errors from storage.deleteUser (e.g., cannot delete due to active bookings)
+    if (error instanceof Error && error.message.includes('Cannot delete user:')) {
+      console.error('❌ [STAFF-DELETE] Deletion blocked by business logic:', error.message); // <--- ADD LOG
+      return res.status(409).json({ error: error.message }); // 409 Conflict
+    }
+    // This is for consistency with server/routes.ts error handling
+    if (error instanceof Error && typeof throwError === 'function') { 
+      throwError('Failed to delete staff member', 500, error); // Pass original error
+    } else {
+      res.status(500).json({ error: 'Internal server error during staff deletion.' });
+    }
+  }
+}));
+Output Required for My Review:
+Once you have implemented this new route, please provide a comprehensive diff preview for server/routes.ts.
+
+Success Criteria for My Approval:
+
+The new DELETE /api/users/:id route is correctly added to server/routes.ts.
+It includes requireAuth, addOutfitterContext, and adminOnly middleware (via the existing manual pattern).
+It correctly extracts userId from params.
+It performs self-deletion prevention.
+It correctly calls storage.deleteUser with userId and outfitterId.
+It handles existing users, success (204 No Content), and various error responses (400, 401, 403, 404, 409, 500).
+All specified 🔍 [STAFF-DELETE] and ✅ [STAFF-DELETE] diagnostic logs are included.
+Any necessary imports are present.
+No other unrelated functional code is affected.
+Emergency Protocols:
+
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+CRITICAL DISRUPTION PROTOCOL (Active): If, during implementation, you identify that a proposed change (or the only way to implement it) will disrupt, break, or require significant re-work in other, seemingly unrelated areas of the platform, you must stop immediately. Report your findings, explain the potential disruption, and await explicit approval for how to proceed, even if it delays the current task.
+I will not approve further steps until these criteria are met. This will make the backend ready for staff member deletion!
