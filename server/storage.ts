@@ -131,6 +131,7 @@ export interface IStorage {
 
   // User deletion operations
   checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }>;
+  deleteUser(userId: string, outfitterId: number): Promise<boolean>;
 
 }
 
@@ -1860,6 +1861,114 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { canDelete: blockers.length === 0, blockers };
+  }
+
+  async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+    // Use a database transaction for atomicity
+    return await db.transaction(async (tx) => {
+      // Step 1: Perform comprehensive deletability checks (from checkUserDeletability)
+      const { canDelete, blockers } = await this.checkUserDeletability(userId, outfitterId);
+      if (!canDelete) {
+        console.error(`❌ [DELETE_USER_FAIL] Cannot delete user ${userId} from outfitter ${outfitterId}: ${blockers.join(', ')}`);
+        throw new Error(`Cannot delete user: ${blockers.join(', ')}`); // Throw error to block transaction
+      }
+      console.log(`✅ [DELETE_USER_DEBUG] User ${userId} is deletable for outfitter ${outfitterId}.`);
+
+      // --- NEW: Auto-assign admin as primary for affected experiences (Phase 1, Item 1.2 part A) ---
+      // First, find the admin user for the current outfitter
+      const [adminUser] = await tx.select().from(users).innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+        .where(and(eq(userOutfitters.outfitterId, outfitterId), eq(users.role, 'admin')))
+        .limit(1);
+
+      if (!adminUser) {
+        console.warn(`⚠️ [DELETE_USER_WARN] No admin found for outfitter ${outfitterId}. Cannot auto-assign primary guide for deleted user's experiences.`);
+        // Affected experiences will go unassigned for primary guide.
+      } else {
+        console.log(`🔍 [DELETE_USER_DEBUG] Admin ${adminUser.users.id} found for auto-assignment.`);
+        // Find all experiences where the deleted user was the primary guide for this outfitter
+        const experiencesToUpdate = await tx.select().from(experiences)
+          .where(and(
+            eq(experiences.guideId, userId), // Where deleted user was primary guide
+            eq(experiences.outfitterId, outfitterId) // For this outfitter
+          ));
+
+        if (experiencesToUpdate.length > 0) {
+          console.log(`🔍 [DELETE_USER_DEBUG] Found ${experiencesToUpdate.length} experiences where deleted user was primary.`);
+          for (const exp of experiencesToUpdate) {
+            // Check if admin is already assigned to this experience
+            const adminAssignmentExists = await tx.select().from(experienceGuides)
+              .where(and(
+                eq(experienceGuides.experienceId, exp.id),
+                eq(experienceGuides.guideId, adminUser.users.id)
+              ));
+
+            if (adminAssignmentExists.length === 0) {
+              // If admin is not assigned, add admin as a guide
+              await tx.insert(experienceGuides).values({
+                experienceId: exp.id,
+                guideId: adminUser.users.id,
+                isPrimary: true // Assign as primary
+              });
+              console.log(`✅ [DELETE_USER_DEBUG] Added admin ${adminUser.users.id} to experience ${exp.id}.`);
+            } else {
+              // If admin is already assigned, just make them primary
+              await tx.update(experienceGuides)
+                .set({ isPrimary: true, updatedAt: new Date() })
+                .where(and(
+                  eq(experienceGuides.experienceId, exp.id),
+                  eq(experienceGuides.guideId, adminUser.users.id)
+                ));
+              console.log(`✅ [DELETE_USER_DEBUG] Set admin ${adminUser.users.id} as primary for experience ${exp.id}.`);
+            }
+
+            // Update the main experiences table's guideId to the admin's ID
+            await tx.update(experiences)
+              .set({ guideId: adminUser.users.id, updatedAt: new Date() })
+              .where(eq(experiences.id, exp.id));
+            console.log(`✅ [DELETE_USER_DEBUG] Updated experiences.guideId for ${exp.id} to admin.`);
+          }
+        }
+      }
+      // --- END AUTO-ASSIGNMENT LOGIC ---
+
+      // Step 2: Delete tenant-scoped guide assignments for this user
+      await tx.delete(experienceGuides)
+        .where(and(
+          eq(experienceGuides.guideId, userId),
+          inArray(experienceGuides.experienceId, tx.select({ id: experiences.id }).from(experiences).where(eq(experiences.outfitterId, outfitterId)))
+        ));
+      console.log(`✅ [DELETE_USER_DEBUG] Deleted guide assignments for user ${userId} within outfitter ${outfitterId}.`);
+
+      // Step 3: Remove the specific user-outfitter relationship
+      const [deletedUserOutfitter] = await tx.delete(userOutfitters)
+        .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)))
+        .returning();
+
+      if (!deletedUserOutfitter) {
+        console.error(`❌ [DELETE_USER_FAIL] Failed to delete user-outfitter relationship for user ${userId} outfitter ${outfitterId}.`);
+        throw new Error('Failed to remove user from outfitter.');
+      }
+      console.log(`✅ [DELETE_USER_DEBUG] Removed user ${userId} from outfitter ${outfitterId}.`);
+
+      // Step 4: Check if the user is associated with any other outfitters
+      const [otherRelations] = await tx.select({ count: sql<number>`count(*)` })
+        .from(userOutfitters)
+        .where(eq(userOutfitters.userId, userId));
+
+      // Step 5: Only hard delete the user record if no other outfitter relationships exist
+      // This allows email reuse while maintaining multi-tenancy for globally linked users.
+      if (otherRelations.count === 0) {
+        await tx.delete(users)
+          .where(eq(users.id, userId));
+        console.log(`✅ [DELETE_USER_DEBUG] Hard deleted user ${userId} (no other outfitter relations).`);
+      } else {
+        console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelations.count} other outfitters).`);
+        // If user is retained, their email is NOT immediately available for global reuse.
+        // The business policy prioritizes multi-tenancy and data integrity over global email reuse.
+      }
+      
+      return true; // Deletion from current outfitter successful
+    });
   }
 
 }

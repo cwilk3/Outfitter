@@ -1,0 +1,155 @@
+Thank you for confirming the successful implementation of checkUserDeletability! Phase 1, Item 1.1 is now complete.
+
+Now, we proceed with Phase 1, Item 1.2: Refine deleteUser Function (Complete Rewrite). This is the core logic for deleting staff members.
+
+Your primary task is to completely rewrite the deleteUser function in server/storage.ts to implement the comprehensive, tenant-aware deletion process we defined.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: The async deleteUser(...) function definition.
+Proposed Code Changes:
+
+Find this block (the async deleteUser(...) function definition):
+
+TypeScript
+
+// Assuming current implementation of deleteUser looks similar to this (from previous context)
+async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+  // ... current problematic implementation from before rollback
+  // ... (e.g., direct delete of experienceGuides globally, or simple user delete)
+  // ... this will be replaced completely
+}
+Replace the entire deleteUser function with the following refined logic:
+
+TypeScript
+
+async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+  // Use a database transaction for atomicity
+  return await db.transaction(async (tx) => {
+    // Step 1: Perform comprehensive deletability checks (from checkUserDeletability)
+    const { canDelete, blockers } = await this.checkUserDeletability(userId, outfitterId);
+    if (!canDelete) {
+      console.error(`❌ [DELETE_USER_FAIL] Cannot delete user ${userId} from outfitter ${outfitterId}: ${blockers.join(', ')}`);
+      throw new Error(`Cannot delete user: ${blockers.join(', ')}`); // Throw error to block transaction
+    }
+    console.log(`✅ [DELETE_USER_DEBUG] User ${userId} is deletable for outfitter ${outfitterId}.`);
+
+    // --- NEW: Auto-assign admin as primary for affected experiences (Phase 1, Item 1.2 part A) ---
+    // First, find the admin user for the current outfitter
+    const [adminUser] = await tx.select().from(users).innerJoin(userOutfitters, eq(users.id, userOutfitters.userId))
+      .where(and(eq(userOutfitters.outfitterId, outfitterId), eq(users.role, 'admin')))
+      .limit(1);
+
+    if (!adminUser) {
+      console.warn(`⚠️ [DELETE_USER_WARN] No admin found for outfitter ${outfitterId}. Cannot auto-assign primary guide for deleted user's experiences.`);
+      // Affected experiences will go unassigned for primary guide.
+    } else {
+      console.log(`🔍 [DELETE_USER_DEBUG] Admin ${adminUser.users.id} found for auto-assignment.`);
+      // Find all experiences where the deleted user was the primary guide for this outfitter
+      const experiencesToUpdate = await tx.select().from(experiences)
+        .where(and(
+          eq(experiences.guideId, userId), // Where deleted user was primary guide
+          eq(experiences.outfitterId, outfitterId) // For this outfitter
+        ));
+
+      if (experiencesToUpdate.length > 0) {
+        console.log(`🔍 [DELETE_USER_DEBUG] Found ${experiencesToUpdate.length} experiences where deleted user was primary.`);
+        for (const exp of experiencesToUpdate) {
+          // Check if admin is already assigned to this experience
+          const adminAssignmentExists = await tx.select().from(experienceGuides)
+            .where(and(
+              eq(experienceGuides.experienceId, exp.id),
+              eq(experienceGuides.guideId, adminUser.users.id)
+            ));
+
+          if (adminAssignmentExists.length === 0) {
+            // If admin is not assigned, add admin as a guide
+            await tx.insert(experienceGuides).values({
+              experienceId: exp.id,
+              guideId: adminUser.users.id,
+              isPrimary: true // Assign as primary
+            });
+            console.log(`✅ [DELETE_USER_DEBUG] Added admin ${adminUser.users.id} to experience ${exp.id}.`);
+          } else {
+            // If admin is already assigned, just make them primary
+            await tx.update(experienceGuides)
+              .set({ isPrimary: true, updatedAt: new Date() })
+              .where(and(
+                eq(experienceGuides.experienceId, exp.id),
+                eq(experienceGuides.guideId, adminUser.users.id)
+              ));
+            console.log(`✅ [DELETE_USER_DEBUG] Set admin ${adminUser.users.id} as primary for experience ${exp.id}.`);
+          }
+
+          // Update the main experiences table's guideId to the admin's ID
+          await tx.update(experiences)
+            .set({ guideId: adminUser.users.id, updatedAt: new Date() })
+            .where(eq(experiences.id, exp.id));
+          console.log(`✅ [DELETE_USER_DEBUG] Updated experiences.guideId for ${exp.id} to admin.`);
+        }
+      }
+    }
+    // --- END AUTO-ASSIGNMENT LOGIC ---
+
+    // Step 2: Delete tenant-scoped guide assignments for this user
+    await tx.delete(experienceGuides)
+      .where(and(
+        eq(experienceGuides.guideId, userId),
+        inArray(experienceGuides.experienceId, db.select({ id: experiences.id }).from(experiences).where(eq(experiences.outfitterId, outfitterId)))
+      ));
+    console.log(`✅ [DELETE_USER_DEBUG] Deleted guide assignments for user ${userId} within outfitter ${outfitterId}.`);
+
+    // Step 3: Remove the specific user-outfitter relationship
+    const [deletedUserOutfitter] = await tx.delete(userOutfitters)
+      .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)))
+      .returning();
+
+    if (!deletedUserOutfitter) {
+      console.error(`❌ [DELETE_USER_FAIL] Failed to delete user-outfitter relationship for user ${userId} outfitter ${outfitterId}.`);
+      throw new Error('Failed to remove user from outfitter.');
+    }
+    console.log(`✅ [DELETE_USER_DEBUG] Removed user ${userId} from outfitter ${outfitterId}.`);
+
+    // Step 4: Check if the user is associated with any other outfitters
+    const [otherRelations] = await tx.select({ count: sql<number>`count(*)` })
+      .from(userOutfitters)
+      .where(eq(userOutfitters.userId, userId));
+
+    // Step 5: Only hard delete the user record if no other outfitter relationships exist
+    // This allows email reuse while maintaining multi-tenancy for globally linked users.
+    if (otherRelations.count === 0) {
+      await tx.delete(users)
+        .where(eq(users.id, userId));
+      console.log(`✅ [DELETE_USER_DEBUG] Hard deleted user ${userId} (no other outfitter relations).`);
+    } else {
+      console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelations.count} other outfitters).`);
+      // If user is retained, their email is NOT immediately available for global reuse.
+      // The business policy prioritizes multi-tenancy and data integrity over global email reuse.
+    }
+    
+    return true; // Deletion from current outfitter successful
+  });
+}
+Output Required for My Review:
+Once you have implemented this rewrite, please provide a comprehensive diff preview for server/storage.ts.
+
+Success Criteria for My Approval (for this critical fix):
+
+The deleteUser function is completely rewritten to the proposed logic.
+checkUserDeletability is called and correctly blocks deletion if needed (from previous step).
+Auto-admin primary assignment logic is correctly implemented:
+Finds admin user for current outfitter.
+Identifies experiences where deleted user was primary.
+Adds/updates admin to experienceGuides as primary for affected experiences.
+Updates experiences.guideId to admin's ID.
+No operations are performed on the bookings table within deleteUser.
+Guide assignments are deleted in a TENANT-SCOPED way (using experienceGuides.experienceId filtered by experiences.outfitterId).
+userOutfitters relationship is deleted (tenant-scoped).
+The users record is only hard deleted if no other userOutfitters relationships exist.
+The function operates within a db.transaction for atomicity.
+Comprehensive diagnostic logs are added.
+No other unrelated functional code is affected.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will fix safe staff deletion with bookings untouched!
