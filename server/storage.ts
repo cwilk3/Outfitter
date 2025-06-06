@@ -1839,6 +1839,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // User deletion operations
+  async checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }> {
+    const blockers: string[] = [];
+    
+    // Check for active bookings (this is the ONLY blocker)
+    // Define what "active" means for a booking (status not 'completed' or 'cancelled')
+    const [activeBookings] = await db.select({ count: sql<number>`count(*)` })
+      .from(bookingGuides)
+      .innerJoin(bookings, eq(bookingGuides.bookingId, bookings.id))
+      .where(and(
+        eq(bookingGuides.guideId, userId),
+        eq(bookings.outfitterId, outfitterId), // Ensure tenant scope
+        // Filter by booking status to ensure it's "active"
+        inArray(bookings.status, ['pending', 'confirmed', 'deposit_paid', 'paid'])
+      ));
+    
+    if (activeBookings.count > 0) {
+      blockers.push(`User has ${activeBookings.count} active bookings for this outfitter.`);
+    }
+    
+    return { canDelete: blockers.length === 0, blockers };
+  }
+
 }
 
 export const storage = new DatabaseStorage();
