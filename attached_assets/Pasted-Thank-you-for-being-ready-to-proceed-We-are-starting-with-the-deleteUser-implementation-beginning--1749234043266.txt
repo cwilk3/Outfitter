@@ -1,0 +1,95 @@
+Thank you for being ready to proceed. We are starting with the deleteUser implementation, beginning with checkUserDeletability.
+
+Your primary task is to modify the checkUserDeletability method in server/storage.ts to ensure it accurately identifies whether a user can be safely deleted from a specific outfitter. It should ONLY block deletion if the user has active (non-completed/non-cancelled) bookings within the current outfitterId. It must NOT block deletion due to guide assignments, as those will be cleaned up by deleteUser.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: The async checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }> method definition.
+Proposed Code Changes:
+
+Find this block (the checkUserDeletability method definition):
+
+TypeScript
+
+// Assuming current implementation of checkUserDeletability looks similar to this
+async checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }> {
+  const blockers: string[] = [];
+  
+  // Check for active guide assignments (PROBLEM: blocks deletion)
+  const [assignments] = await db.select({ count: sql<number>`count(*)` })
+    .from(experienceGuides)
+    .where(and(eq(experienceGuides.guideId, userId), eq(experienceGuides.outfitterId, outfitterId)));
+  
+  if (assignments.count > 0) {
+    blockers.push(`User has ${assignments.count} active guide assignments`);
+  }
+  
+  // Check for active bookings (should only block if active and for this outfitter)
+  const [bookings] = await db.select({ count: sql<number>`count(*)` })
+    .from(bookings)
+    .where(and(eq(bookings.assignedGuide, userId), eq(bookings.outfitterId, outfitterId))); // Assuming bookings has assignedGuide and outfitterId
+  
+  if (bookings.count > 0) {
+    blockers.push(`User has ${bookings.count} active bookings`); // Need to refine "active"
+  }
+  
+  return { canDelete: blockers.length === 0, blockers };
+}
+Replace it with (refining logic to only block on active bookings, no guide assignment check):
+
+TypeScript
+
+async checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }> {
+  const blockers: string[] = [];
+  
+  // --- REMOVED: Check for active guide assignments (will be cleaned by deleteUser) ---
+  
+  // Check for active bookings (this is the ONLY remaining blocker)
+  // Define what "active" means for a booking (e.g., status not 'completed' or 'cancelled')
+  const [activeBookings] = await db.select({ count: sql<number>`count(*)` })
+    .from(bookings)
+    .where(and(
+      eq(bookings.assignedGuide, userId),
+      eq(bookings.outfitterId, outfitterId), // Ensure tenant scope
+      // Example: filter by booking status to ensure it's "active"
+      // Assuming bookings.status exists and relevant statuses are defined
+      // inArray(bookings.status, ['confirmed', 'deposit_paid', 'paid']) // <--- ADD/VERIFY THIS LOGIC
+    ));
+  
+  if (activeBookings.count > 0) {
+    blockers.push(`User has ${activeBookings.count} active bookings for this outfitter.`);
+  }
+  
+  // Also check if user is the *primary* admin for this outfitter (cannot delete primary admin)
+  // This check is typically done in the route handler, not storage, but if logic is here:
+  const [userOutfitterRole] = await db.select({ role: userOutfitters.role })
+    .from(userOutfitters)
+    .where(and(eq(userOutfitters.userId, userId), eq(userOutfitters.outfitterId, outfitterId)));
+
+  if (userOutfitterRole?.role === 'admin' && outfitterId === 1 /* assuming outfitter 1 is the main tenant */ ) {
+    // This is a placeholder for checking if the user is the PRIMARY admin of an outfitter,
+    // which usually means they cannot be deleted. This often depends on business rules.
+    // For now, let's stick to explicit role checks for admin deletion in route.
+  }
+  
+  return { canDelete: blockers.length === 0, blockers };
+}
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts.
+
+Success Criteria for My Approval:
+
+The checkUserDeletability method is updated to:
+Remove the check for experienceGuides assignments.
+Retain the check for bookings, ensuring it is tenant-scoped (outfitterId) and considers only active bookings (based on status or similar field).
+Return canDelete based only on the absence of active bookings.
+No other unrelated functional code is affected.
+Emergency Protocols:
+
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+CRITICAL DISRUPTION PROTOCOL (Active): If, during implementation, you identify that a proposed change (or the only way to implement it) will disrupt, break, or require significant re-work in other, seemingly unrelated areas of the platform, you must stop immediately. Report your findings, explain the potential disruption, and await explicit approval for how to proceed, even if it delays the current task.
+I will not approve further steps until these criteria are met. This will refine our pre-deletion checks!

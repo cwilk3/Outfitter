@@ -129,6 +129,9 @@ export interface IStorage {
   removeGuideFromExperienceWithTenant(id: number, outfitterId: number): Promise<void>;
   removeGuideFromBookingWithTenant(bookingId: number, guideId: string, outfitterId: number): Promise<void>;
 
+  // User deletion operations
+  checkUserDeletability(userId: string, outfitterId: number): Promise<{ canDelete: boolean; blockers: string[] }>;
+
 }
 
 export class DatabaseStorage implements IStorage {
