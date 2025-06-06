@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
 
 import {
   Card,
@@ -62,7 +63,8 @@ import {
   Edit,
   UserCog,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from "lucide-react";
 
 // Define form validation schema
@@ -82,13 +84,44 @@ const userSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 
+// Delete confirmation dialog component
+const ConfirmDeleteDialog = ({ user, isOpen, onClose, onConfirm, deleteMutation }: {
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  deleteMutation: any;
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Staff Member</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{user?.firstName} {user?.lastName}</strong>?
+            This action cannot be undone and will remove the user from your organization.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={deleteMutation.isPending}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function Staff() {
   const { toast } = useToast();
   const { isAdmin } = useRole();
+  const { user: currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const perPage = 10;
 
   // Fetch staff (guides and admins)
@@ -160,6 +193,41 @@ export default function Staff() {
       console.error("Update user error:", error);
     },
   });
+
+  // Delete user mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      console.log('🔍 [STAFF-DELETE-FRONTEND] Calling DELETE API for user:', userId);
+      const response = await apiRequest("DELETE", `/api/users/${userId}`);
+      console.log('✅ [STAFF-DELETE-FRONTEND] DELETE API response:', response);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Staff member deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setUserToDelete(null);
+    },
+    onError: (error: Error) => {
+      console.error('❌ [STAFF-DELETE-FRONTEND] Error deleting staff member:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete staff member",
+        variant: "destructive",
+      });
+      setUserToDelete(null);
+    },
+  });
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      console.log('🔍 [STAFF-DELETE-FRONTEND] User confirmed deletion for:', userToDelete.id);
+      deleteMutation.mutate(userToDelete.id);
+    }
+  };
 
   const onSubmit = (data: UserFormValues) => {
     if (selectedUser) {
@@ -374,6 +442,17 @@ export default function Staff() {
                               >
                                 <Edit className="h-4 w-4" />
                                 <span className="sr-only">Edit</span>
+                              </Button>
+                            )}
+                            {isAdmin && user.id !== currentUser?.id && (
+                              <Button 
+                                onClick={() => setUserToDelete(user)}
+                                variant="outline" 
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
                               </Button>
                             )}
                           </div>
@@ -596,6 +675,15 @@ export default function Staff() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDeleteDialog
+        user={userToDelete}
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        deleteMutation={deleteMutation}
+      />
     </>
   );
 }

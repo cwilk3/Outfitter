@@ -1,0 +1,174 @@
+Your primary task is to implement the "Delete" button for each staff member in the staff list, and integrate a confirmation dialog, to allow staff members to be deleted.
+
+Specific Focus Areas for Modification:
+
+File: client/src/pages/Staff.tsx
+Locations:
+The main Staff component function.
+The JSX rendering the staff member table/list (specifically where the "Edit" button is, as the "Delete" button should be alongside it).
+Proposed Code Changes:
+
+1. Add ConfirmDeleteDialog Component (Reusable Dialog):
+Goal: Create a reusable confirmation dialog for deletion.
+Location: Add this component function above the Staff() default export function, or in a dedicated components/ file if you have one. For simplicity, add it to Staff.tsx for now.
+TypeScript
+
+// Add this component above the Staff() function or near other Dialog definitions
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Ensure these imports exist
+import { Button } from "@/components/ui/button"; // Ensure this import exists
+import { toast } from "@/components/ui/use-toast"; // Ensure this import exists
+import { useMutation, useQueryClient } from "@tanstack/react-query"; // Ensure these imports exist
+import { apiRequest } from "@/lib/queryClient"; // Ensure this import exists
+
+// Define this component
+const ConfirmDeleteDialog = ({ user, isOpen, onClose, onConfirm, deleteMutation }: {
+  user: any; // Or User type
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  deleteMutation: any; // Pass the mutation for showing loading state, etc.
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete Staff Member</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete <strong>{user?.firstName} {user?.lastName}</strong>?
+            This action cannot be undone and will remove the user from your organization.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={deleteMutation.isPending}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+2. Add State for Delete Dialog & Define deleteMutation:
+Goal: Manage the delete dialog's visibility and call the backend DELETE API.
+Location: Inside the Staff() component function, near other useState and useMutation definitions.
+TypeScript
+
+export default function Staff() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient(); // Ensure queryClient is available
+
+  // ... existing state variables (e.g., searchQuery, setIsCreating, etc.) ...
+  const [userToDelete, setUserToDelete] = useState<any>(null); // State to hold user being deleted, controls dialog
+
+  // --- NEW: deleteMutation for staff deletion ---
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      console.log('🔍 [STAFF-DELETE-FRONTEND] Calling DELETE API for user:', userId);
+      // Calls our backend DELETE /api/users/:id route
+      const response = await apiRequest("DELETE", `/api/users/${userId}`);
+      console.log('✅ [STAFF-DELETE-FRONTEND] DELETE API response:', response);
+      return response; // Will be null for 204 No Content
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Staff member deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] }); // Invalidate staff list query
+      setUserToDelete(null); // Close dialog
+    },
+    onError: (error: Error) => {
+      console.error('❌ [STAFF-DELETE-FRONTEND] Error deleting staff member:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete staff member",
+        variant: "destructive",
+      });
+      setUserToDelete(null); // Close dialog even on error
+    },
+  });
+
+  // --- NEW: handleDeleteConfirm function ---
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      console.log('🔍 [STAFF-DELETE-FRONTEND] User confirmed deletion for:', userToDelete.id);
+      deleteMutation.mutate(userToDelete.id);
+    }
+  };
+
+  // ... rest of component logic ...
+}
+3. Add "Delete" Button to Table Row JSX:
+Goal: Add the "Delete" button next to the "Edit" button in the staff list.
+Location: Within the staff.map or user.map rendering the table rows (TableCell for actions).
+TypeScript
+
+// ... inside staff.map((user: User) => ( ... )) table row rendering ...
+<TableCell className="text-right">
+  <div className="flex justify-end gap-2">
+    {/* Existing Edit Button */}
+    {isAdmin && (
+      <Button 
+        onClick={() => openEditDialog(user)}
+        variant="outline" 
+        size="sm"
+      >
+        <Edit className="h-4 w-4" />
+        <span className="sr-only">Edit</span>
+      </Button>
+    )}
+    
+    {/* --- NEW: Delete Button --- */}
+    {isAdmin && user.id !== currentUser?.id && ( // Prevent non-admins from seeing, and prevent self-deletion
+      <Button 
+        onClick={() => {
+          // Prevent event bubbling if in a form context
+          // e.preventDefault(); 
+          // e.stopPropagation(); 
+          setUserToDelete(user); // Open confirmation dialog
+        }}
+        variant="outline" 
+        size="sm"
+        className="text-red-600 hover:text-red-700" // Style red
+      >
+        <Trash2 className="h-4 w-4" />
+        <span className="sr-only">Delete</span>
+      </Button>
+    )}
+    {/* --- END NEW --- */}
+  </div>
+</TableCell>
+// ...
+4. Render ConfirmDeleteDialog:
+Goal: Render the confirmation dialog at the end of the Staff component's JSX.
+Location: At the end of the return (...) block of the Staff component, before the final closing </div>.
+TypeScript
+
+// ... rest of Staff component JSX ...
+
+{/* --- NEW: Render Confirmation Dialog --- */}
+<ConfirmDeleteDialog
+  user={userToDelete}
+  isOpen={!!userToDelete} // Dialog opens if userToDelete is not null
+  onClose={() => setUserToDelete(null)} // Close dialog
+  onConfirm={handleDeleteConfirm} // Handle confirm action
+  deleteMutation={deleteMutation} // Pass mutation for loading state
+/>
+{/* --- END NEW --- */}
+Output Required for My Review:
+Once you have implemented these modifications, please provide a comprehensive diff preview for client/src/pages/Staff.tsx.
+
+Success Criteria for My Approval (for this frontend delete feature):
+
+The ConfirmDeleteDialog component is correctly defined (or imported from a shared location).
+userToDelete state and deleteMutation are correctly defined in Staff.tsx.
+The "Delete" button is added to each staff member row in the UI.
+The "Delete" button correctly opens the ConfirmDeleteDialog and prevents self-deletion.
+The ConfirmDeleteDialog is correctly rendered and wired to userToDelete state and handleDeleteConfirm.
+deleteMutation correctly uses apiRequest for DELETE /api/users/:id.
+deleteMutation onSuccess invalidates users query and closes dialog.
+No other unrelated functional code is affected.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will enable frontend staff member deletion!"
+
