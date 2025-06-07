@@ -59,6 +59,7 @@ export interface IStorage {
 
   // Experience operations
   getExperience(id: number): Promise<ExperienceWithGuides | undefined>;
+  getExperienceWithTenant(id: number, outfitterId: number): Promise<ExperienceWithGuides | undefined>;
   createExperience(experience: InsertExperience & { assignedGuideIds?: string[] }): Promise<Experience>;
   updateExperience(experienceId: number, updateData: Partial<InsertExperience & { assignedGuideIds?: Array<{ guideId: string, isPrimary?: boolean }> }>, outfitterId: number): Promise<Experience | null>;
   deleteExperience(id: number): Promise<void>;
@@ -102,16 +103,20 @@ export interface IStorage {
   
   // Document operations
   getDocument(id: number): Promise<Document | undefined>;
+  getDocumentWithTenant(id: number, outfitterId: number): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: number, document: Partial<InsertDocument>): Promise<Document | undefined>;
   listDocuments(filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]>;
+  listDocumentsByOutfitter(outfitterId: number, filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]>;
   deleteDocument(id: number): Promise<void>;
   
   // Payment operations
   getPayment(id: number): Promise<Payment | undefined>;
+  getPaymentWithTenant(id: number, outfitterId: number): Promise<Payment | undefined>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: number, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
   listPayments(bookingId?: number): Promise<Payment[]>;
+  listPaymentsByOutfitter(outfitterId: number, bookingId?: number): Promise<Payment[]>;
   
   // Settings operations
   getSettings(): Promise<Settings | undefined>;
@@ -443,6 +448,52 @@ export class DatabaseStorage implements IStorage {
   async getExperience(id: number): Promise<ExperienceWithGuides | undefined> {
     const experienceWithGuides = await db.query.experiences.findFirst({
       where: eq(experiences.id, id),
+      with: {
+        experienceGuides: {
+          with: {
+            user: true, // Join to get user details for each guide
+          },
+        },
+      },
+    });
+
+    if (!experienceWithGuides) {
+      return undefined;
+    }
+
+    // Transform the result to include assignedGuides array
+    const assignedGuidesFormatted = experienceWithGuides.experienceGuides.map(
+      (ag) => ({
+        id: ag.id, // Junction table ID
+        guideId: ag.guideId,
+        isPrimary: ag.isPrimary || false, // Handle null values
+        guideUser: ag.user
+          ? {
+              id: ag.user.id,
+              email: ag.user.email,
+              firstName: ag.user.firstName,
+              lastName: ag.user.lastName,
+              profileImageUrl: ag.user.profileImageUrl,
+              role: ag.user.role,
+            }
+          : undefined,
+      })
+    );
+
+    // Return the experience with the new assignedGuides array
+    const { experienceGuides: _, ...experienceWithoutJunction } = experienceWithGuides;
+    return {
+      ...experienceWithoutJunction,
+      assignedGuides: assignedGuidesFormatted,
+    };
+  }
+
+  async getExperienceWithTenant(id: number, outfitterId: number): Promise<ExperienceWithGuides | undefined> {
+    const experienceWithGuides = await db.query.experiences.findFirst({
+      where: and(
+        eq(experiences.id, id),
+        eq(experiences.outfitterId, outfitterId)
+      ),
       with: {
         experienceGuides: {
           with: {
@@ -1547,6 +1598,17 @@ export class DatabaseStorage implements IStorage {
     return document;
   }
 
+  async getDocumentWithTenant(id: number, outfitterId: number): Promise<Document | undefined> {
+    const [document] = await db
+      .select()
+      .from(documents)
+      .where(and(
+        eq(documents.id, id),
+        eq(documents.outfitterId, outfitterId)
+      ));
+    return document;
+  }
+
   async createDocument(documentData: InsertDocument): Promise<Document> {
     const [document] = await db
       .insert(documents)
@@ -1590,6 +1652,30 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(documents.createdAt));
   }
 
+  async listDocumentsByOutfitter(outfitterId: number, filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]> {
+    let query = db.select().from(documents).where(eq(documents.outfitterId, outfitterId));
+    
+    if (filter) {
+      const conditions = [eq(documents.outfitterId, outfitterId)];
+      
+      if (filter.bookingId) {
+        conditions.push(eq(documents.bookingId, filter.bookingId));
+      }
+      
+      if (filter.customerId) {
+        conditions.push(eq(documents.customerId, filter.customerId));
+      }
+      
+      if (filter.guideId) {
+        conditions.push(eq(documents.guideId, filter.guideId));
+      }
+      
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return await query.orderBy(desc(documents.createdAt));
+  }
+
   async deleteDocument(id: number): Promise<void> {
     await db
       .delete(documents)
@@ -1599,6 +1685,17 @@ export class DatabaseStorage implements IStorage {
   // Payment operations
   async getPayment(id: number): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async getPaymentWithTenant(id: number, outfitterId: number): Promise<Payment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(and(
+        eq(payments.id, id),
+        eq(payments.outfitterId, outfitterId)
+      ));
     return payment;
   }
 

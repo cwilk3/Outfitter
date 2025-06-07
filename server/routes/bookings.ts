@@ -154,10 +154,9 @@ router.delete('/:bookingId/guides/:guideId',
     }
 
     // 🔒 TENANT ISOLATION: Verify booking belongs to user's outfitter BEFORE any operations
-    const booking = await storage.getBooking(parseInt(bookingId));
+    const booking = await storage.getBookingWithTenant(parseInt(bookingId), outfitterId);
     
-    if (!booking || booking.outfitterId !== outfitterId) {
-
+    if (!booking) {
       return res.status(404).json({
         error: "Booking not found or not authorized",
       });
