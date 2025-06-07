@@ -35,6 +35,16 @@ const updateUserSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log('=== REGISTERING MODULARIZED ROUTES ===');
   
+  // Global request logger for DELETE requests to /api/users/*
+  app.use('/api/users', (req, res, next) => {
+    if (req.method === 'DELETE') {
+      console.log('🌐 [GLOBAL-REQUEST-LOG] DELETE request to /api/users path:', req.path);
+      console.log('🌐 [GLOBAL-REQUEST-LOG] Full URL:', req.originalUrl);
+      console.log('🌐 [GLOBAL-REQUEST-LOG] Params:', req.params);
+    }
+    next();
+  });
+  
   // PRIORITY FIX: Register experience-addons route using exact pattern that works for DELETE
   app.get('/api/experience-addons/:experienceId', async (req: AuthenticatedRequest, res: Response) => {
     console.log('🔥 [PRIORITY EXPERIENCE-ADDONS] Route hit - bypassing Vite!', { experienceId: req.params.experienceId });
@@ -401,6 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // DELETE /api/users/:id - Delete staff member (admin only)
+  console.log('🚀 [ROUTE-REGISTRATION] Registering DELETE /api/users/:id route');
   app.delete('/api/users/:id', async (req: AuthenticatedRequest, res: Response) => {
     console.log('--- DIAGNOSTIC: DELETE /api/users/:id Route ---');
     console.log('🔍 [STAFF-DELETE] DELETE /api/users/:id route hit');
