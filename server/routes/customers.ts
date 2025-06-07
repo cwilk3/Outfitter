@@ -7,6 +7,7 @@ import { asyncHandler, throwError } from '../utils/asyncHandler';
 import { insertCustomerSchema } from '@shared/schema';
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
+import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
 
 const router = Router();
 
@@ -38,8 +39,8 @@ const customerValidation = {
   }, { message: 'At least one field must be provided for update' })
 };
 
-// Apply auth, outfitter context, and tenant validation to all customer routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'));
+// Apply auth, outfitter context, tenant validation, and advanced security to all customer routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'), ...enableTenantSecurity());
 
 // Get all customers with validation
 router.get('/', 
@@ -56,6 +57,7 @@ router.get('/',
 router.get('/:id', 
   validate({ params: customerValidation.customerIdParam }),
   validateTenantParam('id', 'customer'),
+  verifyResourceOwnership('customer'),
   asyncHandler(async (req: TenantAwareRequest, res: Response) => {
     const { id } = req.params;
     const outfitterId = req.tenantContext!.outfitterId;

@@ -36,14 +36,12 @@ const adminOnly = (req: any, res: any, next: any) => {
   next();
 };
 
-// GET /api/users - List users for staff management
-router.get('/', requireAuth, addOutfitterContext, asyncHandler(async (req: any, res: any) => {
-  const user = req.user;
-  const outfitterId = user.outfitterId;
+// Apply auth, outfitter context, and tenant validation to all user routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('users', { allowedRoles: ['admin'] }));
 
-  if (!outfitterId) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
+// GET /api/users - List users for staff management
+router.get('/', asyncHandler(async (req: TenantAwareRequest, res: any) => {
+  const outfitterId = req.tenantContext!.outfitterId;
 
   // Parse role filter from query parameters
   let roles: string[] = [];

@@ -7,6 +7,7 @@ import { asyncHandler, throwError } from '../utils/asyncHandler';
 import { insertExperienceSchema, insertExperienceAddonSchema, insertExperienceLocationSchema } from '@shared/schema';
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
+import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
 
 const router = Router();
 
@@ -31,8 +32,8 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 
 const adminOnly = hasRole('admin');
 
-// Apply auth, outfitter context, and tenant validation to all experience routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('experiences'));
+// Apply auth, outfitter context, tenant validation, and advanced security to all experience routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('experiences'), ...enableTenantSecurity());
 
 // Get all experiences
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
