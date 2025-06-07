@@ -1955,7 +1955,7 @@ export class DatabaseStorage implements IStorage {
       const [otherRelations] = await tx.select({ count: sql<number>`count(*)` })
         .from(userOutfitters)
         .where(eq(userOutfitters.userId, userId));
-      const otherRelationsCount = otherRelations?.count || 0;
+      const otherRelationsCount = Number(otherRelations?.count) || 0;
       
       console.log(`🔍 [DELETE_USER_DEBUG] Other relations count found: ${otherRelationsCount} for user ${userId}.`);
       console.log(`🔍 [DELETE_USER_DEBUG] Type check - otherRelations.count type: ${typeof otherRelations?.count}, value: ${otherRelations?.count}, otherRelationsCount type: ${typeof otherRelationsCount}, value: ${otherRelationsCount}`);
