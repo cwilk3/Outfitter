@@ -51,6 +51,7 @@ export interface IStorage {
 
   // Location operations
   getLocation(id: number): Promise<Location | undefined>;
+  getLocationWithTenant(id: number, outfitterId: number): Promise<Location | undefined>;
   createLocation(location: InsertLocation): Promise<Location>;
   updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined>;
   deleteLocation(id: number): Promise<void>;
@@ -78,6 +79,7 @@ export interface IStorage {
   
   // Customer operations
   getCustomer(id: number): Promise<Customer | undefined>;
+  getCustomerWithTenant(id: number, outfitterId: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   listCustomers(outfitterId: number, search?: string): Promise<Customer[]>;
