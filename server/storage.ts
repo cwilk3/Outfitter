@@ -1958,6 +1958,7 @@ export class DatabaseStorage implements IStorage {
       const otherRelationsCount = otherRelations?.count || 0;
       
       console.log(`🔍 [DELETE_USER_DEBUG] Other relations count found: ${otherRelationsCount} for user ${userId}.`);
+      console.log(`🔍 [DELETE_USER_DEBUG] Type check - otherRelations.count type: ${typeof otherRelations?.count}, value: ${otherRelations?.count}, otherRelationsCount type: ${typeof otherRelationsCount}, value: ${otherRelationsCount}`);
 
       // Step 5: Only hard delete the user record if no other outfitter relationships exist
       // This allows email reuse while maintaining multi-tenancy for globally linked users.
