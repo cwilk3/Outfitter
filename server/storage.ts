@@ -1653,11 +1653,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listDocumentsByOutfitter(outfitterId: number, filter?: { bookingId?: number, customerId?: number, guideId?: string }): Promise<Document[]> {
-    let query = db.select().from(documents).where(eq(documents.outfitterId, outfitterId));
+    const conditions = [eq(documents.outfitterId, outfitterId)];
     
     if (filter) {
-      const conditions = [eq(documents.outfitterId, outfitterId)];
-      
       if (filter.bookingId) {
         conditions.push(eq(documents.bookingId, filter.bookingId));
       }
@@ -1669,11 +1667,13 @@ export class DatabaseStorage implements IStorage {
       if (filter.guideId) {
         conditions.push(eq(documents.guideId, filter.guideId));
       }
-      
-      query = query.where(and(...conditions)) as any;
     }
     
-    return await query.orderBy(desc(documents.createdAt));
+    return await db
+      .select()
+      .from(documents)
+      .where(and(...conditions))
+      .orderBy(desc(documents.createdAt));
   }
 
   async deleteDocument(id: number): Promise<void> {
@@ -1721,6 +1721,20 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(payments).where(eq(payments.bookingId, bookingId));
     }
     return db.select().from(payments).orderBy(desc(payments.createdAt));
+  }
+
+  async listPaymentsByOutfitter(outfitterId: number, bookingId?: number): Promise<Payment[]> {
+    const conditions = [eq(payments.outfitterId, outfitterId)];
+    
+    if (bookingId) {
+      conditions.push(eq(payments.bookingId, bookingId));
+    }
+    
+    return await db
+      .select()
+      .from(payments)
+      .where(and(...conditions))
+      .orderBy(desc(payments.createdAt));
   }
 
   // Settings operations

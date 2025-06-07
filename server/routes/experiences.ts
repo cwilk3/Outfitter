@@ -6,6 +6,7 @@ import { addOutfitterContext } from '../outfitterContext';
 import { asyncHandler, throwError } from '../utils/asyncHandler';
 import { insertExperienceSchema, insertExperienceAddonSchema, insertExperienceLocationSchema } from '@shared/schema';
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
+import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 
 const router = Router();
 

@@ -87,3 +87,51 @@ export class TenantAccessError extends Error {
     this.name = 'TenantAccessError';
   }
 }
+
+// Automatic tenant validation for route parameters
+export function validateTenantParam(paramName: string = 'id', resourceType: string) {
+  return (req: TenantAwareRequest, res: Response, next: NextFunction) => {
+    const resourceId = req.params[paramName];
+    const tenantContext = req.tenantContext;
+    
+    if (!tenantContext) {
+      console.log(`🚫 [TENANT-PARAM] Missing tenant context for ${resourceType} ${resourceId}`);
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    if (!resourceId) {
+      console.log(`🚫 [TENANT-PARAM] Missing ${paramName} parameter for ${resourceType}`);
+      return res.status(400).json({ error: `${paramName} parameter required` });
+    }
+    
+    console.log(`🔒 [TENANT-PARAM] Validating ${resourceType} ${resourceId} for outfitter ${tenantContext.outfitterId}`);
+    next();
+  };
+}
+
+// Enhanced middleware that enforces tenant-scoped storage methods
+export function enforceTenantIsolation(resourceType: string, options: { 
+  requireTenantMethod?: boolean,
+  allowedRoles?: ('admin' | 'guide')[]
+} = {}) {
+  return (req: TenantAwareRequest, res: Response, next: NextFunction) => {
+    const tenantContext = req.tenantContext;
+    
+    if (!tenantContext) {
+      console.log(`🚫 [TENANT-ENFORCE] Missing tenant context for ${resourceType}`);
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Role-based access control
+    if (options.allowedRoles && !options.allowedRoles.includes(tenantContext.role)) {
+      console.log(`🚫 [TENANT-ENFORCE] Role ${tenantContext.role} not permitted for ${resourceType}`);
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    // Attach outfitterId to request for automatic filtering
+    (req as any).outfitterId = tenantContext.outfitterId;
+    
+    console.log(`✅ [TENANT-ENFORCE] Tenant isolation enforced for ${resourceType} (outfitter: ${tenantContext.outfitterId})`);
+    next();
+  };
+}
