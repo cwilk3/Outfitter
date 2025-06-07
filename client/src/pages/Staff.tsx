@@ -198,9 +198,7 @@ export default function Staff() {
   // Delete user mutation
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      console.log('🔍 [STAFF-DELETE-FRONTEND] Calling DELETE API for user:', userId);
       const response = await apiRequest("DELETE", `/api/users/${userId}`);
-      console.log('✅ [STAFF-DELETE-FRONTEND] DELETE API response:', response);
       return response;
     },
     onSuccess: () => {
@@ -212,7 +210,6 @@ export default function Staff() {
       setUserToDelete(null);
     },
     onError: (error: Error) => {
-      console.error('❌ [STAFF-DELETE-FRONTEND] Error deleting staff member:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete staff member",
@@ -225,7 +222,6 @@ export default function Staff() {
   // Handle delete confirmation
   const handleDeleteConfirm = () => {
     if (userToDelete) {
-      console.log('🔍 [STAFF-DELETE-FRONTEND] User confirmed deletion for:', userToDelete.id);
       deleteMutation.mutate(userToDelete.id);
     }
   };

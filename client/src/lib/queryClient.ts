@@ -12,14 +12,7 @@ export async function apiRequest<T = Response>(
   url: string,
   data?: unknown | undefined,
 ): Promise<T> {
-  // --- START APIREQUEST DIAGNOSTIC LOGGING ---
-  console.log('🔍 [API_REQUEST_DEBUG] apiRequest called.');
-  console.log('🔍 [API_REQUEST_DEBUG] Method:', method);
-  console.log('🔍 [API_REQUEST_DEBUG] URL:', url);
-  console.log('🔍 [API_REQUEST_DEBUG] Request Body (data):', JSON.stringify(data, null, 2));
-  console.log('🔍 [API_REQUEST_DEBUG] Headers being set:', data ? { "Content-Type": "application/json" } : {});
-  console.log('🔍 [API_REQUEST_DEBUG] Credentials: include');
-  // --- END APIREQUEST DIAGNOSTIC LOGGING ---
+
 
   try {
     const res = await fetch(url, {
@@ -29,25 +22,19 @@ export async function apiRequest<T = Response>(
       credentials: "include",
     });
 
-    console.log('🔍 [API_REQUEST_DEBUG] Response received. Status:', res.status);
-    console.log('🔍 [API_REQUEST_DEBUG] Response OK:', res.ok);
-
     await throwIfResNotOk(res);
 
     // Handle 204 No Content status explicitly
     if (res.status === 204) {
-      console.log('🔍 [API_REQUEST_DEBUG] Status 204 No Content. Returning null.');
       return null as T;
     }
     
     // Parse JSON response if we're expecting something other than Response
     if (typeof Response !== 'undefined' && Response === Object(Response) && !(res instanceof Response)) {
-      console.log('🔍 [API_REQUEST_DEBUG] Returning response as-is (not parsing JSON).');
       return res as unknown as T;
     }
     
     try {
-      console.log('🔍 [API_REQUEST_DEBUG] Attempting to parse response as JSON.');
       return await res.json() as T;
     } catch (error) {
       console.warn('⚠️ [API_REQUEST_DEBUG] Failed to parse response as JSON, returning null for non-JSON OK status.');
