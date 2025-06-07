@@ -400,20 +400,20 @@ export default function Staff() {
                               )}
                             </Avatar>
                             <div>
-                              <div className="font-medium">{user.firstName} {user.lastName}</div>
-                              <div className="text-sm text-gray-500">@{user.username}</div>
+                              <div className="font-medium">{user ? `${user.firstName} ${user.lastName}` : 'Deleted User'}</div>
+                              <div className="text-sm text-gray-500">@{user?.username || 'deleted'}</div>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            {user.email && (
+                            {user?.email && (
                               <div className="flex items-center">
                                 <Mail className="h-4 w-4 mr-1 text-gray-500" />
                                 <span className="text-sm">{user.email}</span>
                               </div>
                             )}
-                            {user.phone && (
+                            {user?.phone && (
                               <div className="flex items-center mt-1">
                                 <Phone className="h-4 w-4 mr-1 text-gray-500" />
                                 <span className="text-sm">{user.phone}</span>
@@ -422,13 +422,19 @@ export default function Staff() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {user.role === 'admin' ? (
-                            <Badge className="bg-accent text-white flex items-center w-fit">
-                              <ShieldCheck className="h-3 w-3 mr-1" /> Administrator
-                            </Badge>
+                          {user ? (
+                            user.role === 'admin' ? (
+                              <Badge className="bg-accent text-white flex items-center w-fit">
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Administrator
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="flex items-center w-fit">
+                                <UserCog className="h-3 w-3 mr-1" /> Guide
+                              </Badge>
+                            )
                           ) : (
-                            <Badge variant="outline" className="flex items-center w-fit">
-                              <UserCog className="h-3 w-3 mr-1" /> Guide
+                            <Badge variant="secondary" className="flex items-center w-fit">
+                              <UserX className="h-3 w-3 mr-1" /> Deleted
                             </Badge>
                           )}
                         </TableCell>
