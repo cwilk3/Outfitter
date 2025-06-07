@@ -1,0 +1,54 @@
+Implementation Plan: Comprehensive deleteUser Process
+Overall Goal: To achieve a secure, tenant-aware user deletion system that prioritizes email reuse, maintains data integrity (especially for bookings), and ensures clarity in historical records.
+
+Phase 1: Backend Storage - Core deleteUser Logic (Server-Side Data Management)
+
+Goal: Implement the complex deleteUser function in server/storage.ts to handle all necessary database operations for deletion and associated cleanup, adhering to multi-tenancy and data integrity.
+
+Item 1.1: Update checkUserDeletability Method.
+
+Description: Refine the checkUserDeletability method to ensure it only blocks deletion if the user has active (non-completed/non-cancelled) bookings assigned to them within the current outfitterId. It should not block if the user has guide assignments, as those will be cleaned up.
+Reasoning: Aligns pre-deletion checks with clarified business rules.
+Item 1.2: Refine deleteUser Function (Complete Rewrite).
+
+Description: Implement the entire deleteUser function in server/storage.ts. This will be a complex function operating within a single database transaction. It will include:
+Calling checkUserDeletability.
+Auto-Assign Admin as Primary: Logic to find the admin and assign them as primary to experiences where the deleted guide was previously primary.
+Tenant-Scoped Guide Assignment Cleanup: Delete specific experience_guides entries linked to the current outfitterId.
+User-Outfitter Relationship Deletion: Remove the user_outfitters record for the current outfitterId.
+Conditional users Table Hard Delete: Hard-delete the users record only if the user has no other user_outfitters relationships remaining.
+Bookings Handling: Explicitly, this function will perform NO operations whatsoever on the bookings table.
+Reasoning: Implements all core deletion logic with transactions, tenant isolation, and new business rules.
+Item 1.3: Update IStorage Interface.
+
+Description: Update the IStorage interface in server/storage.ts to reflect the final signature of the refined deleteUser method.
+Reasoning: Maintains type safety and interface consistency.
+Phase 2: Backend API Route Integration (Connecting Frontend to Backend)
+
+Goal: Implement the DELETE /api/users/:id API route that frontend will call to initiate staff deletion.
+
+Item 2.1: Implement DELETE /api/users/:id Route.
+Description: Create this new route in server/routes.ts. It will include authentication middleware (requireAuth, addOutfitterContext), admin role check, self-deletion prevention, and call storage.deleteUser.
+Reasoning: Provides the endpoint for frontend deletion requests and enforces server-side security.
+Phase 3: Frontend UI/UX Integration (User Interaction)
+
+Goal: Implement the user interface elements for staff member deletion and manage the display of deleted users.
+
+Item 3.1: Implement "Delete" Button & Confirmation Dialog.
+
+Description: Add a "Delete" button to the staff list UI (e.g., in client/src/pages/Staff.tsx). Implement a confirmation dialog to prevent accidental deletions. Wire up a deleteMutation to call the DELETE /api/users/:id API endpoint.
+Reasoning: Provides the user with the ability to delete staff members safely.
+Item 3.2: Handle "Deleted User" Display in UI.
+
+Description: Modify frontend rendering logic in relevant components (e.g., booking details, experience assignment history, staff list) to display a placeholder like "Deleted User" or "Unassigned Guide" when a user_id is linked but the corresponding users record is no longer found.
+Reasoning: Aligns UI with "Historical Data Display" policy.
+Phase 4: Comprehensive Testing & Cleanup
+
+Goal: Thoroughly test the new deletion feature and remove any temporary diagnostic logging.
+
+Item 4.1: Manual Verification.
+Description: Perform detailed manual test scenarios for staff deletion (successful deletion, blocked deletion, self-deletion, multi-outfitter user deletion, impact on bookings/experiences).
+Reasoning: Ensures end-to-end functionality and adherence to all business rules.
+Item 4.2: Cleanup.
+Description: Remove all temporary diagnostic console.log statements related to staff deletion from both frontend and backend files.
+Reasoning: Maintains a clean, production-ready codebase.

@@ -276,7 +276,7 @@ export default function Bookings() {
                           </TableCell>
                           <TableCell>{experience?.name || 'Unknown Experience'}</TableCell>
                           <TableCell>
-                            {customer ? `${customer.firstName} ${customer.lastName}` : 'Unknown Customer'}
+                            {customer ? `${customer.firstName} ${customer.lastName}` : 'Deleted Customer'}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">

@@ -1,0 +1,54 @@
+Your primary task is to modify the frontend rendering logic in relevant components to gracefully display a placeholder (e.g., 'Deleted User', 'Unassigned Guide') when a user_id is linked to a record (like a booking or an experience assignment) but the corresponding users record has been hard-deleted from the database.
+
+Specific Focus Areas for Modification:
+
+Identify Affected Components: This primarily affects places where User details (like firstName, lastName, email) are displayed based on a user_id. Likely candidates include:
+
+Staff List: If a deleted user is somehow still in the list (though our deletion should remove them).
+Experience Guide Assignment Display: (client/src/components/ui/experience-guides.tsx) where assignedGuides are displayed.
+Booking Details: (e.g., client/src/pages/BookingDetails.tsx or similar) if guide is shown on a booking.
+Any historical views: (e.g., reports).
+(Replit: You will need to identify all relevant places where a User's name might be displayed based on their ID.)
+Implement Display Logic: For each identified location:
+
+The data coming from the backend query (getExperience, listExperiences, getBooking) will now include assignedGuides with guideUser that could be null or undefined if the users record was hard-deleted.
+Modify the JSX/rendering logic to check for the presence of guideUser (or user object) before trying to display its properties (firstName, lastName).
+If guideUser (or user object) is missing/null, display the placeholder text.
+Proposed Code Changes:
+
+You will need to analyze the frontend code to propose the exact diffs. The primary pattern will be:
+
+Example Pattern (applying to all relevant components/files):
+
+TypeScript
+
+// BEFORE (Problematic):
+<span>{assignedGuide.guideUser.firstName} {assignedGuide.guideUser.lastName}</span>
+// OR
+<span>{booking.assignedGuideUser.name}</span>
+
+// AFTER (Proposed Fix - with null/undefined check):
+<span>
+  {assignedGuide.guideUser 
+    ? `${assignedGuide.guideUser.firstName || ''} ${assignedGuide.guideUser.lastName || ''}`.trim() 
+    : 'Deleted Guide'} {/* <--- ADD THIS CHECK */}
+</span>
+// OR
+<span>
+  {booking.assignedGuideUser 
+    ? booking.assignedGuideUser.name 
+    : 'Deleted User'} {/* <--- ADD THIS CHECK */}
+</span>
+(Replit: Please identify all necessary components and apply this pattern strategically.)
+
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview that includes all modified frontend files.
+
+Success Criteria for My Approval (for this display fix):
+
+The frontend correctly displays "Deleted User" or "Unassigned Guide" (or similar placeholder) in all relevant locations when a user_id exists in a relationship table but the corresponding users record is missing.
+The display logic uses null/undefined checks (e.g., optional chaining ?. or conditional rendering) to prevent runtime errors.
+No other unrelated functional code is affected.
+Emergency Protocols: (Same as Item 1.1 in overall plan)
+
+I will not approve further steps until these criteria are met. This will complete the frontend display for deleted users!

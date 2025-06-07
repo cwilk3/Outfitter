@@ -128,7 +128,9 @@ export default function UpcomingBookings() {
                     {booking.guides && booking.guides.length > 0 && (
                       <span className="flex items-center">
                         <User className="h-4 w-4 mr-1 text-gray-400" />
-                        Guide: {booking.guides[0].guideFirstName} {booking.guides[0].guideLastName}
+                        Guide: {booking.guides[0].guideFirstName && booking.guides[0].guideLastName 
+                          ? `${booking.guides[0].guideFirstName} ${booking.guides[0].guideLastName}`
+                          : 'Deleted Guide'}
                       </span>
                     )}
                   </div>

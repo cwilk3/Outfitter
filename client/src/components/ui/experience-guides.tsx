@@ -317,7 +317,7 @@ export function ExperienceGuides({
   // Get guide name from available guides
   const getGuideName = (guideId: string) => {
     const guide = availableGuides.find((g: Guide) => g.id === guideId);
-    if (!guide) return 'Unknown Guide';
+    if (!guide) return 'Deleted Guide';
     return `${guide.firstName || ''} ${guide.lastName || ''}`.trim() || guide.email || 'No Name';
   };
 
@@ -403,7 +403,7 @@ export function ExperienceGuides({
                 ) : (
                   availableForSelection.map((guide: Guide) => (
                     <SelectItem key={guide.id} value={guide.id}>
-                      {`${guide.firstName || ''} ${guide.lastName || ''}`.trim() || guide.email || 'No Name'}
+                      {guide ? (`${guide.firstName || ''} ${guide.lastName || ''}`.trim() || guide.email || 'No Name') : 'Deleted User'}
                     </SelectItem>
                   ))
                 )}
