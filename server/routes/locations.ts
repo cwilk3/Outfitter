@@ -56,7 +56,13 @@ router.get('/', guideOrAdmin, asyncHandler(async (req: Request, res: Response) =
 // Get location by ID
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
-  const location = await storage.getLocation(id);
+  const outfitterId = (req as any).user?.outfitterId;
+  
+  if (!outfitterId) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const location = await storage.getLocationWithTenant(id, outfitterId);
   
   if (!location) {
     return res.status(404).json({ message: 'Location not found' });

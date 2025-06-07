@@ -34,7 +34,13 @@ router.use(requireAuth, addOutfitterContext);
 
 // Dashboard statistics
 router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
-  const stats = await storage.getDashboardStats();
+  const outfitterId = (req as any).user?.outfitterId;
+  
+  if (!outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const stats = await storage.getDashboardStatsByOutfitter(outfitterId);
   res.json(stats);
 }));
 

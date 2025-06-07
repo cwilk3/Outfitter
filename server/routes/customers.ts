@@ -56,7 +56,13 @@ router.get('/:id',
   validate({ params: customerValidation.customerIdParam }),
   asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const customer = await storage.getCustomer(parseInt(id));
+    const outfitterId = (req as any).user?.outfitterId;
+    
+    if (!outfitterId) {
+      throwError('Authentication required', 401);
+    }
+    
+    const customer = await storage.getCustomerWithTenant(parseInt(id), outfitterId);
     
     if (!customer) {
       throwError('Customer not found', 404);

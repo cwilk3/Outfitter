@@ -120,6 +120,7 @@ export interface IStorage {
   
   // Dashboard operations
   getDashboardStats(): Promise<any>;
+  getDashboardStatsByOutfitter(outfitterId: number): Promise<any>;
   getUpcomingBookings(limit?: number, outfitterId?: number): Promise<any[]>;
   
   // Additional methods needed by routes (avoid duplication with main interface)
@@ -372,6 +373,19 @@ export class DatabaseStorage implements IStorage {
   // Location operations
   async getLocation(id: number): Promise<Location | undefined> {
     const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location;
+  }
+
+  async getLocationWithTenant(id: number, outfitterId: number): Promise<Location | undefined> {
+    const [location] = await db
+      .select()
+      .from(locations)
+      .where(
+        and(
+          eq(locations.id, id),
+          eq(locations.outfitterId, outfitterId)
+        )
+      );
     return location;
   }
   
@@ -1314,6 +1328,19 @@ export class DatabaseStorage implements IStorage {
     return customer;
   }
 
+  async getCustomerWithTenant(id: number, outfitterId: number): Promise<Customer | undefined> {
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(
+        and(
+          eq(customers.id, id),
+          eq(customers.outfitterId, outfitterId)
+        )
+      );
+    return customer;
+  }
+
   async createCustomer(customerData: InsertCustomer): Promise<Customer> {
     const [customer] = await db
       .insert(customers)
@@ -1654,6 +1681,64 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(bookings)
       .where(eq(bookings.status, 'completed'));
+    
+    return {
+      upcomingBookings: upcomingBookingsResult[0]?.count || 0,
+      monthlyRevenue: parseFloat(monthlyRevenueResult[0]?.sum || '0'),
+      activeCustomers: activeCustomersResult[0]?.count || 0,
+      completedTrips: completedTripsResult[0]?.count || 0
+    };
+  }
+
+  async getDashboardStatsByOutfitter(outfitterId: number): Promise<any> {
+    const now = new Date();
+    
+    // Get upcoming bookings count for this outfitter
+    const upcomingBookingsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookings)
+      .where(and(
+        gte(bookings.startDate, now),
+        eq(bookings.status, 'confirmed'),
+        eq(bookings.outfitterId, outfitterId)
+      ));
+    
+    // Get monthly revenue for this outfitter
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const monthlyRevenueResult = await db
+      .select({ 
+        sum: sql<string>`SUM(${payments.amount})` 
+      })
+      .from(payments)
+      .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+      .where(and(
+        gte(payments.createdAt, startOfMonth),
+        lte(payments.createdAt, endOfMonth),
+        eq(payments.status, 'completed'),
+        eq(bookings.outfitterId, outfitterId)
+      ));
+    
+    // Get active customers count for this outfitter
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    const activeCustomersResult = await db
+      .select({ count: sql<number>`count(DISTINCT ${bookings.customerId})` })
+      .from(bookings)
+      .where(and(
+        gte(bookings.createdAt, threeMonthsAgo),
+        inArray(bookings.status, ['confirmed', 'deposit_paid', 'paid', 'completed']),
+        eq(bookings.outfitterId, outfitterId)
+      ));
+    
+    // Get completed trips count for this outfitter
+    const completedTripsResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(bookings)
+      .where(and(
+        eq(bookings.status, 'completed'),
+        eq(bookings.outfitterId, outfitterId)
+      ));
     
     return {
       upcomingBookings: upcomingBookingsResult[0]?.count || 0,
