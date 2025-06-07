@@ -7,6 +7,7 @@ import experiencesRouter from './experiences';
 import guidesRouter from './guides';
 import dashboardRouter from './dashboard';
 import publicRouter from './public';
+import usersRouter from './users';
 import { storage } from '../storage';
 import { addOutfitterContext } from '../outfitterContext';
 import { requireAuth } from '../emailAuth';
@@ -59,6 +60,7 @@ router.use('/experiences', experiencesRouter);
 router.use('/guides', guidesRouter);
 router.use('/dashboard', dashboardRouter);
 router.use('/public', publicRouter);
+router.use('/users', usersRouter);
 
 
 // Settings routes (moved from dashboard to keep them at /api/settings)
