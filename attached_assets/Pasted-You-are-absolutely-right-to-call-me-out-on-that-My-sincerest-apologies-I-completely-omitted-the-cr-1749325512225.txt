@@ -1,0 +1,88 @@
+You are absolutely right to call me out on that! My sincerest apologies. I completely omitted the crucial emergency protocols and critical disruption protocol from the previous prompt. That was an oversight on my part, and I deeply regret it.
+
+I will now provide the exact prompt, ensuring all standard elements and protocols are precisely included.
+
+EXACT PROMPT FOR REPLIT: Implement Diagnostic Logging for deleteUser Conditional Hard Delete
+
+"Thank you for this precise diagnosis of the deleteUser hard delete failure. The problem is definitively in the conditional hard deletion logic, likely within the transaction.
+
+Your primary task is to implement highly targeted diagnostic logging around the otherRelations.count check and the conditional db.delete(users) call within the deleteUser function in server/storage.ts.
+
+Specific Focus Areas for Modification:
+
+File: server/storage.ts
+Location: Inside the async deleteUser(...) function, specifically around Step 4 and 5 in the db.transaction block.
+Proposed Code Changes (applying to deleteUser):
+
+Find this block (within deleteUser's transaction, starting from Step 4):
+
+TypeScript
+
+async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    // ... previous steps (deletability check, auto-assign, guide cleanup, user-outfitter delete) ...
+
+    // Step 4: Check if the user is associated with any other outfitters
+    const [otherRelations] = await tx.select({ count: sql<number>`count(*)` })
+      .from(userOutfitters)
+      .where(eq(userOutfitters.userId, userId));
+
+    // Step 5: Only hard delete the user record if no other outfitter relationships exist
+    if (otherRelations.count === 0) {
+      await tx.delete(users)
+        .where(eq(users.id, userId));
+      console.log(`✅ [DELETE_USER_DEBUG] Hard deleted user ${userId} (no other outfitter relations).`);
+    } else {
+      console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelations.count} other outfitters).`);
+    }
+    
+    return true; // Deletion from current outfitter successful
+  });
+}
+Replace it with (adding diagnostic logs for otherRelations.count):
+
+TypeScript
+
+async deleteUser(userId: string, outfitterId: number): Promise<boolean> {
+  return await db.transaction(async (tx) => {
+    // ... previous steps (deletability check, auto-assign, guide cleanup, user-outfitter delete) ...
+
+    // Step 4: Check if the user is associated with any other outfitters
+    console.log(`🔍 [DELETE_USER_DEBUG] Checking for other outfitter relations for user ${userId} AFTER tenant-specific deletion.`); // <--- ADD THIS LOG
+    const [otherRelationsResult] = await tx.select({ count: sql<number>`count(*)` })
+      .from(userOutfitters)
+      .where(eq(userOutfitters.userId, userId));
+    const otherRelationsCount = otherRelationsResult?.count || 0; // Ensure count is a number, default to 0
+    
+    console.log(`🔍 [DELETE_USER_DEBUG] Other relations count found: ${otherRelationsCount} for user ${userId}.`); // <--- ADD THIS LOG
+
+    // Step 5: Only hard delete the user record if no other outfitter relationships exist
+    if (otherRelationsCount === 0) { // <--- USE THE LOGGED VARIABLE
+      console.log(`🔍 [DELETE_USER_DEBUG] User ${userId} has no other relations. Attempting hard delete from 'users' table.`); // <--- ADD THIS LOG
+      await tx.delete(users)
+        .where(eq(users.id, userId));
+      console.log(`✅ [DELETE_USER_DEBUG] Hard deleted user ${userId} (no other outfitter relations).`);
+    } else {
+      console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelationsCount} other outfitters).`);
+    }
+    
+    return true; // Deletion from current outfitter successful
+  });
+}
+Output Required for My Review:
+Once you have implemented this modification, please provide a comprehensive diff preview for server/storage.ts. After approval, you will perform Scenario 1 (Successful Deletion) again and provide the complete server console output.
+
+Success Criteria for My Approval (for this diagnostic phase):
+
+All specified 🔍 [DELETE_USER_DEBUG] logs are correctly added around the otherRelations query and conditional delete statement.
+The logs correctly capture the otherRelationsCount value.
+No other unrelated functional code is affected beyond these specific logs.
+The purpose is solely diagnostic; no functional fix is expected from this specific diff.
+Emergency Protocols:
+
+If you see compilation errors after implementing, report the exact error and ask for specific fix approval.
+If testing reveals issues, describe the problem and wait for instructions.
+Never exceed the scope of what is explicitly requested.
+Ask for permission before making any code modifications.
+CRITICAL DISRUPTION PROTOCOL (Active): If, during implementation, you identify that a proposed change (or the only way to implement it) will disrupt, break, or require significant re-work in other, seemingly unrelated areas of the platform, you must stop immediately. Report your findings, explain the potential disruption, and await explicit approval for how to proceed, even if it delays the current task.
+I will not approve further steps until these criteria are met. This will pinpoint why hard delete is failing!

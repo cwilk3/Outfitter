@@ -1951,18 +1951,23 @@ export class DatabaseStorage implements IStorage {
       console.log(`✅ [DELETE_USER_DEBUG] Removed user ${userId} from outfitter ${outfitterId}.`);
 
       // Step 4: Check if the user is associated with any other outfitters
+      console.log(`🔍 [DELETE_USER_DEBUG] Checking for other outfitter relations for user ${userId} AFTER tenant-specific deletion.`);
       const [otherRelations] = await tx.select({ count: sql<number>`count(*)` })
         .from(userOutfitters)
         .where(eq(userOutfitters.userId, userId));
+      const otherRelationsCount = otherRelations?.count || 0;
+      
+      console.log(`🔍 [DELETE_USER_DEBUG] Other relations count found: ${otherRelationsCount} for user ${userId}.`);
 
       // Step 5: Only hard delete the user record if no other outfitter relationships exist
       // This allows email reuse while maintaining multi-tenancy for globally linked users.
-      if (otherRelations.count === 0) {
+      if (otherRelationsCount === 0) {
+        console.log(`🔍 [DELETE_USER_DEBUG] User ${userId} has no other relations. Attempting hard delete from 'users' table.`);
         await tx.delete(users)
           .where(eq(users.id, userId));
         console.log(`✅ [DELETE_USER_DEBUG] Hard deleted user ${userId} (no other outfitter relations).`);
       } else {
-        console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelations.count} other outfitters).`);
+        console.log(`ℹ️ [DELETE_USER_DEBUG] User ${userId} retained (still linked to ${otherRelationsCount} other outfitters).`);
         // If user is retained, their email is NOT immediately available for global reuse.
         // The business policy prioritizes multi-tenancy and data integrity over global email reuse.
       }
