@@ -8,6 +8,7 @@ import { insertBookingSchema, insertBookingGuideSchema, bookings, bookingGuides 
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
+import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
 import { db } from '../db';
 import { eq, and, exists } from 'drizzle-orm';
 
@@ -58,8 +59,8 @@ const bookingValidation = {
   }, { message: 'At least one field must be provided for update' })
 };
 
-// Apply auth, outfitter context, tenant validation, and advanced security to all booking routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('bookings'), ...enableTenantSecurity());
+// Apply complete enterprise-grade tenant security stack to all booking routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('bookings'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
 // Get all bookings for outfitter with validation
 router.get('/', 

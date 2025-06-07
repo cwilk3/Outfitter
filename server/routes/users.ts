@@ -7,6 +7,7 @@ import { hashPassword } from '../emailAuth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity } from '../middleware/tenantSecurity';
+import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
 
 const router = Router();
 
@@ -37,8 +38,8 @@ const adminOnly = (req: any, res: any, next: any) => {
   next();
 };
 
-// Apply auth, outfitter context, tenant validation, and advanced security to all user routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('users', { allowedRoles: ['admin'] }), ...enableTenantSecurity());
+// Apply complete enterprise-grade tenant security stack to all user routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('users', { allowedRoles: ['admin'] }), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
 // GET /api/users - List users for staff management
 router.get('/', asyncHandler(async (req: TenantAwareRequest, res: any) => {

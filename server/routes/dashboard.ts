@@ -7,6 +7,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { insertSettingsSchema } from '@shared/schema';
 import { withTenantValidation, enforceTenantIsolation, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity } from '../middleware/tenantSecurity';
+import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
 
 const router = Router();
 
@@ -31,8 +32,8 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 
 const adminOnly = hasRole('admin');
 
-// Apply auth, outfitter context, tenant validation, and advanced security to all dashboard routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('dashboard'), ...enableTenantSecurity());
+// Apply complete enterprise-grade tenant security stack to all dashboard routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('dashboard'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
 // Dashboard statistics
 router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
