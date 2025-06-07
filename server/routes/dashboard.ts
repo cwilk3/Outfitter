@@ -5,6 +5,7 @@ import { requireAuth } from '../emailAuth';
 import { addOutfitterContext } from '../outfitterContext';
 import { asyncHandler } from '../utils/asyncHandler';
 import { insertSettingsSchema } from '@shared/schema';
+import { withTenantValidation, enforceTenantIsolation, TenantAwareRequest } from '../middleware/tenantValidation';
 
 const router = Router();
 
@@ -29,8 +30,8 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 
 const adminOnly = hasRole('admin');
 
-// Apply auth and outfitter context to all dashboard routes
-router.use(requireAuth, addOutfitterContext);
+// Apply auth, outfitter context, and tenant validation to all dashboard routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('dashboard'));
 
 // Dashboard statistics
 router.get('/stats', asyncHandler(async (req: Request, res: Response) => {

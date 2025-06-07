@@ -6,6 +6,7 @@ import { addOutfitterContext } from '../outfitterContext';
 import { asyncHandler, throwError } from '../utils/asyncHandler';
 import { insertBookingSchema, insertBookingGuideSchema, bookings, bookingGuides } from '@shared/schema';
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
+import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 import { db } from '../db';
 import { eq, and, exists } from 'drizzle-orm';
 
@@ -56,8 +57,8 @@ const bookingValidation = {
   }, { message: 'At least one field must be provided for update' })
 };
 
-// Apply auth and outfitter context to all booking routes
-router.use(requireAuth, addOutfitterContext);
+// Apply auth, outfitter context, and tenant validation to all booking routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('bookings'));
 
 // Get all bookings for outfitter with validation
 router.get('/', 

@@ -31,8 +31,8 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 
 const adminOnly = hasRole('admin');
 
-// Apply auth and outfitter context to all experience routes
-router.use(requireAuth, addOutfitterContext);
+// Apply auth, outfitter context, and tenant validation to all experience routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('experiences'));
 
 // Get all experiences
 router.get('/', asyncHandler(async (req: Request, res: Response) => {

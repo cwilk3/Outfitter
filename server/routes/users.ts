@@ -5,6 +5,7 @@ import { addOutfitterContext } from '../outfitterContext';
 import { storage } from '../storage';
 import { hashPassword } from '../emailAuth';
 import { asyncHandler } from '../utils/asyncHandler';
+import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 
 const router = Router();
 
