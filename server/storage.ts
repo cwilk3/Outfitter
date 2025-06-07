@@ -86,6 +86,7 @@ export interface IStorage {
   
   // Booking operations
   getBooking(id: number): Promise<Booking | undefined>;
+  getBookingWithTenant(id: number, outfitterId: number): Promise<Booking | undefined>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: number, booking: Partial<InsertBooking>): Promise<Booking | undefined>;
   listBookings(outfitterId?: number, filters?: { status?: string, startDate?: Date, endDate?: Date }): Promise<Booking[]>;
@@ -114,7 +115,9 @@ export interface IStorage {
   
   // Settings operations
   getSettings(): Promise<Settings | undefined>;
+  getSettingsByOutfitter(outfitterId: number): Promise<Settings | undefined>;
   updateSettings(settings: InsertSettings): Promise<Settings>;
+  updateSettingsByOutfitter(settings: InsertSettings, outfitterId: number): Promise<Settings>;
   
 
   
@@ -1377,6 +1380,17 @@ export class DatabaseStorage implements IStorage {
     return booking;
   }
 
+  async getBookingWithTenant(id: number, outfitterId: number): Promise<Booking | undefined> {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(and(
+        eq(bookings.id, id),
+        eq(bookings.outfitterId, outfitterId)
+      ));
+    return booking;
+  }
+
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     const [booking] = await db
       .insert(bookings)
@@ -1618,6 +1632,14 @@ export class DatabaseStorage implements IStorage {
     return settingsRecord;
   }
 
+  async getSettingsByOutfitter(outfitterId: number): Promise<Settings | undefined> {
+    const [settingsRecord] = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.outfitterId, outfitterId));
+    return settingsRecord;
+  }
+
   async updateSettings(settingsData: InsertSettings): Promise<Settings> {
     const existingSettings = await this.getSettings();
     
@@ -1632,6 +1654,31 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db
         .insert(settings)
         .values(settingsData)
+        .returning();
+      return result;
+    }
+  }
+
+  async updateSettingsByOutfitter(settingsData: InsertSettings, outfitterId: number): Promise<Settings> {
+    const existingSettings = await this.getSettingsByOutfitter(outfitterId);
+    
+    if (existingSettings) {
+      const [result] = await db
+        .update(settings)
+        .set({...settingsData, updatedAt: new Date()})
+        .where(and(
+          eq(settings.id, existingSettings.id),
+          eq(settings.outfitterId, outfitterId)
+        ))
+        .returning();
+      return result;
+    } else {
+      const [result] = await db
+        .insert(settings)
+        .values({
+          ...settingsData,
+          outfitterId
+        })
         .returning();
       return result;
     }

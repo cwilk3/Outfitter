@@ -53,15 +53,27 @@ router.get('/upcoming-bookings', asyncHandler(async (req: Request, res: Response
 
 // Settings routes
 router.get('/settings', asyncHandler(async (req: Request, res: Response) => {
-  // Temporary bypass to prevent UI blocking - will restore proper storage after authentication implementation
-  res.json({
-    companyName: 'Outfitter Demo',
-    companyAddress: '',
-    companyPhone: '',
-    companyEmail: '',
-    companyLogo: '',
-    bookingLink: ''
-  });
+  const outfitterId = (req as any).user?.outfitterId;
+  
+  if (!outfitterId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  const settings = await storage.getSettingsByOutfitter(outfitterId);
+  
+  if (settings) {
+    res.json(settings);
+  } else {
+    // Return empty settings for new outfitters
+    res.json({
+      companyName: '',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      companyLogo: '',
+      bookingLink: ''
+    });
+  }
 }));
 
 router.post('/settings', adminOnly, asyncHandler(async (req: Request, res: Response) => {
@@ -80,7 +92,7 @@ router.post('/settings', adminOnly, asyncHandler(async (req: Request, res: Respo
   console.log(`[TENANT-VERIFIED] Settings update for outfitter ${outfitterId}`);
 
   // ✅ SAFE OPERATION: Update settings for authenticated outfitter
-  const settings = await storage.updateSettings(validatedData);
+  const settings = await storage.updateSettingsByOutfitter(validatedData, outfitterId);
 
   console.log(`[TENANT-SUCCESS] Settings updated successfully for outfitter ${outfitterId}`);
   return res.json(settings);
