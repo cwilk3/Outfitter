@@ -64,7 +64,8 @@ import {
   UserCog,
   ShieldCheck,
   ShieldAlert,
-  Trash2
+  Trash2,
+  UserCheck
 } from "lucide-react";
 
 // Define form validation schema
@@ -434,7 +435,7 @@ export default function Staff() {
                             )
                           ) : (
                             <Badge variant="secondary" className="flex items-center w-fit">
-                              <UserX className="h-3 w-3 mr-1" /> Deleted
+                              <UserCheck className="h-3 w-3 mr-1" /> Deleted
                             </Badge>
                           )}
                         </TableCell>

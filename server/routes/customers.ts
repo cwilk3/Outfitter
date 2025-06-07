@@ -40,8 +40,8 @@ const customerValidation = {
   }, { message: 'At least one field must be provided for update' })
 };
 
-// Apply auth, outfitter context, tenant validation, and advanced security to all customer routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'), ...enableTenantSecurity());
+// Apply complete enterprise-grade tenant security stack to all customer routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
 // Get all customers with validation
 router.get('/', 
