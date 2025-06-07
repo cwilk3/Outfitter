@@ -6,6 +6,7 @@ import { addOutfitterContext, AuthenticatedRequest } from '../outfitterContext';
 import { asyncHandler } from '../utils/asyncHandler';
 import { insertLocationSchema } from '@shared/schema';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
+import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
 
 const router = Router();
 
@@ -31,8 +32,8 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 const guideOrAdmin = hasRole('guide');
 const adminOnly = hasRole('admin');
 
-// Apply auth, outfitter context, and tenant validation to all location routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('locations'));
+// Apply auth, outfitter context, tenant validation, and advanced security to all location routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('locations'), ...enableTenantSecurity());
 
 // Debug middleware to track all requests to this router
 router.use((req, res, next) => {

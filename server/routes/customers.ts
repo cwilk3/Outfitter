@@ -8,6 +8,7 @@ import { insertCustomerSchema } from '@shared/schema';
 import { validate, commonSchemas, businessRules } from '../middleware/validation';
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
+import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
 
 const router = Router();
 
