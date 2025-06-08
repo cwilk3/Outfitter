@@ -8,6 +8,8 @@ import { insertSettingsSchema } from '@shared/schema';
 import { withTenantValidation, enforceTenantIsolation, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity } from '../middleware/tenantSecurity';
 import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
+import { tenantCache, cacheKeys } from '../cache/tenantCache';
+import { createTenantRateLimit } from '../middleware/tenantRateLimit';
 
 const router = Router();
 
