@@ -51,7 +51,7 @@ export function cacheInvalidationMiddleware() {
     // Store original end method
     const originalEnd = res.end;
     
-    res.end = function(chunk?: any, encoding?: BufferEncoding, cb?: () => void) {
+    res.end = function(...args: any[]) {
       // Only invalidate on successful responses
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const routeKey = `${req.method}:${req.route?.path || req.path}`;
@@ -86,7 +86,7 @@ export function cacheInvalidationMiddleware() {
         }
       }
       
-      return originalEnd.call(this, chunk, encoding, cb);
+      return originalEnd.apply(this, args);
     };
     
     next();
