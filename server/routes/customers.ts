@@ -9,6 +9,8 @@ import { validate, commonSchemas, businessRules } from '../middleware/validation
 import { withTenantValidation, enforceTenantIsolation, validateTenantParam, TenantAwareRequest } from '../middleware/tenantValidation';
 import { enableTenantSecurity, verifyResourceOwnership } from '../middleware/tenantSecurity';
 import { enableComprehensiveTenantSecurity } from '../middleware/tenantSecurityValidator';
+import { createTenantRateLimit } from '../middleware/tenantRateLimit';
+import { cacheInvalidationMiddleware } from '../middleware/cacheInvalidation';
 
 const router = Router();
 
@@ -40,8 +42,8 @@ const customerValidation = {
   }, { message: 'At least one field must be provided for update' })
 };
 
-// Apply complete enterprise-grade tenant security stack to all customer routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
+// Apply complete enterprise-grade tenant security and performance optimization stack to all customer routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('customers'), createTenantRateLimit('api'), cacheInvalidationMiddleware(), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
 // Get all customers with validation
 router.get('/', 

@@ -34,25 +34,44 @@ const hasRole = (requiredRole: 'admin' | 'guide') => async (req: Request, res: R
 
 const adminOnly = hasRole('admin');
 
-// Apply complete enterprise-grade tenant security stack to all dashboard routes
-router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('dashboard'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
+// Apply complete enterprise-grade tenant security stack with enhanced rate limiting to all dashboard routes
+router.use(requireAuth, addOutfitterContext, withTenantValidation(), enforceTenantIsolation('dashboard'), createTenantRateLimit('api'), ...enableTenantSecurity(), ...enableComprehensiveTenantSecurity());
 
-// Dashboard statistics
-router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
-  const outfitterId = (req as any).user?.outfitterId;
+// Dashboard statistics with caching
+router.get('/stats', asyncHandler(async (req: TenantAwareRequest, res: Response) => {
+  const outfitterId = req.tenantContext!.outfitterId;
   
-  if (!outfitterId) {
-    return res.status(401).json({ error: 'Authentication required' });
+  // Check cache first
+  const cachedStats = await tenantCache.get(cacheKeys.DASHBOARD_STATS, outfitterId);
+  if (cachedStats) {
+    return res.json(cachedStats);
   }
-  
+
   const stats = await storage.getDashboardStatsByOutfitter(outfitterId);
+  
+  // Cache for 2 minutes (dashboard data changes frequently)
+  await tenantCache.set(cacheKeys.DASHBOARD_STATS, stats, outfitterId, undefined, 2 * 60 * 1000);
+  
   res.json(stats);
 }));
 
-// Upcoming bookings
-router.get('/upcoming-bookings', asyncHandler(async (req: Request, res: Response) => {
+// Upcoming bookings with caching
+router.get('/upcoming-bookings', asyncHandler(async (req: TenantAwareRequest, res: Response) => {
+  const outfitterId = req.tenantContext!.outfitterId;
   const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-  const upcomingBookings = await storage.getUpcomingBookings(limit, (req as any).outfitterId);
+  
+  // Check cache first
+  const cacheParams = { limit };
+  const cachedBookings = await tenantCache.get(cacheKeys.UPCOMING_BOOKINGS, outfitterId, cacheParams);
+  if (cachedBookings) {
+    return res.json(cachedBookings);
+  }
+
+  const upcomingBookings = await storage.getUpcomingBookings(limit, outfitterId);
+  
+  // Cache for 5 minutes (booking data changes less frequently)
+  await tenantCache.set(cacheKeys.UPCOMING_BOOKINGS, upcomingBookings, outfitterId, cacheParams, 5 * 60 * 1000);
+  
   res.json(upcomingBookings);
 }));
 
